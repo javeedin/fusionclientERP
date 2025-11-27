@@ -109,30 +109,57 @@ namespace WMSApp.PrintManagement
             return (null, null);
         }
 
-        public List<PrintJobInfo> GetTripPrintJobs(string startDate, string tripId)
+        public List<PrintJob> GetTripPrintJobs(string startDate, string tripId)
         {
-            var allJobs = LoadPrintJobs();
+            var allJobs = LoadPrintJobsList();
             return allJobs.FindAll(j => j.TripDate == startDate && j.TripId == tripId);
         }
 
-        public List<PrintJobInfo> GetAllPrintJobs(string startDate, string endDate)
+        public List<PrintJob> GetAllPrintJobs(DateTime? startDate, DateTime? endDate)
         {
-            var allJobs = LoadPrintJobs();
+            var allJobs = LoadPrintJobsList();
+            if (startDate == null && endDate == null)
+                return allJobs;
+
             return allJobs.FindAll(j =>
-                string.Compare(j.TripDate, startDate) >= 0 &&
-                string.Compare(j.TripDate, endDate) <= 0);
+            {
+                if (string.IsNullOrEmpty(j.TripDate)) return false;
+                var jobDate = DateTime.Parse(j.TripDate);
+                bool afterStart = startDate == null || jobDate >= startDate.Value;
+                bool beforeEnd = endDate == null || jobDate <= endDate.Value;
+                return afterStart && beforeEnd;
+            });
         }
 
         public PrintJobStats GetPrintJobStats()
         {
-            var jobs = LoadPrintJobs();
+            var jobs = LoadPrintJobsList();
             return new PrintJobStats
             {
                 TotalJobs = jobs.Count,
-                CompletedJobs = jobs.FindAll(j => j.Status == "Completed").Count,
-                PendingJobs = jobs.FindAll(j => j.Status == "Pending").Count,
-                FailedJobs = jobs.FindAll(j => j.Status == "Failed").Count
+                CompletedJobs = jobs.FindAll(j => j.Status == PrintJobStatus.Completed || j.Status == PrintJobStatus.Printed).Count,
+                PendingJobs = jobs.FindAll(j => j.Status == PrintJobStatus.Pending).Count,
+                FailedJobs = jobs.FindAll(j => j.Status == PrintJobStatus.Failed).Count,
+                PendingDownload = jobs.FindAll(j => j.Status == PrintJobStatus.Pending || j.Status == PrintJobStatus.Downloading).Count,
+                DownloadCompleted = jobs.FindAll(j => j.Status == PrintJobStatus.Completed || j.Status == PrintJobStatus.Printed).Count
             };
+        }
+
+        private List<PrintJob> LoadPrintJobsList()
+        {
+            try
+            {
+                if (File.Exists(_printJobsPath))
+                {
+                    string json = File.ReadAllText(_printJobsPath);
+                    return JsonSerializer.Deserialize<List<PrintJob>>(json) ?? new List<PrintJob>();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[LocalStorageManager] Error loading print jobs: {ex.Message}");
+            }
+            return new List<PrintJob>();
         }
 
         private List<PrintJobInfo> LoadPrintJobs()
@@ -169,17 +196,43 @@ namespace WMSApp.PrintManagement
         }
     }
 
+    public enum PrintJobStatus
+    {
+        Pending,
+        Downloading,
+        Completed,
+        Printing,
+        Printed,
+        Failed
+    }
+
     public class PrintJobInfo
     {
         public string JobId { get; set; }
         public string OrderNumber { get; set; }
         public string TripId { get; set; }
         public string TripDate { get; set; }
-        public string Status { get; set; }
+        public PrintJobStatus Status { get; set; }
         public string FilePath { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
         public DateTime? PrintedAt { get; set; }
         public string ErrorMessage { get; set; }
+    }
+
+    public class PrintJob
+    {
+        public string OrderNumber { get; set; }
+        public string TripId { get; set; }
+        public string TripDate { get; set; }
+        public PrintJobStatus Status { get; set; }
+        public string DownloadStatus { get; set; }
+        public string FilePath { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public string ErrorMessage { get; set; }
+        public string CustomerName { get; set; }
+        public string AccountNumber { get; set; }
     }
 
     public class PrintJobStats
@@ -188,5 +241,7 @@ namespace WMSApp.PrintManagement
         public int CompletedJobs { get; set; }
         public int PendingJobs { get; set; }
         public int FailedJobs { get; set; }
+        public int PendingDownload { get; set; }
+        public int DownloadCompleted { get; set; }
     }
 }

@@ -23,14 +23,14 @@ namespace WMSApp
             _printerService = new PrinterService();
         }
 
-        public static async Task<List<PrintJobInfo>> GetAllPrintJobsAsync()
+        public static async Task<List<PrintJob>> GetAllPrintJobsAsync()
         {
             return await Task.Run(() =>
             {
                 var manager = new LocalStorageManager();
                 return manager.GetAllPrintJobs(
-                    DateTime.Now.AddDays(-30).ToString("yyyy-MM-dd"),
-                    DateTime.Now.ToString("yyyy-MM-dd"));
+                    DateTime.Now.AddDays(-30),
+                    DateTime.Now);
             });
         }
 
@@ -56,6 +56,47 @@ namespace WMSApp
                     Message = $"Auto-print enabled for Trip {tripId}",
                     TripId = tripId,
                     TripDate = tripDate
+                };
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PrintJobManager] EnableAutoPrint Error: {ex.Message}");
+                return new AutoPrintResult
+                {
+                    Success = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
+        // Overload with orders list
+        public async Task<AutoPrintResult> EnableAutoPrintAsync(
+            string tripId,
+            string tripDate,
+            List<OrderInfo> orders)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[PrintJobManager] Enabling auto-print for Trip: {tripId}, Date: {tripDate}, Orders: {orders?.Count ?? 0}");
+
+                _autoPrintEnabled = true;
+                _currentTripId = tripId;
+                _currentTripDate = tripDate;
+
+                var tripConfig = new TripConfig
+                {
+                    TripId = tripId,
+                    TripDate = tripDate,
+                    Orders = orders ?? new List<OrderInfo>()
+                };
+
+                return new AutoPrintResult
+                {
+                    Success = true,
+                    Message = $"Auto-print enabled for Trip {tripId} with {orders?.Count ?? 0} orders",
+                    TripId = tripId,
+                    TripDate = tripDate,
+                    TripConfig = tripConfig
                 };
             }
             catch (Exception ex)
@@ -143,6 +184,70 @@ namespace WMSApp
             }
         }
 
+        // Simplified overload that uses stored credentials
+        public async Task<DownloadResult> DownloadSingleOrderAsync(
+            string orderNumber,
+            string tripId,
+            string tripDate)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[PrintJobManager] Downloading order (simple): {orderNumber}");
+
+                // Get credentials from storage
+                var credentials = _storageManager.GetFusionCredentials();
+                var config = _storageManager.LoadPrinterConfig();
+
+                if (string.IsNullOrEmpty(credentials.Username))
+                {
+                    return new DownloadResult
+                    {
+                        Success = false,
+                        Message = "Fusion credentials not configured"
+                    };
+                }
+
+                var downloader = new FusionPdfDownloader();
+                var result = await downloader.DownloadSalesOrderPdfAsync(
+                    orderNumber,
+                    config?.FusionInstance ?? "",
+                    credentials.Username,
+                    credentials.Password);
+
+                if (result.Success)
+                {
+                    string folderPath = Path.Combine(@"C:\fusion", tripDate, tripId);
+                    Directory.CreateDirectory(folderPath);
+
+                    string filePath = Path.Combine(folderPath, $"{orderNumber}.pdf");
+                    byte[] pdfBytes = Convert.FromBase64String(result.Base64Content);
+                    await File.WriteAllBytesAsync(filePath, pdfBytes);
+
+                    return new DownloadResult
+                    {
+                        Success = true,
+                        Message = $"Downloaded {orderNumber}",
+                        FilePath = filePath
+                    };
+                }
+
+                return new DownloadResult
+                {
+                    Success = false,
+                    Message = result.ErrorMessage
+                };
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PrintJobManager] Download Error: {ex.Message}");
+                return new DownloadResult
+                {
+                    Success = false,
+                    Message = ex.Message
+                };
+            }
+        }
+
         public async Task<PrintSingleResult> PrintSingleOrderAsync(
             string orderNumber,
             string tripId,
@@ -191,7 +296,7 @@ namespace WMSApp
                 System.Diagnostics.Debug.WriteLine($"[PrintJobManager] Retrying failed jobs for Trip: {tripId}");
 
                 var jobs = _storageManager.GetTripPrintJobs(tripDate, tripId);
-                var failedJobs = jobs.FindAll(j => j.Status == "Failed");
+                var failedJobs = jobs.FindAll(j => j.Status == PrintJobStatus.Failed);
 
                 int retried = 0;
                 foreach (var job in failedJobs)
@@ -225,6 +330,14 @@ namespace WMSApp
         public string Message { get; set; }
         public string TripId { get; set; }
         public string TripDate { get; set; }
+        public TripConfig TripConfig { get; set; }
+    }
+
+    public class TripConfig
+    {
+        public string TripId { get; set; }
+        public string TripDate { get; set; }
+        public List<OrderInfo> Orders { get; set; }
     }
 
     public class DownloadResult

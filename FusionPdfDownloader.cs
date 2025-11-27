@@ -83,6 +83,30 @@ namespace WMSApp.PrintManagement
             }
         }
 
+        public async Task<FusionPdfResult> DownloadSalesOrderPdfAsync(
+            string orderNumber,
+            string instance,
+            string username,
+            string password)
+        {
+            // Default Sales Order report path
+            const string DEFAULT_SALES_ORDER_REPORT = "/Custom/WMS/Sales Order Report.xdo";
+            var result = await DownloadGenericReportPdfAsync(
+                DEFAULT_SALES_ORDER_REPORT,
+                "Order_Number",
+                orderNumber,
+                instance,
+                username,
+                password);
+
+            return new FusionPdfResult
+            {
+                Success = result.Success,
+                Base64Content = result.Base64Content,
+                ErrorMessage = result.ErrorMessage
+            };
+        }
+
         public async Task<ReportDataResult> DownloadGenericReportAsync(
             string reportPath,
             string parameterName,
@@ -248,6 +272,9 @@ namespace WMSApp.PrintManagement
         public string Base64Content { get; set; }
         public string ErrorMessage { get; set; }
     }
+
+    // Alias for backward compatibility
+    public class FusionPdfResult : PdfDownloadResult { }
 
     public class ReportDataResult
     {

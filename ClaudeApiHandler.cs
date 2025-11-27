@@ -135,6 +135,7 @@ namespace WMSApp
                     {
                         Success = true,
                         Response = content,
+                        ResponseJson = content,
                         Model = model
                     };
                 }
@@ -143,6 +144,7 @@ namespace WMSApp
                 {
                     Success = false,
                     Message = $"Query failed: {response.StatusCode}",
+                    Error = $"Query failed: {response.StatusCode}",
                     Response = responseContent
                 };
             }
@@ -152,9 +154,28 @@ namespace WMSApp
                 return new ClaudeQueryResult
                 {
                     Success = false,
-                    Message = $"Error: {ex.Message}"
+                    Message = $"Error: {ex.Message}",
+                    Error = ex.Message
                 };
             }
+        }
+
+        // Overload with apiKey, userQuery, systemPrompt, dataJson parameters
+        public async Task<ClaudeQueryResult> QueryClaudeAsync(
+            string apiKey,
+            string userQuery,
+            string systemPrompt,
+            string dataJson)
+        {
+            _apiKey = apiKey;
+
+            string fullPrompt = userQuery;
+            if (!string.IsNullOrEmpty(dataJson))
+            {
+                fullPrompt = $"{userQuery}\n\nData:\n{dataJson}";
+            }
+
+            return await QueryClaudeAsync(fullPrompt, systemPrompt);
         }
     }
 
@@ -169,6 +190,8 @@ namespace WMSApp
         public bool Success { get; set; }
         public string Message { get; set; }
         public string Response { get; set; }
+        public string ResponseJson { get; set; }
+        public string Error { get; set; }
         public string Model { get; set; }
     }
 }

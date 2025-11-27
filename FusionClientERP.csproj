@@ -8,12 +8,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
 
     <!-- Application Info -->
-    <AssemblyName>GraysWMS</AssemblyName>
+    <AssemblyName>FusionClientERP</AssemblyName>
     <AssemblyVersion>1.2.0.0</AssemblyVersion>
     <FileVersion>1.2.0.0</FileVersion>
-    <Product>Gray's WMS</Product>
-    <Company>Gray's Inc</Company>
-    <Description>Gray's Warehouse Management System</Description>
+    <Product>Fusion Client ERP</Product>
+    <Company>Fusion ERP</Company>
+    <Description>Fusion Client ERP - Enterprise Resource Planning Client Application</Description>
 
     <!-- Single File Publishing - Self-contained means .NET runtime is included -->
     <PublishSingleFile>true</PublishSingleFile>

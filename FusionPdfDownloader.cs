@@ -282,5 +282,6 @@ namespace WMSApp.PrintManagement
         public string XmlData { get; set; }
         public string Base64Content { get; set; }
         public string ErrorMessage { get; set; }
+        public System.Collections.Generic.List<System.Collections.Generic.Dictionary<string, object>> DataRecords { get; set; }
     }
 }

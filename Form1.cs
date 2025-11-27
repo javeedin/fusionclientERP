@@ -3061,9 +3061,9 @@ namespace WMSApp
                         return;
                     }
 
-                    // Download report and parse data (forPrint=false extracts data table)
+                    // Download report and parse data
                     var downloader = new WMSApp.PrintManagement.FusionPdfDownloader();
-                    System.Diagnostics.Debug.WriteLine($"[C# SOAP] Calling DownloadGenericReportAsync (forPrint=false)...");
+                    System.Diagnostics.Debug.WriteLine($"[C# SOAP] Calling DownloadGenericReportAsync...");
 
                     var result = await downloader.DownloadGenericReportAsync(
                         reportPath,
@@ -3071,8 +3071,7 @@ namespace WMSApp
                         parameterValue,
                         instance,
                         username,
-                        password,
-                        forPrint: false  // Extract data, not PDF
+                        password
                     );
 
                     System.Diagnostics.Debug.WriteLine($"[C# SOAP] DownloadGenericReportAsync returned - Success: {result.Success}");
@@ -3125,7 +3124,8 @@ namespace WMSApp
                 var result = await _printJobManager.PrintSingleOrderAsync(
                     message.OrderNumber,
                     message.TripId,
-                    message.TripDate
+                    message.TripDate,
+                    message.PrinterName ?? ""
                 );
 
                 var response = new
@@ -3176,7 +3176,7 @@ namespace WMSApp
 
                 // Get credentials from storage
                 var credentials = _storageManager.GetFusionCredentials();
-                if (credentials == null || string.IsNullOrEmpty(credentials.Username))
+                if (string.IsNullOrEmpty(credentials.Username))
                 {
                     System.Diagnostics.Debug.WriteLine($"[C#] ❌ No Fusion credentials found");
                     var errorResponse = new
@@ -3194,7 +3194,7 @@ namespace WMSApp
 
                 // Download PDF using FusionPdfDownloader
                 var downloader = new WMSApp.PrintManagement.FusionPdfDownloader();
-                WMSApp.PrintManagement.FusionPdfResult result;
+                WMSApp.PrintManagement.PdfDownloadResult result;
 
                 if (!string.IsNullOrEmpty(message.ReportPath))
                 {

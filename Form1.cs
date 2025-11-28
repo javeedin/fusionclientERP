@@ -61,6 +61,11 @@ namespace WMSApp
         private string _loggedInInstance;
         private string _loggedInDateTime;
         private bool _isLoggedIn = false;
+        private bool _isDevelopmentMode = true; // Toggle between Development and Distribution mode
+
+        // Path constants
+        private const string DEV_BASE_PATH = @"C:\Users\Javeed Shaik\source\repos\javeedin\fusionclientERP";
+        private const string DIST_BASE_PATH = @"C:\fusionclient\ERP";
 
         public Form1()
         {
@@ -638,6 +643,64 @@ namespace WMSApp
             moduleToolTip.SetToolTip(inventoryButton, "Inventory Management");
             leftPosition += 90;
 
+            // Mode Toggle Panel (Dev/Dist)
+            Panel modePanel = new Panel
+            {
+                Width = 100,
+                Height = 30,
+                Left = leftPosition,
+                Top = 10,
+                BackColor = Color.FromArgb(240, 240, 240)
+            };
+
+            Label lblMode = new Label
+            {
+                Text = "DEV",
+                Width = 40,
+                Height = 20,
+                Top = 5,
+                Left = 5,
+                Font = new Font("Segoe UI", 8, FontStyle.Bold),
+                ForeColor = Color.FromArgb(40, 167, 69),
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+
+            Button btnModeToggle = new Button
+            {
+                Text = _isDevelopmentMode ? "●" : "○",
+                Width = 50,
+                Height = 24,
+                Left = 45,
+                Top = 3,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = _isDevelopmentMode ? Color.FromArgb(40, 167, 69) : Color.FromArgb(108, 117, 125),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10),
+                Cursor = Cursors.Hand,
+                Tag = "MODE_TOGGLE"
+            };
+            btnModeToggle.FlatAppearance.BorderSize = 0;
+            btnModeToggle.Click += (s, e) =>
+            {
+                _isDevelopmentMode = !_isDevelopmentMode;
+                btnModeToggle.Text = _isDevelopmentMode ? "●" : "○";
+                btnModeToggle.BackColor = _isDevelopmentMode ? Color.FromArgb(40, 167, 69) : Color.FromArgb(108, 117, 125);
+                lblMode.Text = _isDevelopmentMode ? "DEV" : "DIST";
+                lblMode.ForeColor = _isDevelopmentMode ? Color.FromArgb(40, 167, 69) : Color.FromArgb(108, 117, 125);
+                System.Diagnostics.Debug.WriteLine($"[MODE] Switched to: {(_isDevelopmentMode ? "Development" : "Distribution")}");
+
+                // When switching to distribution mode, ensure folders exist
+                if (!_isDevelopmentMode)
+                {
+                    EnsureDistributionFoldersExist();
+                }
+            };
+            moduleToolTip.SetToolTip(btnModeToggle, "Toggle Development/Distribution Mode");
+
+            modePanel.Controls.Add(lblMode);
+            modePanel.Controls.Add(btnModeToggle);
+            leftPosition += 105;
+
             // Modules Dropdown Button
             modulesButton = new Button
             {
@@ -923,6 +986,7 @@ namespace WMSApp
             navPanel.Controls.Add(clearCacheButton);
             navPanel.Controls.Add(navSettingsButton);
             navPanel.Controls.Add(inventoryButton);
+            navPanel.Controls.Add(modePanel);
             navPanel.Controls.Add(modulesButton);
             // navPanel.Controls.Add(urlPanel); // HIDDEN: Address bar removed per user request
             navPanel.Controls.Add(profileButton);
@@ -961,10 +1025,65 @@ namespace WMSApp
             settingsForm.ShowDialog();
         }
 
+        private void EnsureDistributionFoldersExist()
+        {
+            try
+            {
+                // Create main distribution folder
+                if (!Directory.Exists(DIST_BASE_PATH))
+                {
+                    Directory.CreateDirectory(DIST_BASE_PATH);
+                    System.Diagnostics.Debug.WriteLine($"[DIST] Created: {DIST_BASE_PATH}");
+                }
+
+                // Create INV folder
+                string invPath = Path.Combine(DIST_BASE_PATH, "inv");
+                if (!Directory.Exists(invPath))
+                {
+                    Directory.CreateDirectory(invPath);
+                    System.Diagnostics.Debug.WriteLine($"[DIST] Created: {invPath}");
+                }
+
+                // Copy inv/index.html from dev to dist if not exists
+                string devInvIndex = Path.Combine(DEV_BASE_PATH, "inv", "index.html");
+                string distInvIndex = Path.Combine(invPath, "index.html");
+
+                if (File.Exists(devInvIndex) && !File.Exists(distInvIndex))
+                {
+                    File.Copy(devInvIndex, distInvIndex);
+                    System.Diagnostics.Debug.WriteLine($"[DIST] Copied inv/index.html to distribution folder");
+                    MessageBox.Show(
+                        $"Distribution folder created:\n{DIST_BASE_PATH}\n\n" +
+                        "INV module files have been copied.",
+                        "Distribution Setup",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+
+                // Create settings folder if not exists
+                string settingsPath = Path.Combine(DIST_BASE_PATH, "settings");
+                if (!Directory.Exists(settingsPath))
+                {
+                    Directory.CreateDirectory(settingsPath);
+                    System.Diagnostics.Debug.WriteLine($"[DIST] Created: {settingsPath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DIST] Error creating folders: {ex.Message}");
+                MessageBox.Show(
+                    $"Error creating distribution folders:\n{ex.Message}",
+                    "Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
         private void InventoryButton_Click(object sender, EventArgs e)
         {
             System.Diagnostics.Debug.WriteLine("[DEBUG] Inventory button clicked");
             System.Diagnostics.Debug.WriteLine($"[DEBUG] Current _isLoggedIn: {_isLoggedIn}");
+            System.Diagnostics.Debug.WriteLine($"[DEBUG] Mode: {(_isDevelopmentMode ? "Development" : "Distribution")}");
 
             // Check if user is logged in
             if (!_isLoggedIn)
@@ -983,8 +1102,11 @@ namespace WMSApp
             System.Diagnostics.Debug.WriteLine("[DEBUG] User logged in, navigating to Inventory module");
             System.Diagnostics.Debug.WriteLine($"[DEBUG] Username: {_loggedInUsername}, Instance: {_loggedInInstance}");
 
-            string repoRoot = GetWebFilesBasePath();
-            string indexPath = Path.GetFullPath(Path.Combine(repoRoot, "inv", "index.html"));
+            // Get path based on mode
+            string basePath = _isDevelopmentMode ? DEV_BASE_PATH : DIST_BASE_PATH;
+            string indexPath = Path.GetFullPath(Path.Combine(basePath, "inv", "index.html"));
+
+            System.Diagnostics.Debug.WriteLine($"[DEBUG] INV Path: {indexPath}");
 
             if (File.Exists(indexPath))
             {
@@ -996,10 +1118,12 @@ namespace WMSApp
             }
             else
             {
+                string modeText = _isDevelopmentMode ? "Development" : "Distribution";
                 MessageBox.Show(
-                    "Inventory module not found.\n\n" +
+                    $"Inventory module not found.\n\n" +
+                    $"Mode: {modeText}\n" +
                     $"Expected path: {indexPath}\n\n" +
-                    "Please ensure the INV module is installed.",
+                    $"Please ensure the INV module is installed in the {modeText.ToLower()} folder.",
                     "Module Not Found",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);

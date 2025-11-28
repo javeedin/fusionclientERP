@@ -2371,43 +2371,40 @@
                 <!-- Endpoints Panel -->
                 <div class="settings-panel active" id="settingsEndpointsPanel">
                     <div class="source-select-row">
-                        <label>Source:</label>
+                        <label>Instance:</label>
                         <select id="endpointSourceSelect" onchange="onEndpointSourceChange()">
                             <option value="">-- Select Instance --</option>
                         </select>
                         <span id="selectedBaseUrl" style="color: #666; font-size: 12px;"></span>
                     </div>
-                    <div class="endpoints-list" id="endpointsList">
-                        <!-- Endpoints will be populated here -->
-                        <div class="endpoint-item">
-                            <div>
-                                <div class="endpoint-name">INVENTORY_ON_HAND</div>
-                                <div class="endpoint-url" id="endpointUrlOnHand">Not configured</div>
-                            </div>
-                            <span class="endpoint-status not-configured" id="statusOnHand">Not Configured</span>
-                        </div>
-                        <div class="endpoint-item">
-                            <div>
-                                <div class="endpoint-name">INVENTORY_ON_HAND_BY_SRNO</div>
-                                <div class="endpoint-url" id="endpointUrlSerials">Not configured</div>
-                            </div>
-                            <span class="endpoint-status not-configured" id="statusSerials">Not Configured</span>
-                        </div>
-                        <div class="endpoint-item">
-                            <div>
-                                <div class="endpoint-name">EXPECTED_PO_RECEIPTS</div>
-                                <div class="endpoint-url" id="endpointUrlPoReceipts">Not configured</div>
-                            </div>
-                            <span class="endpoint-status not-configured" id="statusPoReceipts">Not Configured</span>
-                        </div>
-                        <div class="endpoint-item">
-                            <div>
-                                <div class="endpoint-name">PO_EXPECTED_RECEIPTS_LINES</div>
-                                <div class="endpoint-url" id="endpointUrlPoLines">Not configured</div>
-                            </div>
-                            <span class="endpoint-status not-configured" id="statusPoLines">Not Configured</span>
-                        </div>
+                    <div class="instance-toolbar">
+                        <button class="btn-primary" onclick="showEndpointForm('new')">
+                            <span>&#10133;</span> New
+                        </button>
+                        <button onclick="editSelectedEndpoint()">
+                            <span>&#9998;</span> Edit
+                        </button>
+                        <button class="btn-danger" onclick="deleteSelectedEndpoint()">
+                            <span>&#128465;</span> Delete
+                        </button>
+                        <button onclick="refreshEndpoints()">
+                            <span>&#8635;</span> Refresh
+                        </button>
                     </div>
+                    <table class="instance-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 30px;"></th>
+                                <th>Endpoint Name</th>
+                                <th>Path</th>
+                                <th>Full URL</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="endpointsTableBody">
+                            <!-- Endpoint rows will be populated here -->
+                        </tbody>
+                    </table>
                 </div>
 
                 <!-- Instance Details Panel -->
@@ -2482,6 +2479,36 @@
                 <div class="form-actions">
                     <button class="btn-cancel" onclick="closeInstanceForm()">Cancel</button>
                     <button class="btn-save" onclick="saveInstance()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Endpoint Form Modal -->
+    <div class="instance-form-overlay" id="endpointFormOverlay" onclick="closeEndpointFormOnOverlay(event)">
+        <div class="instance-form-modal" onclick="event.stopPropagation()">
+            <div class="instance-form-header">
+                <h3 id="endpointFormTitle">New Endpoint</h3>
+                <button class="settings-close" onclick="closeEndpointForm()">&times;</button>
+            </div>
+            <div class="instance-form-body">
+                <input type="hidden" id="endpointFormMode" value="new">
+                <input type="hidden" id="endpointFormIndex" value="">
+                <div class="form-group">
+                    <label for="endpointName">Endpoint Name *</label>
+                    <input type="text" id="endpointName" placeholder="e.g., INVENTORY_ON_HAND">
+                </div>
+                <div class="form-group">
+                    <label for="endpointPath">Path *</label>
+                    <input type="text" id="endpointPath" placeholder="e.g., /ords/mitsumi/inv/onhand">
+                </div>
+                <div class="form-group">
+                    <label for="endpointDescription">Description</label>
+                    <input type="text" id="endpointDescription" placeholder="e.g., Get inventory on-hand data">
+                </div>
+                <div class="form-actions">
+                    <button class="btn-cancel" onclick="closeEndpointForm()">Cancel</button>
+                    <button class="btn-save" onclick="saveEndpoint()">Save</button>
                 </div>
             </div>
         </div>
@@ -5147,10 +5174,15 @@
         let instancesData = [];
         let selectedInstanceIndex = -1;
 
+        // Endpoint data storage
+        let endpointsData = [];
+        let selectedEndpointIndex = -1;
+
         // Open Settings modal
         function openSettings() {
             document.getElementById('settingsOverlay').classList.add('active');
             loadInstances();
+            loadEndpoints();
             populateEndpointSourceDropdown();
         }
 
@@ -5381,7 +5413,200 @@
             }
         }
 
-        // Handle endpoint source change
+        // =============================================
+        // ENDPOINT CRUD FUNCTIONS
+        // =============================================
+
+        // Load endpoints from localStorage
+        function loadEndpoints() {
+            const stored = localStorage.getItem('fusionclient_endpoints');
+            if (stored) {
+                try {
+                    endpointsData = JSON.parse(stored);
+                } catch (e) {
+                    endpointsData = getDefaultEndpoints();
+                }
+            } else {
+                endpointsData = getDefaultEndpoints();
+            }
+            renderEndpointsTable();
+        }
+
+        // Get default endpoints
+        function getDefaultEndpoints() {
+            return [
+                { name: 'INVENTORY_ON_HAND', path: '/ords/mitsumi/inv/onhand', description: 'Get inventory on-hand data' },
+                { name: 'INVENTORY_ON_HAND_BY_SRNO', path: '/ords/mitsumi/inv/onhand_serial', description: 'Get serial number data' },
+                { name: 'EXPECTED_PO_RECEIPTS', path: '/ords/mitsumi/po/receipts', description: 'Get expected PO receipts' },
+                { name: 'PO_EXPECTED_RECEIPTS_LINES', path: '/ords/mitsumi/po/receipt_lines', description: 'Get PO receipt lines' }
+            ];
+        }
+
+        // Save endpoints to localStorage
+        function saveEndpointsToStorage() {
+            localStorage.setItem('fusionclient_endpoints', JSON.stringify(endpointsData));
+            // Also notify C# if webview is available
+            if (window.chrome && window.chrome.webview) {
+                window.chrome.webview.postMessage({
+                    type: 'saveEndpoints',
+                    endpoints: endpointsData
+                });
+            }
+        }
+
+        // Render endpoints table
+        function renderEndpointsTable() {
+            const tbody = document.getElementById('endpointsTableBody');
+            if (!tbody) return;
+
+            const selectedInstance = getSelectedInstance();
+
+            if (endpointsData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 30px; color: #888;">No endpoints configured. Click "New" to add one.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = endpointsData.map((endpoint, index) => {
+                const fullUrl = selectedInstance ? selectedInstance.url + endpoint.path : '';
+                const statusClass = selectedInstance ? 'configured' : 'not-configured';
+                const statusText = selectedInstance ? 'Active' : 'No Instance';
+
+                return `
+                <tr onclick="selectEndpoint(${index})" class="${index === selectedEndpointIndex ? 'selected' : ''}">
+                    <td><input type="radio" name="endpointSelect" ${index === selectedEndpointIndex ? 'checked' : ''} onclick="event.stopPropagation(); selectEndpoint(${index})"></td>
+                    <td>${escapeHtml(endpoint.name)}</td>
+                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(endpoint.path)}</td>
+                    <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; color: ${selectedInstance ? '#333' : '#999'};">${fullUrl || 'Select an instance'}</td>
+                    <td><span class="endpoint-status ${statusClass}">${statusText}</span></td>
+                </tr>
+            `}).join('');
+        }
+
+        // Get selected instance
+        function getSelectedInstance() {
+            const select = document.getElementById('endpointSourceSelect');
+            const index = select ? select.value : '';
+            if (index === '' || !instancesData[index]) {
+                return null;
+            }
+            return instancesData[index];
+        }
+
+        // Select an endpoint row
+        function selectEndpoint(index) {
+            selectedEndpointIndex = index;
+            renderEndpointsTable();
+        }
+
+        // Show endpoint form (new or edit)
+        function showEndpointForm(mode, index = null) {
+            const overlay = document.getElementById('endpointFormOverlay');
+            const title = document.getElementById('endpointFormTitle');
+
+            document.getElementById('endpointFormMode').value = mode;
+            document.getElementById('endpointFormIndex').value = index !== null ? index : '';
+
+            if (mode === 'new') {
+                title.textContent = 'New Endpoint';
+                document.getElementById('endpointName').value = '';
+                document.getElementById('endpointPath').value = '';
+                document.getElementById('endpointDescription').value = '';
+            } else if (mode === 'edit' && index !== null) {
+                title.textContent = 'Edit Endpoint';
+                const endpoint = endpointsData[index];
+                document.getElementById('endpointName').value = endpoint.name || '';
+                document.getElementById('endpointPath').value = endpoint.path || '';
+                document.getElementById('endpointDescription').value = endpoint.description || '';
+            }
+
+            overlay.classList.add('active');
+        }
+
+        // Close endpoint form
+        function closeEndpointForm() {
+            document.getElementById('endpointFormOverlay').classList.remove('active');
+        }
+
+        // Close endpoint form when clicking overlay
+        function closeEndpointFormOnOverlay(event) {
+            if (event.target.id === 'endpointFormOverlay') {
+                closeEndpointForm();
+            }
+        }
+
+        // Save endpoint
+        function saveEndpoint() {
+            const name = document.getElementById('endpointName').value.trim();
+            const path = document.getElementById('endpointPath').value.trim();
+            const description = document.getElementById('endpointDescription').value.trim();
+
+            // Validation
+            if (!name || !path) {
+                alert('Please fill in Endpoint Name and Path.');
+                return;
+            }
+
+            const mode = document.getElementById('endpointFormMode').value;
+            const indexStr = document.getElementById('endpointFormIndex').value;
+
+            const endpointObj = { name, path, description };
+
+            if (mode === 'new') {
+                // Check for duplicate name
+                const exists = endpointsData.some(ep => ep.name.toLowerCase() === name.toLowerCase());
+                if (exists) {
+                    alert('An endpoint with this name already exists. Please use a different name.');
+                    return;
+                }
+                endpointsData.push(endpointObj);
+                selectedEndpointIndex = endpointsData.length - 1;
+            } else if (mode === 'edit' && indexStr !== '') {
+                const index = parseInt(indexStr);
+                // Check for duplicate name (excluding current)
+                const exists = endpointsData.some((ep, i) => i !== index && ep.name.toLowerCase() === name.toLowerCase());
+                if (exists) {
+                    alert('An endpoint with this name already exists. Please use a different name.');
+                    return;
+                }
+                endpointsData[index] = endpointObj;
+            }
+
+            saveEndpointsToStorage();
+            renderEndpointsTable();
+            closeEndpointForm();
+        }
+
+        // Edit selected endpoint
+        function editSelectedEndpoint() {
+            if (selectedEndpointIndex < 0 || selectedEndpointIndex >= endpointsData.length) {
+                alert('Please select an endpoint to edit.');
+                return;
+            }
+            showEndpointForm('edit', selectedEndpointIndex);
+        }
+
+        // Delete selected endpoint
+        function deleteSelectedEndpoint() {
+            if (selectedEndpointIndex < 0 || selectedEndpointIndex >= endpointsData.length) {
+                alert('Please select an endpoint to delete.');
+                return;
+            }
+
+            const endpoint = endpointsData[selectedEndpointIndex];
+            if (confirm(`Are you sure you want to delete the endpoint "${endpoint.name}"?`)) {
+                endpointsData.splice(selectedEndpointIndex, 1);
+                selectedEndpointIndex = -1;
+                saveEndpointsToStorage();
+                renderEndpointsTable();
+            }
+        }
+
+        // Refresh endpoints
+        function refreshEndpoints() {
+            loadEndpoints();
+        }
+
+        // Handle endpoint source change - update table when instance changes
         function onEndpointSourceChange() {
             const select = document.getElementById('endpointSourceSelect');
             const baseUrlSpan = document.getElementById('selectedBaseUrl');
@@ -5389,39 +5614,13 @@
 
             if (index === '' || !instancesData[index]) {
                 baseUrlSpan.textContent = '';
-                updateEndpointUrls(null);
-                return;
+            } else {
+                const instance = instancesData[index];
+                baseUrlSpan.textContent = `Base URL: ${instance.url}`;
             }
 
-            const instance = instancesData[index];
-            baseUrlSpan.textContent = `Base URL: ${instance.url}`;
-            updateEndpointUrls(instance);
-        }
-
-        // Update endpoint URLs based on selected instance
-        function updateEndpointUrls(instance) {
-            const endpoints = [
-                { id: 'OnHand', name: 'INVENTORY_ON_HAND', path: '/ords/mitsumi/inv/onhand' },
-                { id: 'Serials', name: 'INVENTORY_ON_HAND_BY_SRNO', path: '/ords/mitsumi/inv/onhand_serial' },
-                { id: 'PoReceipts', name: 'EXPECTED_PO_RECEIPTS', path: '/ords/mitsumi/po/receipts' },
-                { id: 'PoLines', name: 'PO_EXPECTED_RECEIPTS_LINES', path: '/ords/mitsumi/po/receipt_lines' }
-            ];
-
-            endpoints.forEach(ep => {
-                const urlEl = document.getElementById(`endpointUrl${ep.id}`);
-                const statusEl = document.getElementById(`status${ep.id}`);
-
-                if (instance) {
-                    const fullUrl = instance.url + ep.path;
-                    urlEl.textContent = fullUrl;
-                    statusEl.textContent = 'Configured';
-                    statusEl.className = 'endpoint-status configured';
-                } else {
-                    urlEl.textContent = 'Not configured';
-                    statusEl.textContent = 'Not Configured';
-                    statusEl.className = 'endpoint-status not-configured';
-                }
-            });
+            // Re-render the endpoints table with updated URLs
+            renderEndpointsTable();
         }
 
         // Escape HTML to prevent XSS

@@ -57,9 +57,6 @@ namespace WMSApp
             this.MinimizeBox = false;
             this.BackColor = Color.FromArgb(245, 247, 250);
 
-            // Load endpoints from settings
-            LoadEndpointsFromSettings();
-
             // Logo/Title Panel
             Panel headerPanel = new Panel
             {
@@ -172,10 +169,11 @@ namespace WMSApp
                 Font = new Font("Segoe UI", 10),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
-            cboInstance.Items.AddRange(new object[] { "PROD", "TEST" });
-            cboInstance.SelectedIndex = 0;
             contentPanel.Controls.Add(cboInstance);
             yPosition += 65;
+
+            // Load endpoints from settings (after cboInstance is created)
+            LoadEndpointsFromSettings();
 
             // Business Unit
             Label lblBusinessUnit = new Label
@@ -555,15 +553,18 @@ namespace WMSApp
                     instanceUrls["TEST"] = "https://g09254cbbf8e7af-graystest.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT";
                 }
 
-                // Update the instance dropdown
-                cboInstance.Items.Clear();
-                foreach (var instance in instanceUrls.Keys)
+                // Update the instance dropdown (only if cboInstance exists)
+                if (cboInstance != null)
                 {
-                    cboInstance.Items.Add(instance);
-                }
-                if (cboInstance.Items.Count > 0)
-                {
-                    cboInstance.SelectedIndex = 0;
+                    cboInstance.Items.Clear();
+                    foreach (var instance in instanceUrls.Keys)
+                    {
+                        cboInstance.Items.Add(instance);
+                    }
+                    if (cboInstance.Items.Count > 0)
+                    {
+                        cboInstance.SelectedIndex = 0;
+                    }
                 }
             }
             catch (Exception ex)
@@ -572,6 +573,18 @@ namespace WMSApp
                 // Fallback to defaults
                 instanceUrls["PROD"] = "https://g09254cbbf8e7af-graysprod.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT";
                 instanceUrls["TEST"] = "https://g09254cbbf8e7af-graystest.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT";
+
+                // Populate dropdown with defaults if cboInstance exists
+                if (cboInstance != null)
+                {
+                    cboInstance.Items.Clear();
+                    cboInstance.Items.Add("PROD");
+                    cboInstance.Items.Add("TEST");
+                    if (cboInstance.Items.Count > 0)
+                    {
+                        cboInstance.SelectedIndex = 0;
+                    }
+                }
             }
         }
     }

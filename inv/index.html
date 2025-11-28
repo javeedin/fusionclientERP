@@ -2055,6 +2055,9 @@
 
         // Switch to a main tab
         function switchMainTab(tabId) {
+            // Hide welcome message when switching to a tab
+            document.getElementById('welcomeMessage').style.display = 'none';
+
             // Remove active from all tabs
             document.querySelectorAll('.main-tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.main-tab-panel').forEach(panel => panel.classList.remove('active'));
@@ -2099,20 +2102,14 @@
             }
         }
 
-        // Go to Home page - close all tabs and show welcome message
+        // Go to Home page - keep tabs but show welcome message
         function goToHome() {
-            // Close all tabs
-            mainTabs.forEach(tab => {
-                const tabBtn = document.getElementById(tab.id + '-btn');
-                const tabPanel = document.getElementById(tab.id + '-panel');
-                if (tabBtn) tabBtn.remove();
-                if (tabPanel) tabPanel.remove();
-            });
-            mainTabs = [];
+            // Deactivate all tabs (but don't remove them)
+            document.querySelectorAll('.main-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.main-tab-panel').forEach(panel => panel.classList.remove('active'));
             activeMainTabId = null;
 
-            // Hide tabs container, show welcome message
-            document.getElementById('mainTabsContainer').style.display = 'none';
+            // Show welcome message
             document.getElementById('welcomeMessage').style.display = 'block';
 
             // Close any open panels
@@ -2243,7 +2240,7 @@
                             </div>
                             <div class="table-container" style="max-height: calc(100vh - 450px);">
                                 <table class="grouped-table" id="groupedTable">
-                                    <thead style="background: #667eea; color: #fff;">
+                                    <thead style="background: #e0e0e0; color: #333;">
                                         <tr>
                                             <th style="padding: 10px 8px; font-size: 11px;">Item</th>
                                             <th style="padding: 10px 8px; font-size: 11px;">Description</th>
@@ -2276,7 +2273,7 @@
                             </div>
                             <div class="table-container" style="max-height: calc(100vh - 450px);">
                                 <table class="grouped-table" id="subinvGroupedTable">
-                                    <thead style="background: #667eea; color: #fff;">
+                                    <thead style="background: #e0e0e0; color: #333;">
                                         <tr>
                                             <th style="padding: 10px 8px; font-size: 11px;">Subinventory</th>
                                             <th style="padding: 10px 8px; font-size: 11px;">Item</th>
@@ -2309,7 +2306,7 @@
                             </div>
                             <div class="table-container" style="max-height: calc(100vh - 450px);">
                                 <table class="grouped-table" id="serialGroupedTable">
-                                    <thead style="background: #667eea; color: #fff;">
+                                    <thead style="background: #e0e0e0; color: #333;">
                                         <tr>
                                             <th style="padding: 10px 8px; font-size: 11px;">Item</th>
                                             <th style="padding: 10px 8px; font-size: 11px;">Description</th>
@@ -2521,7 +2518,7 @@
                             </div>
                             <div class="table-container" style="max-height: calc(100vh - 450px);">
                                 <table class="data-table" id="poOrdersTable">
-                                    <thead style="background: #667eea; color: #fff;">
+                                    <thead style="background: #e0e0e0; color: #333;">
                                         <tr>
                                             <th style="padding: 10px 8px; font-size: 11px; width: 40px;">
                                                 <input type="checkbox" id="poSelectAllCheckbox" onchange="toggleAllPoCheckboxes(this)">
@@ -2567,7 +2564,7 @@
                             </div>
                             <div class="table-container" style="max-height: calc(100vh - 450px);">
                                 <table class="grouped-table" id="poLinesTable">
-                                    <thead style="background: #667eea; color: #fff;">
+                                    <thead style="background: #e0e0e0; color: #333;">
                                         <tr>
                                             <th style="padding: 10px 8px; font-size: 11px;">Document</th>
                                             <th style="padding: 10px 8px; font-size: 11px;">Line</th>

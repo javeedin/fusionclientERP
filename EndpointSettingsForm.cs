@@ -32,37 +32,39 @@ namespace WMSApp
         }
 
         /// <summary>
-        /// Gets the settings path - uses repo path in development, C:\fusionclient\ERP\settings in production
+        /// Gets the settings path - always uses C:\fusionclient\ERP\settings
         /// </summary>
         private string GetSettingsPath()
         {
-            // Check for development mode first (running from source)
-            string devPath = Path.GetFullPath(Path.Combine(Application.StartupPath, "..", "..", "..", "ERP", "settings"));
-            if (Directory.Exists(devPath))
-            {
-                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Using development path: {devPath}");
-                return devPath;
-            }
-
-            // Production path
-            string prodPath = @"C:\fusionclient\ERP\settings";
+            string settingsPath = @"C:\fusionclient\ERP\settings";
 
             // Create directory if it doesn't exist
-            if (!Directory.Exists(prodPath))
+            if (!Directory.Exists(settingsPath))
             {
                 try
                 {
-                    Directory.CreateDirectory(prodPath);
-                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Created production path: {prodPath}");
+                    Directory.CreateDirectory(settingsPath);
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Created settings path: {settingsPath}");
+
+                    // Copy default endpoints.xml from app directory if it exists
+                    string appPath = Path.Combine(Application.StartupPath, "ERP", "settings", "endpoints.xml");
+                    string destPath = Path.Combine(settingsPath, "endpoints.xml");
+                    if (File.Exists(appPath) && !File.Exists(destPath))
+                    {
+                        File.Copy(appPath, destPath);
+                        System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Copied default endpoints.xml");
+                    }
                 }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Error creating path: {ex.Message}");
+                    MessageBox.Show($"Error creating settings directory:\n{ex.Message}", "Error",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
 
-            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Using production path: {prodPath}");
-            return prodPath;
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Using settings path: {settingsPath}");
+            return settingsPath;
         }
 
         private void InitializeComponent()
@@ -251,9 +253,28 @@ namespace WMSApp
         {
             try
             {
+                // Ensure directory exists
+                if (!Directory.Exists(_settingsPath))
+                {
+                    Directory.CreateDirectory(_settingsPath);
+                }
+
+                string xmlPath = Path.Combine(_settingsPath, "endpoints.xml");
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Loading from: {xmlPath}");
+
                 // Clear cache to ensure fresh load
                 EndpointConfigReader.ClearCache();
-                _endpoints = EndpointConfigReader.LoadEndpoints(_settingsPath);
+
+                // Check if file exists
+                if (!File.Exists(xmlPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings] File not found, creating empty list");
+                    _endpoints = new List<EndpointConfig>();
+                }
+                else
+                {
+                    _endpoints = EndpointConfigReader.LoadEndpoints(_settingsPath);
+                }
 
                 dgvEndpoints.Rows.Clear();
                 foreach (var ep in _endpoints)
@@ -270,7 +291,7 @@ namespace WMSApp
                 }
 
                 _isDirty = false;
-                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Loaded {_endpoints.Count} endpoints");
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Loaded {_endpoints.Count} endpoints from {xmlPath}");
             }
             catch (Exception ex)
             {
@@ -448,18 +469,21 @@ namespace WMSApp
         private void SaveEndpointsToXml()
         {
             string xmlPath = Path.Combine(_settingsPath, "endpoints.xml");
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Saving to: {xmlPath}");
 
             // Ensure directory exists
             string directory = Path.GetDirectoryName(xmlPath);
             if (!Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Created directory: {directory}");
             }
 
             var settings = new XmlWriterSettings
             {
                 Indent = true,
-                IndentChars = "  "
+                IndentChars = "  ",
+                Encoding = System.Text.Encoding.UTF8
             };
 
             using (var writer = XmlWriter.Create(xmlPath, settings))

@@ -13,218 +13,402 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            color: #fff;
+            overflow-x: hidden;
         }
 
         /* Header */
         .header {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
             padding: 15px 30px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .header h1 {
-            color: #333;
-            font-size: 24px;
+            font-size: 22px;
+            font-weight: 600;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .header h1 span {
-            color: #667eea;
+        .header h1 .module-badge {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-size: 14px;
         }
 
         .user-info {
             display: flex;
             align-items: center;
-            gap: 15px;
-            color: #666;
+            gap: 20px;
+            font-size: 14px;
         }
 
         .user-info .username {
+            color: #667eea;
             font-weight: 600;
-            color: #333;
         }
 
         .btn-logout {
-            background: #dc3545;
+            background: rgba(220, 53, 69, 0.8);
             color: white;
             border: none;
             padding: 8px 16px;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
+            transition: all 0.3s;
         }
 
         .btn-logout:hover {
-            background: #c82333;
+            background: #dc3545;
         }
 
-        /* Main Content */
+        /* Main Content Area */
         .main-content {
-            flex: 1;
-            padding: 30px;
+            display: flex;
+            height: calc(100vh - 70px);
+            position: relative;
+        }
+
+        /* Left Menu Panel (hidden by default) */
+        .menu-panel {
+            width: 350px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .menu-panel.active {
+            transform: translateX(0);
+        }
+
+        .menu-panel h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Dropdown */
+        .dropdown-container {
+            margin-bottom: 20px;
+        }
+
+        .dropdown-label {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .dropdown {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+        }
+
+        .dropdown option {
+            background: #1a1a2e;
+            color: #fff;
+        }
+
+        /* Menu Items */
+        .menu-items {
             display: flex;
             flex-direction: column;
-            gap: 30px;
-        }
-
-        /* Stats Cards */
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-        }
-
-        .stat-icon.blue { background: #e3f2fd; }
-        .stat-icon.green { background: #e8f5e9; }
-        .stat-icon.orange { background: #fff3e0; }
-        .stat-icon.purple { background: #f3e5f5; }
-
-        .stat-info h3 {
-            font-size: 28px;
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .stat-info p {
-            color: #666;
-            font-size: 14px;
-        }
-
-        /* Menu Grid */
-        .menu-section {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .menu-section h2 {
-            color: #333;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #667eea;
-        }
-
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            gap: 5px;
         }
 
         .menu-item {
-            background: #f8f9fa;
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            padding: 20px;
-            text-align: center;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
+            font-size: 13px;
+            border-left: 3px solid transparent;
         }
 
         .menu-item:hover {
-            border-color: #667eea;
-            background: #f0f4ff;
-            transform: translateY(-2px);
+            background: rgba(102, 126, 234, 0.2);
+            border-left-color: #667eea;
+            transform: translateX(5px);
         }
 
-        .menu-item .icon {
-            font-size: 36px;
-            margin-bottom: 10px;
+        .menu-item.active {
+            background: rgba(102, 126, 234, 0.3);
+            border-left-color: #667eea;
         }
 
-        .menu-item h4 {
-            color: #333;
-            margin-bottom: 5px;
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
         }
 
-        .menu-item p {
-            color: #666;
-            font-size: 12px;
-        }
-
-        /* Footer */
-        .footer {
-            background: rgba(0, 0, 0, 0.2);
-            color: white;
+        .welcome-message {
             text-align: center;
-            padding: 15px;
-            font-size: 14px;
+            max-width: 600px;
         }
 
-        /* Loading Overlay */
-        .loading-overlay {
+        .welcome-message h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .welcome-message p {
+            color: #aaa;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        /* Floating Action Panel */
+        .floating-panel {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            z-index: 200;
+        }
+
+        .floating-btn {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .floating-btn:first-child {
+            border-radius: 10px 10px 0 0;
+        }
+
+        .floating-btn:last-child {
+            border-radius: 0 0 10px 10px;
+        }
+
+        .floating-btn:not(:last-child) {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .floating-btn:hover {
+            background: linear-gradient(135deg, #764ba2, #667eea);
+            transform: scale(1.05);
+        }
+
+        .floating-btn.active {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+        }
+
+        .floating-btn .tooltip {
+            position: absolute;
+            right: 60px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .floating-btn:hover .tooltip {
+            opacity: 1;
+        }
+
+        /* Search Panel */
+        .search-panel {
+            position: fixed;
+            top: 70px;
+            right: 80px;
+            width: 400px;
+            background: rgba(26, 26, 46, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
             display: none;
+            z-index: 150;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .search-panel.active {
+            display: block;
+        }
+
+        .search-panel h4 {
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: #667eea;
+        }
+
+        /* Reports Panel */
+        .reports-panel {
+            position: fixed;
+            top: 70px;
+            right: 80px;
+            width: 350px;
+            background: rgba(26, 26, 46, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            display: none;
+            z-index: 150;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .reports-panel.active {
+            display: block;
+        }
+
+        .reports-panel h4 {
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .report-item {
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .report-item:hover {
+            background: rgba(102, 126, 234, 0.2);
+        }
+
+        /* Close button for panels */
+        .panel-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .panel-close:hover {
+            color: #fff;
+        }
+
+        /* Overlay */
+        .overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(255, 255, 255, 0.9);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 50;
         }
 
-        .loading-overlay.active {
-            display: flex;
+        .overlay.active {
+            display: block;
         }
 
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        /* Footer */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 30px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.5);
+            border-radius: 3px;
         }
     </style>
 </head>
 <body>
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="spinner"></div>
-        <p style="margin-top: 15px; color: #666;">Loading...</p>
-    </div>
+    <!-- Overlay -->
+    <div class="overlay" id="overlay" onclick="closeAllPanels()"></div>
 
     <!-- Header -->
     <header class="header">
         <h1>
-            <span>INV</span> Inventory Management
+            <span class="module-badge">INV</span>
+            Inventory Management
         </h1>
         <div class="user-info">
             <span>Welcome, <span class="username" id="usernameDisplay">User</span></span>
@@ -235,170 +419,284 @@
     </header>
 
     <!-- Main Content -->
-    <main class="main-content">
-        <!-- Stats Row -->
-        <div class="stats-row">
-            <div class="stat-card">
-                <div class="stat-icon blue">📦</div>
-                <div class="stat-info">
-                    <h3 id="totalItems">0</h3>
-                    <p>Total Items</p>
-                </div>
+    <div class="main-content">
+        <!-- Left Menu Panel -->
+        <div class="menu-panel" id="menuPanel">
+            <h3>Tasks</h3>
+
+            <div class="dropdown-container">
+                <div class="dropdown-label">Show Tasks</div>
+                <select class="dropdown" id="taskDropdown" onchange="onTaskChange()">
+                    <option value="">-- Select Task --</option>
+                    <option value="inventory">Inventory</option>
+                    <option value="counts">Counts</option>
+                    <option value="shipments">Shipments</option>
+                    <option value="picks">Picks</option>
+                    <option value="receipts">Receipts</option>
+                </select>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon green">✅</div>
-                <div class="stat-info">
-                    <h3 id="inStock">0</h3>
-                    <p>In Stock</p>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon orange">⚠️</div>
-                <div class="stat-info">
-                    <h3 id="lowStock">0</h3>
-                    <p>Low Stock</p>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon purple">🔄</div>
-                <div class="stat-info">
-                    <h3 id="pendingTransfers">0</h3>
-                    <p>Pending Transfers</p>
-                </div>
+
+            <div class="menu-items" id="menuItems">
+                <!-- Menu items will be populated dynamically -->
             </div>
         </div>
 
-        <!-- Menu Section -->
-        <section class="menu-section">
-            <h2>Inventory Operations</h2>
-            <div class="menu-grid">
-                <div class="menu-item" onclick="navigateTo('item-master')">
-                    <div class="icon">📋</div>
-                    <h4>Item Master</h4>
-                    <p>View and manage items</p>
-                </div>
-                <div class="menu-item" onclick="navigateTo('onhand')">
-                    <div class="icon">📊</div>
-                    <h4>On-Hand Quantities</h4>
-                    <p>Check stock levels</p>
-                </div>
-                <div class="menu-item" onclick="navigateTo('receipts')">
-                    <div class="icon">📥</div>
-                    <h4>Receipts</h4>
-                    <p>Receive inventory</p>
-                </div>
-                <div class="menu-item" onclick="navigateTo('issues')">
-                    <div class="icon">📤</div>
-                    <h4>Issues</h4>
-                    <p>Issue inventory</p>
-                </div>
-                <div class="menu-item" onclick="navigateTo('transfers')">
-                    <div class="icon">🔄</div>
-                    <h4>Transfers</h4>
-                    <p>Transfer between locations</p>
-                </div>
-                <div class="menu-item" onclick="navigateTo('cycle-count')">
-                    <div class="icon">🔢</div>
-                    <h4>Cycle Count</h4>
-                    <p>Physical inventory count</p>
-                </div>
-                <div class="menu-item" onclick="navigateTo('adjustments')">
-                    <div class="icon">⚖️</div>
-                    <h4>Adjustments</h4>
-                    <p>Quantity adjustments</p>
-                </div>
-                <div class="menu-item" onclick="navigateTo('reports')">
-                    <div class="icon">📈</div>
-                    <h4>Reports</h4>
-                    <p>Inventory reports</p>
-                </div>
+        <!-- Content Area -->
+        <div class="content-area">
+            <div class="welcome-message" id="welcomeMessage">
+                <h2>Inventory Management</h2>
+                <p>Select a task from the floating panel on the right to get started.
+                   Use Tasks to access inventory operations, Search to find items,
+                   or Reports to view inventory analytics.</p>
             </div>
-        </section>
-    </main>
+
+            <div id="contentDisplay" style="display: none; width: 100%; height: 100%;">
+                <!-- Dynamic content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Action Panel -->
+    <div class="floating-panel">
+        <button class="floating-btn" id="btnTasks" onclick="toggleTasks()">
+            <span>&#9776;</span>
+            <span class="tooltip">Tasks</span>
+        </button>
+        <button class="floating-btn" id="btnSearch" onclick="toggleSearch()">
+            <span>&#128269;</span>
+            <span class="tooltip">Search</span>
+        </button>
+        <button class="floating-btn" id="btnReports" onclick="toggleReports()">
+            <span>&#128202;</span>
+            <span class="tooltip">Reports</span>
+        </button>
+    </div>
+
+    <!-- Search Panel -->
+    <div class="search-panel" id="searchPanel">
+        <button class="panel-close" onclick="closeSearch()">&times;</button>
+        <h4>Search Inventory</h4>
+        <input type="text" class="search-input" placeholder="Search items, locations, transactions..." id="searchInput">
+        <div id="searchResults" style="margin-top: 15px;"></div>
+    </div>
+
+    <!-- Reports Panel -->
+    <div class="reports-panel" id="reportsPanel">
+        <button class="panel-close" onclick="closeReports()">&times;</button>
+        <h4>Reports</h4>
+        <div class="report-item" onclick="openReport('onhand')">On-Hand Quantity Report</div>
+        <div class="report-item" onclick="openReport('transactions')">Transaction History</div>
+        <div class="report-item" onclick="openReport('valuation')">Inventory Valuation</div>
+        <div class="report-item" onclick="openReport('aging')">Inventory Aging</div>
+        <div class="report-item" onclick="openReport('movement')">Movement Analysis</div>
+    </div>
 
     <!-- Footer -->
     <footer class="footer">
-        <p>FusionClientERP v1.0 | Inventory Module | &copy; 2024 Mitsumi</p>
+        FusionClientERP v1.0 | Inventory Module | &copy; 2024 Mitsumi
     </footer>
 
     <script>
-        // Initialize on page load
+        // Menu data
+        const menuData = {
+            inventory: [
+                'Manage Item Quantities',
+                'Create Miscellaneous Transaction',
+                'Create Subinventory Transfer',
+                'Create Interorganization Transfer',
+                'Manage Reservations and Picks',
+                'Manage Movement Requests',
+                'Manage Transfer Orders',
+                'Manage Pending Transactions',
+                'Review Completed Transactions',
+                'Manage Reservation Interface',
+                'Manage Lots',
+                'Manage Serial Numbers',
+                'Confirm Pick Slips',
+                'Manage Inventory Balance Messages in Spreadsheet',
+                'Review Item Supply and Demand',
+                'Review Replenishment Requests in Spreadsheet',
+                'Manage Pick Transactions from External System in Spreadsheet',
+                'Configure Subinventories',
+                'Configure Subinventories in Spreadsheet'
+            ],
+            counts: [
+                'Create Cycle Count',
+                'Manage Cycle Counts',
+                'Enter Count Results',
+                'Approve Count Adjustments',
+                'Physical Inventory',
+                'Count Schedules'
+            ],
+            shipments: [
+                'Create Shipment',
+                'Manage Shipments',
+                'Ship Confirm',
+                'Manage Shipping Documents',
+                'Track Shipments',
+                'Shipping Reports'
+            ],
+            picks: [
+                'Create Pick Wave',
+                'Manage Pick Tasks',
+                'Confirm Picks',
+                'Release Sales Orders',
+                'Pick Slip Report',
+                'Manage Backorders'
+            ],
+            receipts: [
+                'Create Receipt',
+                'Manage Receipts',
+                'Receive Purchase Orders',
+                'Receive Transfer Orders',
+                'Manage Receipt Exceptions',
+                'Receipt History'
+            ]
+        };
+
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             console.log('[INV] Inventory module loaded');
 
-            // Try to get user info from localStorage
             const username = localStorage.getItem('wms_username') || 'User';
             const instance = localStorage.getItem('wms_instance') || 'PROD';
 
             document.getElementById('usernameDisplay').textContent = username;
             document.getElementById('instanceDisplay').textContent = instance;
-
-            // Load dashboard data
-            loadDashboardData();
         });
 
-        function showLoading() {
-            document.getElementById('loadingOverlay').classList.add('active');
+        // Toggle Tasks Panel
+        function toggleTasks() {
+            const menuPanel = document.getElementById('menuPanel');
+            const overlay = document.getElementById('overlay');
+            const btn = document.getElementById('btnTasks');
+
+            closeSearch();
+            closeReports();
+
+            menuPanel.classList.toggle('active');
+            overlay.classList.toggle('active');
+            btn.classList.toggle('active');
         }
 
-        function hideLoading() {
-            document.getElementById('loadingOverlay').classList.remove('active');
+        // Toggle Search Panel
+        function toggleSearch() {
+            const searchPanel = document.getElementById('searchPanel');
+            const btn = document.getElementById('btnSearch');
+
+            closeTasks();
+            closeReports();
+
+            searchPanel.classList.toggle('active');
+            btn.classList.toggle('active');
+
+            if (searchPanel.classList.contains('active')) {
+                document.getElementById('searchInput').focus();
+            }
         }
 
-        function loadDashboardData() {
-            // TODO: Load actual data from API
-            // For now, show placeholder data
-            document.getElementById('totalItems').textContent = '1,234';
-            document.getElementById('inStock').textContent = '1,156';
-            document.getElementById('lowStock').textContent = '78';
-            document.getElementById('pendingTransfers').textContent = '12';
+        // Toggle Reports Panel
+        function toggleReports() {
+            const reportsPanel = document.getElementById('reportsPanel');
+            const btn = document.getElementById('btnReports');
+
+            closeTasks();
+            closeSearch();
+
+            reportsPanel.classList.toggle('active');
+            btn.classList.toggle('active');
         }
 
-        function navigateTo(page) {
-            console.log('[INV] Navigating to:', page);
-            showLoading();
-
-            // TODO: Implement actual navigation
-            setTimeout(() => {
-                hideLoading();
-                alert('Feature coming soon: ' + page);
-            }, 500);
+        // Close functions
+        function closeTasks() {
+            document.getElementById('menuPanel').classList.remove('active');
+            document.getElementById('overlay').classList.remove('active');
+            document.getElementById('btnTasks').classList.remove('active');
         }
 
+        function closeSearch() {
+            document.getElementById('searchPanel').classList.remove('active');
+            document.getElementById('btnSearch').classList.remove('active');
+        }
+
+        function closeReports() {
+            document.getElementById('reportsPanel').classList.remove('active');
+            document.getElementById('btnReports').classList.remove('active');
+        }
+
+        function closeAllPanels() {
+            closeTasks();
+            closeSearch();
+            closeReports();
+        }
+
+        // On Task Dropdown Change
+        function onTaskChange() {
+            const dropdown = document.getElementById('taskDropdown');
+            const selectedTask = dropdown.value;
+            const menuItemsContainer = document.getElementById('menuItems');
+
+            menuItemsContainer.innerHTML = '';
+
+            if (selectedTask && menuData[selectedTask]) {
+                menuData[selectedTask].forEach((item, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'menu-item';
+                    div.textContent = item;
+                    div.onclick = () => openMenuItem(selectedTask, item);
+                    menuItemsContainer.appendChild(div);
+                });
+            }
+        }
+
+        // Open Menu Item
+        function openMenuItem(task, item) {
+            console.log('[INV] Opening:', task, '-', item);
+
+            // Mark as active
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Show content area
+            document.getElementById('welcomeMessage').style.display = 'none';
+            const contentDisplay = document.getElementById('contentDisplay');
+            contentDisplay.style.display = 'block';
+            contentDisplay.innerHTML = `
+                <div style="padding: 30px;">
+                    <h2 style="color: #667eea; margin-bottom: 20px;">${item}</h2>
+                    <p style="color: #aaa;">This feature is under development.</p>
+                    <p style="color: #666; margin-top: 10px; font-size: 13px;">Task Category: ${task.charAt(0).toUpperCase() + task.slice(1)}</p>
+                </div>
+            `;
+        }
+
+        // Open Report
+        function openReport(reportType) {
+            console.log('[INV] Opening report:', reportType);
+            closeReports();
+
+            document.getElementById('welcomeMessage').style.display = 'none';
+            const contentDisplay = document.getElementById('contentDisplay');
+            contentDisplay.style.display = 'block';
+            contentDisplay.innerHTML = `
+                <div style="padding: 30px;">
+                    <h2 style="color: #667eea; margin-bottom: 20px;">Report: ${reportType.charAt(0).toUpperCase() + reportType.slice(1)}</h2>
+                    <p style="color: #aaa;">Report generation is under development.</p>
+                </div>
+            `;
+        }
+
+        // Logout
         function logout() {
-            console.log('[INV] Logout requested');
-
-            // Clear localStorage
             localStorage.removeItem('wms_username');
             localStorage.removeItem('wms_password');
             localStorage.removeItem('wms_instance');
-            localStorage.removeItem('wms_loginTime');
 
-            // Send message to C# app to handle logout
             if (window.chrome && window.chrome.webview) {
-                window.chrome.webview.postMessage(JSON.stringify({
-                    type: 'logout'
-                }));
+                window.chrome.webview.postMessage(JSON.stringify({ type: 'logout' }));
             }
 
             alert('Logged out successfully');
-        }
-
-        // Listen for messages from C# app
-        if (window.chrome && window.chrome.webview) {
-            window.chrome.webview.addEventListener('message', function(event) {
-                console.log('[INV] Received message:', event.data);
-                const data = JSON.parse(event.data);
-
-                if (data.type === 'loginInfo') {
-                    document.getElementById('usernameDisplay').textContent = data.username || 'User';
-                    document.getElementById('instanceDisplay').textContent = data.instance || 'PROD';
-
-                    // Store in localStorage
-                    localStorage.setItem('wms_username', data.username);
-                    localStorage.setItem('wms_instance', data.instance);
-                }
-            });
         }
     </script>
 </body>

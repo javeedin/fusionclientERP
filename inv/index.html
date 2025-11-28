@@ -254,10 +254,18 @@
         .content-area {
             flex: 1;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
+            flex-direction: column;
             background: #ffffff;
+            overflow: hidden;
+        }
+
+        .content-area > #welcomeMessage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 40px;
         }
 
         .welcome-message {
@@ -275,6 +283,99 @@
             color: #666;
             font-size: 16px;
             line-height: 1.6;
+        }
+
+        /* Main Tabs System */
+        .main-tabs-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+        }
+
+        .main-tabs-header {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 1px solid #ddd;
+            min-height: 38px;
+            overflow-x: auto;
+            flex-shrink: 0;
+        }
+
+        .main-tabs-header::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .main-tabs-header::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 2px;
+        }
+
+        .main-tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            background: #e8e8e8;
+            border: none;
+            border-right: 1px solid #ddd;
+            cursor: pointer;
+            font-size: 13px;
+            color: #666;
+            white-space: nowrap;
+            transition: all 0.2s;
+            min-width: 120px;
+            max-width: 200px;
+        }
+
+        .main-tab:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .main-tab.active {
+            background: #fff;
+            color: #333;
+            font-weight: 500;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .main-tab-title {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .main-tab-close {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            font-size: 14px;
+            color: #999;
+            transition: all 0.2s;
+        }
+
+        .main-tab-close:hover {
+            background: #ff5555;
+            color: #fff;
+        }
+
+        .main-tab-content {
+            flex: 1;
+            overflow: auto;
+            background: #fff;
+        }
+
+        .main-tab-panel {
+            display: none;
+            height: 100%;
+        }
+
+        .main-tab-panel.active {
+            display: block;
         }
 
         /* Floating Action Panel */
@@ -982,21 +1083,21 @@
         }
 
         .group-header {
-            background: #f0f4ff;
+            background: #5a5a5a;
             cursor: pointer;
             user-select: none;
         }
 
         .group-header:hover {
-            background: #e8edff;
+            background: #4a4a4a;
         }
 
         .group-header td {
             padding: 8px 8px;
             font-weight: 600;
             font-size: 12px;
-            color: #333;
-            border-bottom: 1px solid #e0e0e0;
+            color: #fff;
+            border-bottom: 1px solid #666;
         }
 
         .group-toggle {
@@ -1004,7 +1105,7 @@
             width: 18px;
             font-size: 10px;
             transition: transform 0.2s;
-            color: #667eea;
+            color: #fff;
         }
 
         .group-header.collapsed .group-toggle {
@@ -1309,8 +1410,8 @@
     <!-- Main Content -->
     <div class="main-content">
         <!-- Content Area -->
-        <div class="content-area" style="align-items: flex-start; padding-top: 20px;">
-            <div id="welcomeMessage" style="width: 100%;">
+        <div class="content-area">
+            <div id="welcomeMessage">
                 <div style="text-align: center; margin-bottom: 30px;">
                     <h2 style="color: #667eea; margin-bottom: 10px;">Inventory Management</h2>
                     <p style="color: #666;">Select a task below or use the floating panel on the right</p>
@@ -1399,8 +1500,14 @@
                 </div>
             </div>
 
-            <div id="contentDisplay" style="display: none; width: 100%; height: 100%;">
-                <!-- Dynamic content will be loaded here -->
+            <!-- Main Tabs Container -->
+            <div id="mainTabsContainer" class="main-tabs-container" style="display: none;">
+                <div class="main-tabs-header" id="mainTabsHeader">
+                    <!-- Tabs will be added dynamically -->
+                </div>
+                <div class="main-tab-content" id="mainTabContent">
+                    <!-- Tab panels will be added dynamically -->
+                </div>
             </div>
         </div>
     </div>
@@ -1859,34 +1966,136 @@
         let filteredPoLinesData = [];
         let selectedPoReceipts = new Set();
 
-        // Open Menu Item
+        // Main tabs management
+        let mainTabs = [];
+        let activeMainTabId = null;
+
+        // Handle menu item click from main page cards
+        function handleMenuItem(item) {
+            openMenuItem('main', item);
+        }
+
+        // Generate unique tab ID
+        function generateTabId(item) {
+            return 'main-tab-' + item.replace(/\s+/g, '-').toLowerCase();
+        }
+
+        // Open Menu Item - Creates or switches to tab
         function openMenuItem(task, item) {
             console.log('[INV] Opening:', task, '-', item);
 
-            // Mark as active
-            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
-            if (event && event.target) {
-                event.target.closest('.menu-item').classList.add('active');
+            const tabId = generateTabId(item);
+
+            // Check if tab already exists
+            const existingTab = mainTabs.find(t => t.id === tabId);
+            if (existingTab) {
+                // Switch to existing tab
+                switchMainTab(tabId);
+                return;
             }
 
-            // Show content area
-            document.getElementById('welcomeMessage').style.display = 'none';
-            const contentDisplay = document.getElementById('contentDisplay');
-            contentDisplay.style.display = 'block';
+            // Create new tab
+            createMainTab(tabId, item, task);
 
-            // Handle specific menu items
+            // Close the menu panel
+            closeTasks();
+        }
+
+        // Create a new main tab
+        function createMainTab(tabId, title, task) {
+            // Add to tabs array
+            mainTabs.push({ id: tabId, title: title, task: task });
+
+            // Create tab header
+            const tabHeader = document.getElementById('mainTabsHeader');
+            const tabBtn = document.createElement('div');
+            tabBtn.className = 'main-tab';
+            tabBtn.id = tabId + '-btn';
+            tabBtn.innerHTML = `
+                <span class="main-tab-title">${title}</span>
+                <span class="main-tab-close" onclick="event.stopPropagation(); closeMainTab('${tabId}')">&times;</span>
+            `;
+            tabBtn.onclick = () => switchMainTab(tabId);
+            tabHeader.appendChild(tabBtn);
+
+            // Create tab panel
+            const tabContent = document.getElementById('mainTabContent');
+            const tabPanel = document.createElement('div');
+            tabPanel.className = 'main-tab-panel';
+            tabPanel.id = tabId + '-panel';
+            tabContent.appendChild(tabPanel);
+
+            // Show tabs container, hide welcome message
+            document.getElementById('welcomeMessage').style.display = 'none';
+            document.getElementById('mainTabsContainer').style.display = 'flex';
+
+            // Render content into the panel
+            renderTabContent(tabPanel, title, task);
+
+            // Switch to the new tab
+            switchMainTab(tabId);
+        }
+
+        // Render tab content based on menu item
+        function renderTabContent(container, item, task) {
             if (item === 'Manage Item Quantities') {
-                showManageItemQuantities(contentDisplay);
+                showManageItemQuantities(container);
             } else if (item === 'Receive Expected Shipments') {
-                showReceiveExpectedShipments(contentDisplay);
+                showReceiveExpectedShipments(container);
             } else {
-                contentDisplay.innerHTML = `
+                container.innerHTML = `
                     <div style="padding: 30px;">
                         <h2 style="color: #667eea; margin-bottom: 20px;">${item}</h2>
                         <p style="color: #666;">This feature is under development.</p>
                         <p style="color: #888; margin-top: 10px; font-size: 13px;">Task Category: ${task.charAt(0).toUpperCase() + task.slice(1)}</p>
                     </div>
                 `;
+            }
+        }
+
+        // Switch to a main tab
+        function switchMainTab(tabId) {
+            // Remove active from all tabs
+            document.querySelectorAll('.main-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.main-tab-panel').forEach(panel => panel.classList.remove('active'));
+
+            // Activate the selected tab
+            const tabBtn = document.getElementById(tabId + '-btn');
+            const tabPanel = document.getElementById(tabId + '-panel');
+
+            if (tabBtn) tabBtn.classList.add('active');
+            if (tabPanel) tabPanel.classList.add('active');
+
+            activeMainTabId = tabId;
+        }
+
+        // Close a main tab
+        function closeMainTab(tabId) {
+            // Find tab index
+            const tabIndex = mainTabs.findIndex(t => t.id === tabId);
+            if (tabIndex === -1) return;
+
+            // Remove from array
+            mainTabs.splice(tabIndex, 1);
+
+            // Remove DOM elements
+            const tabBtn = document.getElementById(tabId + '-btn');
+            const tabPanel = document.getElementById(tabId + '-panel');
+            if (tabBtn) tabBtn.remove();
+            if (tabPanel) tabPanel.remove();
+
+            // If closing active tab, switch to another
+            if (activeMainTabId === tabId) {
+                if (mainTabs.length > 0) {
+                    // Switch to previous tab or first tab
+                    const newIndex = Math.max(0, tabIndex - 1);
+                    switchMainTab(mainTabs[newIndex].id);
+                } else {
+                    // No tabs left, show welcome message
+                    activeMainTabId = null;
+                    document.getElementById('mainTabsContainer').style.display = 'none';
+                    document.getElementById('welcomeMessage').style.display = 'block';
+                }
             }
         }
 

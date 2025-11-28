@@ -407,6 +407,34 @@
             min-width: 20px;
         }
 
+        /* KPI Carousel */
+        .kpi-carousel-container {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .kpi-carousel-pages {
+            display: flex;
+            transition: transform 0.3s ease;
+            width: 100%;
+        }
+
+        .kpi-carousel-page {
+            min-width: 100%;
+            flex-shrink: 0;
+            box-sizing: border-box;
+        }
+
+        .kpi-carousel-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+            padding: 5px 0;
+        }
+
         /* Carousel Pagination for Tasks */
         .carousel-container {
             position: relative;
@@ -1601,36 +1629,117 @@
             <div id="welcomeMessage">
                 <!-- Analytics Dashboard Section -->
                 <div class="home-analytics" id="homeAnalytics">
-                    <div class="analytics-row">
-                        <div class="analytics-card">
-                            <div class="analytics-icon">&#128230;</div>
-                            <div class="analytics-info">
-                                <div class="analytics-value" id="totalItemsCount">--</div>
-                                <div class="analytics-label">Total Items</div>
+                    <!-- KPI Cards Carousel -->
+                    <div class="kpi-carousel-container">
+                        <div class="kpi-carousel-pages" id="kpiCarouselPages">
+                            <!-- Page 1: Inventory KPIs -->
+                            <div class="kpi-carousel-page">
+                                <div class="analytics-row">
+                                    <div class="analytics-card">
+                                        <div class="analytics-icon">&#128230;</div>
+                                        <div class="analytics-info">
+                                            <div class="analytics-value" id="totalItemsCount">--</div>
+                                            <div class="analytics-label">Total Items</div>
+                                        </div>
+                                    </div>
+                                    <div class="analytics-card">
+                                        <div class="analytics-icon">&#128451;</div>
+                                        <div class="analytics-info">
+                                            <div class="analytics-value" id="totalSubinvCount">--</div>
+                                            <div class="analytics-label">Subinventories</div>
+                                        </div>
+                                    </div>
+                                    <div class="analytics-card">
+                                        <div class="analytics-icon">&#127991;</div>
+                                        <div class="analytics-info">
+                                            <div class="analytics-value" id="totalLotsCount">--</div>
+                                            <div class="analytics-label">Total Lots</div>
+                                        </div>
+                                    </div>
+                                    <div class="analytics-card">
+                                        <div class="analytics-icon">&#128271;</div>
+                                        <div class="analytics-info">
+                                            <div class="analytics-value" id="totalSerialsCount">--</div>
+                                            <div class="analytics-label">Serial Numbers</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Page 2: PO Receipts KPIs -->
+                            <div class="kpi-carousel-page">
+                                <div class="analytics-row">
+                                    <div class="analytics-card">
+                                        <div class="analytics-icon">&#128229;</div>
+                                        <div class="analytics-info">
+                                            <div class="analytics-value" id="totalPOCount">--</div>
+                                            <div class="analytics-label">Open POs</div>
+                                        </div>
+                                    </div>
+                                    <div class="analytics-card">
+                                        <div class="analytics-icon">&#128196;</div>
+                                        <div class="analytics-info">
+                                            <div class="analytics-value" id="totalPOLinesCount">--</div>
+                                            <div class="analytics-label">PO Lines</div>
+                                        </div>
+                                    </div>
+                                    <div class="analytics-card">
+                                        <div class="analytics-icon">&#128666;</div>
+                                        <div class="analytics-info">
+                                            <div class="analytics-value" id="pendingReceiptsCount">--</div>
+                                            <div class="analytics-label">Pending Receipts</div>
+                                        </div>
+                                    </div>
+                                    <div class="analytics-card">
+                                        <div class="analytics-icon">&#128176;</div>
+                                        <div class="analytics-info">
+                                            <div class="analytics-value" id="totalPOValue">--</div>
+                                            <div class="analytics-label">Total PO Value</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Page 3: Shipments & Counts KPIs -->
+                            <div class="kpi-carousel-page">
+                                <div class="analytics-row">
+                                    <div class="analytics-card">
+                                        <div class="analytics-icon">&#128666;</div>
+                                        <div class="analytics-info">
+                                            <div class="analytics-value" id="openShipmentsCount">--</div>
+                                            <div class="analytics-label">Open Shipments</div>
+                                        </div>
+                                    </div>
+                                    <div class="analytics-card">
+                                        <div class="analytics-icon">&#128202;</div>
+                                        <div class="analytics-info">
+                                            <div class="analytics-value" id="cycleCounstCount">--</div>
+                                            <div class="analytics-label">Cycle Counts</div>
+                                        </div>
+                                    </div>
+                                    <div class="analytics-card">
+                                        <div class="analytics-icon">&#9745;</div>
+                                        <div class="analytics-info">
+                                            <div class="analytics-value" id="pickSlipsCount">--</div>
+                                            <div class="analytics-label">Pick Slips</div>
+                                        </div>
+                                    </div>
+                                    <div class="analytics-card">
+                                        <div class="analytics-icon">&#8644;</div>
+                                        <div class="analytics-info">
+                                            <div class="analytics-value" id="transfersCount">--</div>
+                                            <div class="analytics-label">Transfers</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="analytics-card">
-                            <div class="analytics-icon">&#128451;</div>
-                            <div class="analytics-info">
-                                <div class="analytics-value" id="totalSubinvCount">--</div>
-                                <div class="analytics-label">Subinventories</div>
-                            </div>
-                        </div>
-                        <div class="analytics-card">
-                            <div class="analytics-icon">&#127991;</div>
-                            <div class="analytics-info">
-                                <div class="analytics-value" id="totalLotsCount">--</div>
-                                <div class="analytics-label">Total Lots</div>
-                            </div>
-                        </div>
-                        <div class="analytics-card">
-                            <div class="analytics-icon">&#128271;</div>
-                            <div class="analytics-info">
-                                <div class="analytics-value" id="totalSerialsCount">--</div>
-                                <div class="analytics-label">Serial Numbers</div>
-                            </div>
+                        <div class="kpi-carousel-dots" id="kpiCarouselDots">
+                            <div class="carousel-dot active" onclick="goToKpiPage(0)"></div>
+                            <div class="carousel-dot" onclick="goToKpiPage(1)"></div>
+                            <div class="carousel-dot" onclick="goToKpiPage(2)"></div>
                         </div>
                     </div>
+
+                    <!-- Charts Row -->
                     <div class="analytics-charts-row">
                         <div class="analytics-chart-card">
                             <h4>Inventory by Subinventory</h4>
@@ -1645,9 +1754,9 @@
                             </div>
                         </div>
                         <div class="analytics-chart-card">
-                            <h4>Recent Activity</h4>
-                            <div class="mini-chart" id="homeActivityChart">
-                                <div class="mini-chart-placeholder">No recent activity</div>
+                            <h4>PO Receipts by Vendor</h4>
+                            <div class="mini-chart" id="homeVendorChart">
+                                <div class="mini-chart-placeholder">No data</div>
                             </div>
                         </div>
                     </div>
@@ -2196,8 +2305,24 @@
             const carousel = document.getElementById('taskCarouselPages');
             carousel.style.transform = `translateX(-${pageIndex * 100}%)`;
 
-            // Update dots
-            document.querySelectorAll('.carousel-dot').forEach((dot, idx) => {
+            // Update dots (only in Tasks panel)
+            document.querySelectorAll('#taskCarouselDots .carousel-dot').forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === pageIndex);
+            });
+        }
+
+        // KPI Carousel navigation
+        let currentKpiPage = 0;
+
+        function goToKpiPage(pageIndex) {
+            currentKpiPage = pageIndex;
+            const carousel = document.getElementById('kpiCarouselPages');
+            if (carousel) {
+                carousel.style.transform = `translateX(-${pageIndex * 100}%)`;
+            }
+
+            // Update dots (only in KPI carousel)
+            document.querySelectorAll('#kpiCarouselDots .carousel-dot').forEach((dot, idx) => {
                 dot.classList.toggle('active', idx === pageIndex);
             });
         }
@@ -2428,7 +2553,7 @@
 
         // Update home analytics from retrieved data
         function updateHomeAnalytics() {
-            // Update counts from onHandData
+            // Update counts from onHandData (Page 1: Inventory KPIs)
             if (onHandData && onHandData.length > 0) {
                 // Count unique items
                 const uniqueItems = new Set(onHandData.map(d => d.item_number || d.ITEM_NUMBER)).size;
@@ -2452,6 +2577,69 @@
             if (serialNumberData && serialNumberData.length > 0) {
                 document.getElementById('totalSerialsCount').textContent = serialNumberData.length.toLocaleString();
             }
+
+            // Update PO Receipts KPIs (Page 2)
+            if (poReceiptsData && poReceiptsData.length > 0) {
+                // Count unique POs
+                const uniquePOs = new Set(poReceiptsData.map(d => d.po_number || d.PO_NUMBER || d.document_number || d.DOCUMENT_NUMBER)).size;
+                document.getElementById('totalPOCount').textContent = uniquePOs.toLocaleString();
+
+                // Pending receipts count
+                document.getElementById('pendingReceiptsCount').textContent = poReceiptsData.length.toLocaleString();
+
+                // Update vendor chart
+                updateHomeVendorChart(poReceiptsData);
+            }
+
+            // Update PO Lines count
+            if (poReceiptsLinesData && poReceiptsLinesData.length > 0) {
+                document.getElementById('totalPOLinesCount').textContent = poReceiptsLinesData.length.toLocaleString();
+
+                // Calculate total PO value if available
+                let totalValue = 0;
+                poReceiptsLinesData.forEach(line => {
+                    const qty = parseFloat(line.quantity || line.QUANTITY || 0);
+                    const price = parseFloat(line.unit_price || line.UNIT_PRICE || 0);
+                    totalValue += qty * price;
+                });
+                if (totalValue > 0) {
+                    document.getElementById('totalPOValue').textContent = '$' + totalValue.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                }
+            }
+        }
+
+        // Mini chart for vendor distribution
+        function updateHomeVendorChart(data) {
+            const container = document.getElementById('homeVendorChart');
+            if (!container || !data || data.length === 0) {
+                if (container) container.innerHTML = '<div class="mini-chart-placeholder">No data available</div>';
+                return;
+            }
+
+            // Group by vendor
+            const grouped = {};
+            data.forEach(d => {
+                const vendor = d.vendor_name || d.VENDOR_NAME || 'Unknown';
+                grouped[vendor] = (grouped[vendor] || 0) + 1;
+            });
+
+            // Sort and take top 5
+            const sorted = Object.entries(grouped).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            const maxCount = sorted[0] ? sorted[0][1] : 1;
+
+            let html = '';
+            sorted.forEach(([vendor, count]) => {
+                const pct = (count / maxCount) * 100;
+                html += `
+                    <div class="mini-bar-row">
+                        <div class="mini-bar-label" title="${vendor}">${vendor}</div>
+                        <div class="mini-bar-track">
+                            <div class="mini-bar-fill" style="width: ${pct}%; background: #dc3545;">${count}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
         }
 
         // Mini chart for subinventory distribution
@@ -3105,6 +3293,7 @@
                     filteredPoReceiptsData = [...poReceiptsData];
                     updatePoCharts(filteredPoReceiptsData);
                     renderPoReceiptsTable(filteredPoReceiptsData);
+                    updateHomeAnalytics();
                     console.log('[INV] Loaded', poReceiptsData.length, 'PO receipts');
                 } else {
                     poReceiptsData = [];
@@ -3144,6 +3333,7 @@
                     poReceiptsLinesData = response.items;
                     filteredPoLinesData = [...poReceiptsLinesData];
                     renderPoLinesTable(filteredPoLinesData);
+                    updateHomeAnalytics();
                     console.log('[INV] Loaded', poReceiptsLinesData.length, 'PO lines');
                 } else {
                     poReceiptsLinesData = [];

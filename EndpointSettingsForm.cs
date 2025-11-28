@@ -537,18 +537,18 @@ namespace WMSApp
             this.Text = Endpoint.Sno > 0 && !string.IsNullOrEmpty(Endpoint.IntegrationCode)
                 ? "Edit Endpoint"
                 : "Add New Endpoint";
-            this.Size = new Size(550, 450);
+            this.Size = new Size(620, 480);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.BackColor = Color.White;
 
-            int yPos = 20;
-            int labelWidth = 120;
-            int fieldLeft = 140;
-            int fieldWidth = 370;
-            int rowHeight = 45;
+            int yPos = 25;
+            int labelWidth = 130;
+            int fieldLeft = 170;
+            int fieldWidth = 400;
+            int rowHeight = 50;
 
             // S.No
             AddLabel("S.No:", 20, yPos);

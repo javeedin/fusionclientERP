@@ -1848,6 +1848,10 @@
         let onHandData = [];
         let filteredOnHandData = [];
 
+        // Serial number data storage
+        let serialNumberData = [];
+        let filteredSerialData = [];
+
         // Open Menu Item
         function openMenuItem(task, item) {
             console.log('[INV] Opening:', task, '-', item);
@@ -1941,6 +1945,9 @@
                             </button>
                             <button class="tab-btn" data-tab="tab-bysubinv" onclick="switchTab('tab-bysubinv')">
                                 &#128451; By Subinventory
+                            </button>
+                            <button class="tab-btn" data-tab="tab-byserial" onclick="switchTab('tab-byserial')">
+                                &#128271; By Serial Number
                             </button>
                             <button class="btn-fullscreen" onclick="toggleFullscreen()" title="Fit to Page" style="margin-left: auto;">
                                 &#9974; Fit to Page
@@ -2043,6 +2050,39 @@
                                         </tr>
                                     </thead>
                                     <tbody id="subinvGroupedTableBody">
+                                        <tr><td colspan="7" class="no-data">Enter search parameters and click Search</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab 4: By Serial Number (Grouped by Item) -->
+                        <div class="tab-content" id="tab-byserial">
+                            <div class="grid-header" style="margin-bottom: 10px; padding: 10px 0; border: none; background: none;">
+                                <div class="grid-title">
+                                    Serial Numbers Grouped by Item
+                                    <button class="btn-expand-collapse" onclick="expandAllGroups('byserial')" title="Expand All">&#9654; Expand All</button>
+                                    <button class="btn-expand-collapse" onclick="collapseAllGroups('byserial')" title="Collapse All">&#9660; Collapse All</button>
+                                </div>
+                                <div class="grid-search">
+                                    <input type="text" id="gridSearchInputSerial" placeholder="Filter results..." oninput="filterBySerialGrid()">
+                                    <span class="record-count" id="recordCountSerial">0 Serial(s)</span>
+                                </div>
+                            </div>
+                            <div class="table-container" style="max-height: calc(100vh - 450px);">
+                                <table class="grouped-table" id="serialGroupedTable">
+                                    <thead style="background: #667eea; color: #fff;">
+                                        <tr>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Item</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Description</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Serial Number</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Subinventory</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Locator</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Lot</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="serialGroupedTableBody">
                                         <tr><td colspan="7" class="no-data">Enter search parameters and click Search</td></tr>
                                     </tbody>
                                 </table>
@@ -2368,7 +2408,10 @@
 
         // Expand all groups
         function expandAllGroups(tabType) {
-            const tableId = tabType === 'bysubinv' ? 'subinvGroupedTable' : 'groupedTable';
+            let tableId = 'groupedTable';
+            if (tabType === 'bysubinv') tableId = 'subinvGroupedTable';
+            else if (tabType === 'byserial') tableId = 'serialGroupedTable';
+
             const table = document.getElementById(tableId);
             if (!table) return;
 
@@ -2388,7 +2431,10 @@
 
         // Collapse all groups
         function collapseAllGroups(tabType) {
-            const tableId = tabType === 'bysubinv' ? 'subinvGroupedTable' : 'groupedTable';
+            let tableId = 'groupedTable';
+            if (tabType === 'bysubinv') tableId = 'subinvGroupedTable';
+            else if (tabType === 'byserial') tableId = 'serialGroupedTable';
+
             const table = document.getElementById(tableId);
             if (!table) return;
 
@@ -2537,6 +2583,177 @@
             renderBySubinventoryTable(filtered);
         }
 
+        // Render By Serial Number table (grouped by Item)
+        function renderBySerialNumberTable(data) {
+            const tbody = document.getElementById('serialGroupedTableBody');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-data">No serial number data found</td></tr>';
+                document.getElementById('recordCountSerial').textContent = '0 Serial(s)';
+                return;
+            }
+
+            // Group by Item
+            const grouped = {};
+            data.forEach(d => {
+                const item = d.item_number || d.ITEM_NUMBER || 'Unknown';
+                if (!grouped[item]) {
+                    grouped[item] = {
+                        itemNumber: item,
+                        itemDesc: d.item_description || d.ITEM_DESCRIPTION || '',
+                        serialCount: 0,
+                        rows: []
+                    };
+                }
+                grouped[item].serialCount++;
+                grouped[item].rows.push(d);
+            });
+
+            let html = '';
+            let groupIdx = 0;
+            Object.values(grouped).forEach((group) => {
+                const groupId = 'serial-group-' + groupIdx;
+
+                // Item header row
+                html += `
+                    <tr class="group-header" onclick="toggleGroup('${groupId}')" style="background: #f0f4ff;">
+                        <td colspan="2">
+                            <span class="group-toggle">&#9660;</span>
+                            <strong>${group.itemNumber}</strong> - ${group.itemDesc || ''}
+                        </td>
+                        <td colspan="3"></td>
+                        <td colspan="2"><span class="group-qty">${group.serialCount} Serial(s)</span></td>
+                    </tr>
+                `;
+
+                // Serial number rows
+                group.rows.forEach(row => {
+                    const serialNum = row.serial_number || row.SERIAL_NUMBER || '-';
+                    const subinv = row.sub_inventory_code || row.SUB_INVENTORY_CODE || '-';
+                    const locator = row.locator || row.LOCATOR || '-';
+                    const lot = row.lot_number || row.LOT_NUMBER || row.lotnumber || '-';
+                    const status = row.status || row.STATUS || '-';
+
+                    html += `
+                        <tr class="group-row" data-group="${groupId}">
+                            <td style="padding-left: 30px;"></td>
+                            <td></td>
+                            <td><strong>${serialNum}</strong></td>
+                            <td>${subinv}</td>
+                            <td>${locator}</td>
+                            <td>${lot}</td>
+                            <td>${status}</td>
+                        </tr>
+                    `;
+                });
+
+                groupIdx++;
+            });
+
+            tbody.innerHTML = html;
+            document.getElementById('recordCountSerial').textContent = data.length + ' Serial(s)';
+        }
+
+        // Filter By Serial Number grid
+        function filterBySerialGrid() {
+            const searchText = document.getElementById('gridSearchInputSerial').value.toLowerCase();
+            if (!serialNumberData) return;
+
+            if (!searchText) {
+                renderBySerialNumberTable(serialNumberData);
+                return;
+            }
+
+            const filtered = serialNumberData.filter(row => {
+                return (row.item_number || row.ITEM_NUMBER || '').toLowerCase().includes(searchText) ||
+                       (row.item_description || row.ITEM_DESCRIPTION || '').toLowerCase().includes(searchText) ||
+                       (row.serial_number || row.SERIAL_NUMBER || '').toLowerCase().includes(searchText) ||
+                       (row.sub_inventory_code || row.SUB_INVENTORY_CODE || '').toLowerCase().includes(searchText) ||
+                       (row.lot_number || row.LOT_NUMBER || '').toLowerCase().includes(searchText);
+            });
+
+            renderBySerialNumberTable(filtered);
+        }
+
+        // Get serial number endpoint from C#
+        async function getSerialNumberEndpoint() {
+            const instanceName = localStorage.getItem('wms_instance') || 'PROD';
+
+            return new Promise((resolve, reject) => {
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'endpoint_serial_' + Date.now();
+
+                    // Set up one-time listener for response
+                    const handler = function(event) {
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            if (data.requestId === requestId && data.endpoint) {
+                                resolve(data.endpoint);
+                                window.chrome.webview.removeEventListener('message', handler);
+                            }
+                        } catch (e) {}
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+
+                    // Request endpoint from C#
+                    window.chrome.webview.postMessage({
+                        action: 'getEndpoint',
+                        requestId: requestId,
+                        integrationCode: 'INVENTORY_ON_HAND_BY_SRNO',
+                        instanceName: instanceName
+                    });
+
+                    // Timeout after 5 seconds
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        resolve(null);
+                    }, 5000);
+                } else {
+                    resolve(null);
+                }
+            });
+        }
+
+        // Fetch serial number data from INVENTORY_ON_HAND_BY_SRNO endpoint
+        async function fetchSerialNumberData(orgCode) {
+            try {
+                // Get the serial number endpoint
+                const serialEndpoint = await getSerialNumberEndpoint();
+                if (!serialEndpoint) {
+                    console.log('[INV] INVENTORY_ON_HAND_BY_SRNO endpoint not configured, skipping serial data');
+                    serialNumberData = [];
+                    filteredSerialData = [];
+                    renderBySerialNumberTable([]);
+                    return;
+                }
+
+                // Build URL with org code
+                const url = `${serialEndpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                console.log('[INV] Fetching serial number data from:', url);
+
+                // Fetch the data
+                const response = await fetchWithBridge(url);
+
+                if (response && response.items) {
+                    serialNumberData = response.items;
+                    filteredSerialData = [...serialNumberData];
+                    renderBySerialNumberTable(filteredSerialData);
+                    console.log('[INV] Loaded', serialNumberData.length, 'serial number records');
+                } else {
+                    serialNumberData = [];
+                    filteredSerialData = [];
+                    renderBySerialNumberTable([]);
+                }
+            } catch (error) {
+                console.error('[INV] Error fetching serial number data:', error);
+                serialNumberData = [];
+                filteredSerialData = [];
+                const serialTbody = document.getElementById('serialGroupedTableBody');
+                if (serialTbody) {
+                    serialTbody.innerHTML = `<tr><td colspan="7" class="no-data" style="color: #dc3545;">Error loading serial data: ${error.message}</td></tr>`;
+                }
+            }
+        }
+
         // Get organization options HTML
         function getOrgOptionsHtml(selectedCode) {
             let html = '<option value="">-- Select Organization --</option>';
@@ -2585,8 +2802,14 @@
             const tbody = document.getElementById('groupedTableBody');
             tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading data</td></tr>';
 
+            // Also set loading state for serial number tab
+            const serialTbody = document.getElementById('serialGroupedTableBody');
+            if (serialTbody) {
+                serialTbody.innerHTML = '<tr><td colspan="7" class="loading">Loading serial numbers...</td></tr>';
+            }
+
             try {
-                // Build the endpoint URL
+                // Build the endpoint URL for on-hand data
                 const endpointUrl = await getInventoryOnHandEndpoint();
                 if (!endpointUrl) {
                     throw new Error('INVENTORY_ON_HAND endpoint not configured. Please add it in Settings.');
@@ -2616,7 +2839,7 @@
                     // Update grouped table - By Subinventory (Tab 3)
                     renderBySubinventoryTable(filteredOnHandData);
 
-                    console.log('[INV] Loaded', onHandData.length, 'records');
+                    console.log('[INV] Loaded', onHandData.length, 'on-hand records');
                 } else {
                     onHandData = [];
                     filteredOnHandData = [];
@@ -2624,6 +2847,9 @@
                     renderGroupedTable([]);
                     renderBySubinventoryTable([]);
                 }
+
+                // Also fetch serial number data (Tab 4)
+                await fetchSerialNumberData(orgCode);
             } catch (error) {
                 console.error('[INV] Error fetching on-hand data:', error);
                 tbody.innerHTML = `<tr><td colspan="7" class="no-data" style="color: #dc3545;">Error: ${error.message}</td></tr>`;

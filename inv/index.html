@@ -690,8 +690,8 @@
         }
 
         .data-table thead {
-            background: #667eea;
-            color: #fff;
+            background: #e0e0e0;
+            color: #333;
             position: sticky;
             top: 0;
         }
@@ -1083,21 +1083,21 @@
         }
 
         .group-header {
-            background: #5a5a5a;
+            background: #f5f5f5;
             cursor: pointer;
             user-select: none;
         }
 
         .group-header:hover {
-            background: #4a4a4a;
+            background: #e8e8e8;
         }
 
         .group-header td {
             padding: 8px 8px;
             font-weight: 600;
             font-size: 12px;
-            color: #fff;
-            border-bottom: 1px solid #666;
+            color: #333;
+            border-bottom: 1px solid #ddd;
         }
 
         .group-toggle {
@@ -1105,7 +1105,7 @@
             width: 18px;
             font-size: 10px;
             transition: transform 0.2s;
-            color: #fff;
+            color: #666;
         }
 
         .group-header.collapsed .group-toggle {
@@ -1389,7 +1389,7 @@
     <!-- Header -->
     <header class="header">
         <h1>
-            <span class="module-badge">INV</span>
+            <span class="module-badge" onclick="goToHome()" style="cursor: pointer;" title="Go to Home">INV</span>
             Inventory Management
         </h1>
         <div class="user-info">
@@ -2097,6 +2097,26 @@
                     document.getElementById('welcomeMessage').style.display = 'block';
                 }
             }
+        }
+
+        // Go to Home page - close all tabs and show welcome message
+        function goToHome() {
+            // Close all tabs
+            mainTabs.forEach(tab => {
+                const tabBtn = document.getElementById(tab.id + '-btn');
+                const tabPanel = document.getElementById(tab.id + '-panel');
+                if (tabBtn) tabBtn.remove();
+                if (tabPanel) tabPanel.remove();
+            });
+            mainTabs = [];
+            activeMainTabId = null;
+
+            // Hide tabs container, show welcome message
+            document.getElementById('mainTabsContainer').style.display = 'none';
+            document.getElementById('welcomeMessage').style.display = 'block';
+
+            // Close any open panels
+            closeAllPanels();
         }
 
         // Show Manage Item Quantities page
@@ -2937,7 +2957,7 @@
                 const groupId = 'po-line-group-' + groupIdx;
 
                 html += `
-                    <tr class="group-header" onclick="toggleGroup('${groupId}')" style="background: #f0f4ff;">
+                    <tr class="group-header" onclick="toggleGroup('${groupId}')">
                         <td colspan="4">
                             <span class="group-toggle">&#9660;</span>
                             <strong>&#128196; ${group.documentNumber}</strong>
@@ -3416,7 +3436,7 @@
 
                 // Subinventory header row
                 html += `
-                    <tr class="group-header" onclick="toggleGroup('${groupId}')" style="background: #e8edff;">
+                    <tr class="group-header" onclick="toggleGroup('${groupId}')">
                         <td colspan="4">
                             <span class="group-toggle">&#9660;</span>
                             <strong>&#128451; ${subinvGroup.subinventory}</strong>
@@ -3433,7 +3453,7 @@
 
                     // Item sub-header row
                     html += `
-                        <tr class="group-row subgroup-header" data-group="${groupId}" onclick="event.stopPropagation(); toggleSubgroup('${subgroupId}')" style="background: #f5f7ff; cursor: pointer;">
+                        <tr class="group-row subgroup-header" data-group="${groupId}" onclick="event.stopPropagation(); toggleSubgroup('${subgroupId}')" style="background: #e8e8e8; cursor: pointer;">
                             <td style="padding-left: 30px;"></td>
                             <td colspan="2">
                                 <span class="group-toggle" style="font-size: 9px;">&#9660;</span>
@@ -3526,7 +3546,7 @@
 
                 // Item header row
                 html += `
-                    <tr class="group-header" onclick="toggleGroup('${groupId}')" style="background: #f0f4ff;">
+                    <tr class="group-header" onclick="toggleGroup('${groupId}')">
                         <td colspan="2">
                             <span class="group-toggle">&#9660;</span>
                             <strong>${group.itemNumber}</strong> - ${group.itemDesc || ''}

@@ -1048,20 +1048,24 @@ namespace WMSApp
             // Add to navigation panel
             navPanel.Controls.Add(historyButton);
 
-            // Settings button (3 dots)
+            // Settings button (gear icon)
             Button settingsButton = new Button
             {
-                Text = "⋮",
+                Text = "⚙",
                 Width = 35,
                 Height = 30,
                 Top = 10,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 16, FontStyle.Bold),
+                Font = new Font("Segoe UI", 14),
                 Cursor = Cursors.Hand,
-                Anchor = AnchorStyles.Top | AnchorStyles.Right
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                BackColor = Color.FromArgb(240, 240, 240)
             };
             settingsButton.Left = this.ClientSize.Width - 45;
             settingsButton.FlatAppearance.BorderColor = Color.LightGray;
+            settingsButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(220, 220, 220);
+            settingsButton.Click += SettingsButton_Click;
+            moduleToolTip.SetToolTip(settingsButton, "Endpoint Settings");
 
             // Add controls to navigation panel
             navPanel.Controls.Add(backButton);
@@ -1102,6 +1106,12 @@ namespace WMSApp
         {
             var viewer = new PromptHistoryViewer(_promptHistoryManager);
             viewer.ShowDialog();
+        }
+
+        private void SettingsButton_Click(object sender, EventArgs e)
+        {
+            var settingsForm = new EndpointSettingsForm();
+            settingsForm.ShowDialog();
         }
 
         private void UrlPanel_Paint(object sender, PaintEventArgs e)

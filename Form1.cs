@@ -5524,7 +5524,7 @@ namespace WMSApp
         [JsonPropertyName("requestId")]
         public string RequestId { get; set; }
 
-        [JsonPropertyName("fullUrl")]
+        [JsonPropertyName("url")]
         public string FullUrl { get; set; }
 
         [JsonPropertyName("username")]
@@ -5542,7 +5542,7 @@ namespace WMSApp
         [JsonPropertyName("requestId")]
         public string RequestId { get; set; }
 
-        [JsonPropertyName("fullUrl")]
+        [JsonPropertyName("url")]
         public string FullUrl { get; set; }
 
         [JsonPropertyName("body")]

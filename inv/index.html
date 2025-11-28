@@ -1505,7 +1505,8 @@
                     // Set up one-time listener for response
                     const handler = function(event) {
                         try {
-                            const data = JSON.parse(event.data);
+                            // event.data may be already an object or a string
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
                             if (data.requestId === requestId && data.endpoint) {
                                 resolve(data.endpoint);
                                 window.chrome.webview.removeEventListener('message', handler);
@@ -1544,23 +1545,32 @@
                     const requestId = 'fetch_' + Date.now();
 
                     const handler = function(event) {
+                        console.log('[INV] Raw message received:', event.data, 'Type:', typeof event.data);
                         try {
-                            const data = JSON.parse(event.data);
+                            // event.data may be already an object (from PostWebMessageAsJson) or a string
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            console.log('[INV] Message data:', data);
+                            console.log('[INV] Looking for requestId:', requestId, 'Got:', data.requestId);
                             if (data.requestId === requestId) {
                                 window.chrome.webview.removeEventListener('message', handler);
+                                console.log('[INV] RequestId matched! Success:', data.success);
                                 if (data.success) {
                                     // Parse the nested JSON data if it's a string
                                     let responseData = data.data;
+                                    console.log('[INV] Response data type:', typeof responseData);
                                     if (typeof responseData === 'string') {
+                                        console.log('[INV] Parsing string response data...');
                                         responseData = JSON.parse(responseData);
                                     }
+                                    console.log('[INV] Final response data:', responseData);
                                     resolve(responseData);
                                 } else {
+                                    console.error('[INV] Request failed:', data.error);
                                     reject(new Error(data.error || 'Request failed'));
                                 }
                             }
                         } catch (e) {
-                            console.error('[INV] Error parsing response:', e);
+                            console.error('[INV] Error parsing response:', e, 'Raw data:', event.data);
                         }
                     };
                     window.chrome.webview.addEventListener('message', handler);

@@ -2065,7 +2065,7 @@ namespace WMSApp
 
                 using (var httpClient = new HttpClient())
                 {
-                    httpClient.Timeout = TimeSpan.FromSeconds(1060);
+                    httpClient.Timeout = TimeSpan.FromSeconds(300);
 
                     // Create request message instead of using GetAsync directly
                     var request = new HttpRequestMessage(HttpMethod.Get, message.FullUrl);
@@ -2147,7 +2147,7 @@ namespace WMSApp
 
                 using (var httpClient = new HttpClient())
                 {
-                    httpClient.Timeout = TimeSpan.FromSeconds(30);
+                    httpClient.Timeout = TimeSpan.FromSeconds(300);
 
                     HttpResponseMessage response;
 
@@ -2234,7 +2234,7 @@ namespace WMSApp
 
                 using (var httpClient = new HttpClient())
                 {
-                    httpClient.Timeout = TimeSpan.FromSeconds(1060);
+                    httpClient.Timeout = TimeSpan.FromSeconds(300);
 
                     // Create request message
                     var request = new HttpRequestMessage(HttpMethod.Delete, message.FullUrl);
@@ -4728,7 +4728,7 @@ namespace WMSApp
 
                     using (var httpClient = new HttpClient())
                     {
-                        httpClient.Timeout = TimeSpan.FromSeconds(60);
+                        httpClient.Timeout = TimeSpan.FromSeconds(300);
                         var response = await httpClient.GetAsync(apiUrl);
                         string responseContent = await response.Content.ReadAsStringAsync();
 
@@ -4806,7 +4806,7 @@ namespace WMSApp
 
                     using (var httpClient = new HttpClient())
                     {
-                        httpClient.Timeout = TimeSpan.FromSeconds(30);
+                        httpClient.Timeout = TimeSpan.FromSeconds(300);
 
                         var content = new StringContent(cardJson, Encoding.UTF8, "application/json");
                         var response = await httpClient.PostAsync(webhookUrl, content);

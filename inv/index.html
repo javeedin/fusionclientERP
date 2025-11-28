@@ -1044,6 +1044,29 @@
             font-weight: normal;
         }
 
+        /* Expand/Collapse Buttons */
+        .btn-expand-collapse {
+            background: #667eea;
+            color: #fff;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: all 0.2s;
+        }
+
+        .btn-expand-collapse:hover {
+            background: #5568d3;
+        }
+
+        .grid-title {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
         /* Tasks Panel on Main Page */
         .tasks-panel-main {
             display: grid;
@@ -1817,6 +1840,9 @@
                             <button class="tab-btn" data-tab="tab-byitem" onclick="switchTab('tab-byitem')">
                                 &#128230; By Item
                             </button>
+                            <button class="tab-btn" data-tab="tab-bysubinv" onclick="switchTab('tab-bysubinv')">
+                                &#128451; By Subinventory
+                            </button>
                         </div>
 
                         <!-- Tab 1: Charts -->
@@ -1858,26 +1884,63 @@
                         <!-- Tab 2: By Item (Grouped) -->
                         <div class="tab-content" id="tab-byitem">
                             <div class="grid-header" style="margin-bottom: 10px; padding: 10px 0; border: none; background: none;">
-                                <div class="grid-title">Items Grouped View</div>
+                                <div class="grid-title">
+                                    Items Grouped View
+                                    <button class="btn-expand-collapse" onclick="expandAllGroups('byitem')" title="Expand All">&#9654; Expand All</button>
+                                    <button class="btn-expand-collapse" onclick="collapseAllGroups('byitem')" title="Collapse All">&#9660; Collapse All</button>
+                                </div>
                                 <div class="grid-search">
                                     <input type="text" id="gridSearchInput" placeholder="Filter results..." oninput="filterOnHandGrid()">
-                                    <span class="record-count" id="recordCount">0 records</span>
+                                    <span class="record-count" id="recordCount">0 Lot(s)</span>
                                 </div>
                             </div>
                             <div class="table-container" style="max-height: calc(100vh - 450px);">
                                 <table class="grouped-table" id="groupedTable">
                                     <thead style="background: #667eea; color: #fff;">
                                         <tr>
-                                            <th style="padding: 12px 10px;">Item</th>
-                                            <th style="padding: 12px 10px;">Description</th>
-                                            <th style="padding: 12px 10px;">Subinventory</th>
-                                            <th style="padding: 12px 10px;">Lot</th>
-                                            <th style="padding: 12px 10px;">Qty</th>
-                                            <th style="padding: 12px 10px;">Status</th>
-                                            <th style="padding: 12px 10px;">Serial #</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Item</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Description</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Subinventory</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Lot</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Qty</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Status</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Serial #</th>
                                         </tr>
                                     </thead>
                                     <tbody id="groupedTableBody">
+                                        <tr><td colspan="7" class="no-data">Enter search parameters and click Search</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab 3: By Subinventory (Grouped) -->
+                        <div class="tab-content" id="tab-bysubinv">
+                            <div class="grid-header" style="margin-bottom: 10px; padding: 10px 0; border: none; background: none;">
+                                <div class="grid-title">
+                                    Subinventory Grouped View
+                                    <button class="btn-expand-collapse" onclick="expandAllGroups('bysubinv')" title="Expand All">&#9654; Expand All</button>
+                                    <button class="btn-expand-collapse" onclick="collapseAllGroups('bysubinv')" title="Collapse All">&#9660; Collapse All</button>
+                                </div>
+                                <div class="grid-search">
+                                    <input type="text" id="gridSearchInputSubinv" placeholder="Filter results..." oninput="filterBySubinvGrid()">
+                                    <span class="record-count" id="recordCountSubinv">0 Lot(s)</span>
+                                </div>
+                            </div>
+                            <div class="table-container" style="max-height: calc(100vh - 450px);">
+                                <table class="grouped-table" id="subinvGroupedTable">
+                                    <thead style="background: #667eea; color: #fff;">
+                                        <tr>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Subinventory</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Item</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Description</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Lot</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Qty</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Status</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Serial #</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="subinvGroupedTableBody">
                                         <tr><td colspan="7" class="no-data">Enter search parameters and click Search</td></tr>
                                     </tbody>
                                 </table>
@@ -2134,6 +2197,177 @@
             rows.forEach(row => row.classList.toggle('hidden'));
         }
 
+        // Expand all groups
+        function expandAllGroups(tabType) {
+            const tableId = tabType === 'bysubinv' ? 'subinvGroupedTable' : 'groupedTable';
+            const table = document.getElementById(tableId);
+            if (!table) return;
+
+            table.querySelectorAll('.group-header').forEach(header => {
+                header.classList.remove('collapsed');
+            });
+            table.querySelectorAll('.group-row').forEach(row => {
+                row.classList.remove('hidden');
+            });
+            table.querySelectorAll('.subgroup-header').forEach(header => {
+                header.classList.remove('collapsed');
+            });
+            table.querySelectorAll('.subgroup-row').forEach(row => {
+                row.classList.remove('hidden');
+            });
+        }
+
+        // Collapse all groups
+        function collapseAllGroups(tabType) {
+            const tableId = tabType === 'bysubinv' ? 'subinvGroupedTable' : 'groupedTable';
+            const table = document.getElementById(tableId);
+            if (!table) return;
+
+            table.querySelectorAll('.group-header').forEach(header => {
+                header.classList.add('collapsed');
+            });
+            table.querySelectorAll('.group-row').forEach(row => {
+                row.classList.add('hidden');
+            });
+            table.querySelectorAll('.subgroup-header').forEach(header => {
+                header.classList.add('collapsed');
+            });
+            table.querySelectorAll('.subgroup-row').forEach(row => {
+                row.classList.add('hidden');
+            });
+        }
+
+        // Toggle subgroup expansion (for nested groups)
+        function toggleSubgroup(subgroupId) {
+            const header = document.querySelector(`.subgroup-header[onclick*="${subgroupId}"]`);
+            const rows = document.querySelectorAll(`.subgroup-row[data-subgroup="${subgroupId}"]`);
+
+            header.classList.toggle('collapsed');
+            rows.forEach(row => row.classList.toggle('hidden'));
+        }
+
+        // Render By Subinventory table (Subinventory → Item → Lots)
+        function renderBySubinventoryTable(data) {
+            const tbody = document.getElementById('subinvGroupedTableBody');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-data">No data found</td></tr>';
+                document.getElementById('recordCountSubinv').textContent = '0 Lot(s)';
+                return;
+            }
+
+            // Group by Subinventory, then by Item
+            const grouped = {};
+            data.forEach(d => {
+                const subinv = d.sub_inventory_code || 'Unknown';
+                const item = d.item_number || 'Unknown';
+
+                if (!grouped[subinv]) {
+                    grouped[subinv] = {
+                        subinventory: subinv,
+                        totalQty: 0,
+                        items: {}
+                    };
+                }
+                grouped[subinv].totalQty += parseFloat(d.primaryquantity) || 0;
+
+                if (!grouped[subinv].items[item]) {
+                    grouped[subinv].items[item] = {
+                        itemNumber: d.item_number,
+                        itemDesc: d.item_description,
+                        totalQty: 0,
+                        rows: []
+                    };
+                }
+                grouped[subinv].items[item].totalQty += parseFloat(d.primaryquantity) || 0;
+                grouped[subinv].items[item].rows.push(d);
+            });
+
+            let html = '';
+            let groupIdx = 0;
+            Object.values(grouped).forEach((subinvGroup) => {
+                const groupId = 'subinv-group-' + groupIdx;
+                const itemCount = Object.keys(subinvGroup.items).length;
+
+                // Subinventory header row
+                html += `
+                    <tr class="group-header" onclick="toggleGroup('${groupId}')" style="background: #e8edff;">
+                        <td colspan="4">
+                            <span class="group-toggle">&#9660;</span>
+                            <strong>&#128451; ${subinvGroup.subinventory}</strong>
+                        </td>
+                        <td><span class="group-qty">${subinvGroup.totalQty.toLocaleString()}</span></td>
+                        <td colspan="2"><span class="lot-count">${itemCount} Item(s)</span></td>
+                    </tr>
+                `;
+
+                // Items within this subinventory
+                let subgroupIdx = 0;
+                Object.values(subinvGroup.items).forEach((itemGroup) => {
+                    const subgroupId = groupId + '-item-' + subgroupIdx;
+
+                    // Item sub-header row
+                    html += `
+                        <tr class="group-row subgroup-header" data-group="${groupId}" onclick="event.stopPropagation(); toggleSubgroup('${subgroupId}')" style="background: #f5f7ff; cursor: pointer;">
+                            <td style="padding-left: 30px;"></td>
+                            <td colspan="2">
+                                <span class="group-toggle" style="font-size: 9px;">&#9660;</span>
+                                <strong>${itemGroup.itemNumber}</strong> - ${itemGroup.itemDesc || ''}
+                            </td>
+                            <td></td>
+                            <td><span class="group-qty" style="background: #28a745;">${itemGroup.totalQty.toLocaleString()}</span></td>
+                            <td colspan="2"><span class="lot-count">${itemGroup.rows.length} Lot(s)</span></td>
+                        </tr>
+                    `;
+
+                    // Lot rows within this item
+                    itemGroup.rows.forEach(row => {
+                        const serialUrl = row.serial_number_url || '';
+                        const serialLink = serialUrl
+                            ? `<button class="btn-icon serial" onclick="event.stopPropagation(); openSerialTab('${row.item_number}', '${(row.item_description || '').replace(/'/g, "\\'")}', '${serialUrl}')" title="View Serial Numbers">&#128271;</button>`
+                            : '-';
+                        html += `
+                            <tr class="group-row subgroup-row hidden" data-group="${groupId}" data-subgroup="${subgroupId}">
+                                <td style="padding-left: 50px;"></td>
+                                <td></td>
+                                <td></td>
+                                <td>${row.lotnumber || '-'}</td>
+                                <td>${parseFloat(row.primaryquantity || 0).toLocaleString()}</td>
+                                <td>${row.status || '-'}</td>
+                                <td>${serialLink}</td>
+                            </tr>
+                        `;
+                    });
+
+                    subgroupIdx++;
+                });
+
+                groupIdx++;
+            });
+
+            tbody.innerHTML = html;
+            document.getElementById('recordCountSubinv').textContent = data.length + ' Lot(s)';
+        }
+
+        // Filter By Subinventory grid
+        function filterBySubinvGrid() {
+            const searchText = document.getElementById('gridSearchInputSubinv').value.toLowerCase();
+            if (!onHandData) return;
+
+            if (!searchText) {
+                renderBySubinventoryTable(onHandData);
+                return;
+            }
+
+            const filtered = onHandData.filter(row => {
+                return (row.sub_inventory_code || '').toLowerCase().includes(searchText) ||
+                       (row.item_number || '').toLowerCase().includes(searchText) ||
+                       (row.item_description || '').toLowerCase().includes(searchText) ||
+                       (row.lotnumber || '').toLowerCase().includes(searchText);
+            });
+
+            renderBySubinventoryTable(filtered);
+        }
+
         // Get organization options HTML
         function getOrgOptionsHtml(selectedCode) {
             let html = '<option value="">-- Select Organization --</option>';
@@ -2207,8 +2441,11 @@
                     // Update charts (Tab 1)
                     updateCharts(filteredOnHandData);
 
-                    // Update grouped table (Tab 2)
+                    // Update grouped table - By Item (Tab 2)
                     renderGroupedTable(filteredOnHandData);
+
+                    // Update grouped table - By Subinventory (Tab 3)
+                    renderBySubinventoryTable(filteredOnHandData);
 
                     console.log('[INV] Loaded', onHandData.length, 'records');
                 } else {
@@ -2216,6 +2453,7 @@
                     filteredOnHandData = [];
                     updateCharts([]);
                     renderGroupedTable([]);
+                    renderBySubinventoryTable([]);
                 }
             } catch (error) {
                 console.error('[INV] Error fetching on-hand data:', error);

@@ -1357,6 +1357,83 @@ namespace WMSApp
             }
         }
 
+        private async Task HandleGetEndpoint(WebView2 wv, JsonElement root, string requestId)
+        {
+            try
+            {
+                string integrationCode = root.TryGetProperty("integrationCode", out var codeProp) ? codeProp.GetString() : "";
+                string instanceName = root.TryGetProperty("instanceName", out var instProp) ? instProp.GetString() : _loggedInInstance;
+
+                System.Diagnostics.Debug.WriteLine($"[Endpoint] Getting endpoint for: {integrationCode} - {instanceName}");
+
+                string endpoint = GetEndpointFromSettings(integrationCode, instanceName);
+
+                var response = new
+                {
+                    requestId = requestId,
+                    endpoint = endpoint,
+                    success = !string.IsNullOrEmpty(endpoint)
+                };
+
+                string responseJson = System.Text.Json.JsonSerializer.Serialize(response);
+                await wv.CoreWebView2.PostWebMessageAsJsonAsync(responseJson);
+
+                System.Diagnostics.Debug.WriteLine($"[Endpoint] Returned: {endpoint}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Endpoint] Error: {ex.Message}");
+            }
+        }
+
+        private string GetEndpointFromSettings(string integrationCode, string instanceName)
+        {
+            try
+            {
+                string settingsPath = @"C:\fusionclient\ERP\settings\endpoints.xml";
+
+                if (!File.Exists(settingsPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Endpoint] Settings file not found: {settingsPath}");
+                    return null;
+                }
+
+                var doc = new System.Xml.XmlDocument();
+                doc.Load(settingsPath);
+
+                var endpoints = doc.SelectNodes("/Endpoints/Endpoint");
+                if (endpoints != null)
+                {
+                    foreach (System.Xml.XmlNode endpoint in endpoints)
+                    {
+                        string source = endpoint.SelectSingleNode("Source")?.InnerText ?? "";
+                        string code = endpoint.SelectSingleNode("IntegrationCode")?.InnerText ?? "";
+                        string instance = endpoint.SelectSingleNode("InstanceName")?.InnerText ?? "";
+                        string url = endpoint.SelectSingleNode("URL")?.InnerText ?? "";
+                        string path = endpoint.SelectSingleNode("Path")?.InnerText
+                            ?? endpoint.SelectSingleNode("Endpoint")?.InnerText
+                            ?? "";
+
+                        if (code.Equals(integrationCode, StringComparison.OrdinalIgnoreCase) &&
+                            instance.Equals(instanceName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            string fullUrl = url.TrimEnd('/') + path;
+                            System.Diagnostics.Debug.WriteLine($"[Endpoint] Found: {integrationCode} -> {fullUrl}");
+                            return fullUrl;
+                        }
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[Endpoint] Not found: {integrationCode} - {instanceName}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Endpoint] Error loading settings: {ex.Message}");
+            }
+
+            return null;
+        }
+
         private async Task SendLoginInfoToInventoryAsync()
         {
             // Wait for page to load
@@ -1884,6 +1961,11 @@ namespace WMSApp
                                 // Organization change from inventory page
                                 case "organizationChanged":
                                     HandleOrganizationChanged(root);
+                                    break;
+
+                                // Get endpoint for integration code
+                                case "getEndpoint":
+                                    await HandleGetEndpoint(wv, root, requestId);
                                     break;
 
                                 // MRA Interface Processing

@@ -435,6 +435,317 @@
             opacity: 0.7;
         }
 
+        /* Parameter Section Styles */
+        .param-section {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .param-section h3 {
+            margin: 0 0 15px 0;
+            color: #667eea;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .param-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .param-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .param-group label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .param-group input,
+        .param-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 13px;
+            color: #333;
+            background: #fff;
+        }
+
+        .param-group input:focus,
+        .param-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+
+        .param-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .btn-search {
+            background: #667eea;
+            color: #fff;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-search:hover {
+            background: #5568d3;
+        }
+
+        .btn-search:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-clear {
+            background: #6c757d;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-clear:hover {
+            background: #5a6268;
+        }
+
+        /* Data Grid Styles */
+        .grid-section {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .grid-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .grid-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .grid-search {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .grid-search input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 13px;
+            width: 250px;
+        }
+
+        .grid-search input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .record-count {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .data-table thead {
+            background: #667eea;
+            color: #fff;
+            position: sticky;
+            top: 0;
+        }
+
+        .data-table th {
+            padding: 12px 10px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .data-table td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            color: #333;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f5f7ff;
+        }
+
+        .data-table tbody tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        .data-table tbody tr:nth-child(even):hover {
+            background: #f5f7ff;
+        }
+
+        .table-container {
+            max-height: calc(100vh - 380px);
+            overflow-y: auto;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: #e8edff;
+        }
+
+        .btn-icon.serial {
+            color: #667eea;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+            font-style: italic;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #667eea;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #fff;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            background: #667eea;
+            color: #fff;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: calc(80vh - 60px);
+            overflow-y: auto;
+        }
+
         /* Close button for panels */
         .panel-close {
             position: absolute;
@@ -973,25 +1284,405 @@
             }
         }
 
+        // On-hand data storage
+        let onHandData = [];
+        let filteredOnHandData = [];
+
         // Open Menu Item
         function openMenuItem(task, item) {
             console.log('[INV] Opening:', task, '-', item);
 
             // Mark as active
             document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
-            event.target.closest('.menu-item').classList.add('active');
+            if (event && event.target) {
+                event.target.closest('.menu-item').classList.add('active');
+            }
 
             // Show content area
             document.getElementById('welcomeMessage').style.display = 'none';
             const contentDisplay = document.getElementById('contentDisplay');
             contentDisplay.style.display = 'block';
-            contentDisplay.innerHTML = `
-                <div style="padding: 30px;">
-                    <h2 style="color: #667eea; margin-bottom: 20px;">${item}</h2>
-                    <p style="color: #666;">This feature is under development.</p>
-                    <p style="color: #888; margin-top: 10px; font-size: 13px;">Task Category: ${task.charAt(0).toUpperCase() + task.slice(1)}</p>
+
+            // Handle specific menu items
+            if (item === 'Manage Item Quantities') {
+                showManageItemQuantities(contentDisplay);
+            } else {
+                contentDisplay.innerHTML = `
+                    <div style="padding: 30px;">
+                        <h2 style="color: #667eea; margin-bottom: 20px;">${item}</h2>
+                        <p style="color: #666;">This feature is under development.</p>
+                        <p style="color: #888; margin-top: 10px; font-size: 13px;">Task Category: ${task.charAt(0).toUpperCase() + task.slice(1)}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Show Manage Item Quantities page
+        function showManageItemQuantities(container) {
+            const selectedOrgCode = localStorage.getItem('wms_org_code') || '';
+
+            container.innerHTML = `
+                <div style="padding: 20px; height: 100%; overflow-y: auto;">
+                    <h2 style="color: #667eea; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 24px;">&#128230;</span>
+                        Manage Item Quantities
+                    </h2>
+
+                    <!-- Parameter Section -->
+                    <div class="param-section">
+                        <h3>Search Parameters</h3>
+                        <div class="param-row">
+                            <div class="param-group">
+                                <label>Organization Code *</label>
+                                <select id="paramOrgCode" onchange="onParamOrgChange()">
+                                    ${getOrgOptionsHtml(selectedOrgCode)}
+                                </select>
+                            </div>
+                            <div class="param-group">
+                                <label>Subinventory</label>
+                                <input type="text" id="paramSubInventory" placeholder="Enter subinventory code">
+                            </div>
+                            <div class="param-group">
+                                <label>Item Code</label>
+                                <input type="text" id="paramItemCode" placeholder="Enter item code">
+                            </div>
+                            <div class="param-group">
+                                <label>Item Description</label>
+                                <input type="text" id="paramItemDesc" placeholder="Enter item description">
+                            </div>
+                        </div>
+                        <div class="param-buttons">
+                            <button class="btn-search" id="btnSearchOnHand" onclick="searchOnHandQuantities()">
+                                <span>&#128269;</span> Search
+                            </button>
+                            <button class="btn-clear" onclick="clearOnHandParams()">Clear</button>
+                        </div>
+                    </div>
+
+                    <!-- Results Grid -->
+                    <div class="grid-section">
+                        <div class="grid-header">
+                            <div class="grid-title">On-Hand Quantities</div>
+                            <div class="grid-search">
+                                <input type="text" id="gridSearchInput" placeholder="Filter results..." oninput="filterOnHandGrid()">
+                                <span class="record-count" id="recordCount">0 records</span>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Org</th>
+                                        <th>Subinventory</th>
+                                        <th>Item Number</th>
+                                        <th>Description</th>
+                                        <th>Lot Number</th>
+                                        <th>Quantity</th>
+                                        <th>Status</th>
+                                        <th>Expiration</th>
+                                        <th>Serial #</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="onHandTableBody">
+                                    <tr><td colspan="9" class="no-data">Enter search parameters and click Search</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Serial Numbers Modal -->
+                <div id="serialModal" class="modal-overlay" style="display: none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Serial Numbers</h3>
+                            <button class="modal-close" onclick="closeSerialModal()">&times;</button>
+                        </div>
+                        <div class="modal-body" id="serialModalBody">
+                            Loading...
+                        </div>
+                    </div>
                 </div>
             `;
+        }
+
+        // Get organization options HTML
+        function getOrgOptionsHtml(selectedCode) {
+            let html = '<option value="">-- Select Organization --</option>';
+            if (availableOrganizations && availableOrganizations.length > 0) {
+                availableOrganizations.forEach(org => {
+                    const selected = org.organization_code === selectedCode ? 'selected' : '';
+                    html += `<option value="${org.organization_code}" ${selected}>${org.organization_name} (${org.organization_code})</option>`;
+                });
+            }
+            return html;
+        }
+
+        // Handle organization parameter change
+        function onParamOrgChange() {
+            const orgCode = document.getElementById('paramOrgCode').value;
+            console.log('[INV] Parameter org changed to:', orgCode);
+        }
+
+        // Clear parameters
+        function clearOnHandParams() {
+            document.getElementById('paramSubInventory').value = '';
+            document.getElementById('paramItemCode').value = '';
+            document.getElementById('paramItemDesc').value = '';
+            document.getElementById('gridSearchInput').value = '';
+            onHandData = [];
+            filteredOnHandData = [];
+            renderOnHandTable([]);
+        }
+
+        // Search on-hand quantities
+        async function searchOnHandQuantities() {
+            const orgCode = document.getElementById('paramOrgCode').value;
+            const subInventory = document.getElementById('paramSubInventory').value.trim();
+            const itemCode = document.getElementById('paramItemCode').value.trim();
+            const itemDesc = document.getElementById('paramItemDesc').value.trim();
+
+            if (!orgCode) {
+                alert('Please select an Organization Code');
+                return;
+            }
+
+            const btn = document.getElementById('btnSearchOnHand');
+            btn.disabled = true;
+            btn.innerHTML = '<span>&#8987;</span> Searching...';
+
+            const tbody = document.getElementById('onHandTableBody');
+            tbody.innerHTML = '<tr><td colspan="9" class="loading">Loading data</td></tr>';
+
+            try {
+                // Build the endpoint URL
+                const endpointUrl = await getInventoryOnHandEndpoint();
+                if (!endpointUrl) {
+                    throw new Error('INVENTORY_ON_HAND endpoint not configured. Please add it in Settings.');
+                }
+
+                // Build query parameters
+                let url = `${endpointUrl}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                if (subInventory) url += `&p_sub_inventory_code=${encodeURIComponent(subInventory)}`;
+                if (itemCode) url += `&p_item_code=${encodeURIComponent(itemCode)}`;
+                if (itemDesc) url += `&p_item_desc=${encodeURIComponent(itemDesc)}`;
+
+                console.log('[INV] Fetching on-hand data from:', url);
+
+                // Call REST API via C# bridge or direct fetch
+                const response = await fetchWithBridge(url);
+
+                if (response && response.items) {
+                    onHandData = response.items;
+                    filteredOnHandData = [...onHandData];
+                    renderOnHandTable(filteredOnHandData);
+                    console.log('[INV] Loaded', onHandData.length, 'records');
+                } else {
+                    onHandData = [];
+                    filteredOnHandData = [];
+                    renderOnHandTable([]);
+                }
+            } catch (error) {
+                console.error('[INV] Error fetching on-hand data:', error);
+                tbody.innerHTML = `<tr><td colspan="9" class="no-data" style="color: #dc3545;">Error: ${error.message}</td></tr>`;
+                document.getElementById('recordCount').textContent = '0 records';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>&#128269;</span> Search';
+            }
+        }
+
+        // Get INVENTORY_ON_HAND endpoint from C# or localStorage
+        async function getInventoryOnHandEndpoint() {
+            // Try to get from C# via postMessage
+            return new Promise((resolve) => {
+                const instanceName = localStorage.getItem('wms_instance') || 'PROD';
+
+                // For now, we'll request endpoint from C#
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'endpoint_' + Date.now();
+
+                    // Set up one-time listener for response
+                    const handler = function(event) {
+                        try {
+                            const data = JSON.parse(event.data);
+                            if (data.requestId === requestId && data.endpoint) {
+                                resolve(data.endpoint);
+                                window.chrome.webview.removeEventListener('message', handler);
+                            }
+                        } catch (e) {}
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+
+                    // Request endpoint from C#
+                    window.chrome.webview.postMessage(JSON.stringify({
+                        action: 'getEndpoint',
+                        requestId: requestId,
+                        integrationCode: 'INVENTORY_ON_HAND',
+                        instanceName: instanceName
+                    }));
+
+                    // Timeout after 3 seconds
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        // Fallback: construct from localStorage if available
+                        const storedEndpoint = localStorage.getItem('endpoint_INVENTORY_ON_HAND');
+                        resolve(storedEndpoint || null);
+                    }, 3000);
+                } else {
+                    // Fallback for testing outside WebView
+                    const storedEndpoint = localStorage.getItem('endpoint_INVENTORY_ON_HAND');
+                    resolve(storedEndpoint || null);
+                }
+            });
+        }
+
+        // Fetch with C# bridge or direct fetch
+        async function fetchWithBridge(url) {
+            return new Promise((resolve, reject) => {
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'fetch_' + Date.now();
+
+                    const handler = function(event) {
+                        try {
+                            const data = JSON.parse(event.data);
+                            if (data.requestId === requestId) {
+                                window.chrome.webview.removeEventListener('message', handler);
+                                if (data.success) {
+                                    resolve(data.data);
+                                } else {
+                                    reject(new Error(data.error || 'Request failed'));
+                                }
+                            }
+                        } catch (e) {}
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+
+                    window.chrome.webview.postMessage(JSON.stringify({
+                        action: 'executeGet',
+                        requestId: requestId,
+                        url: url
+                    }));
+
+                    // Timeout after 30 seconds
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        reject(new Error('Request timeout'));
+                    }, 30000);
+                } else {
+                    // Direct fetch for testing
+                    fetch(url)
+                        .then(res => res.json())
+                        .then(data => resolve(data))
+                        .catch(err => reject(err));
+                }
+            });
+        }
+
+        // Render on-hand table
+        function renderOnHandTable(data) {
+            const tbody = document.getElementById('onHandTableBody');
+            const countEl = document.getElementById('recordCount');
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="no-data">No records found</td></tr>';
+                countEl.textContent = '0 records';
+                return;
+            }
+
+            countEl.textContent = `${data.length} record${data.length !== 1 ? 's' : ''}`;
+
+            let html = '';
+            data.forEach(item => {
+                const statusClass = item.materialstatus === 'Active' ? 'status-active' : 'status-inactive';
+                const expDate = item.expirationdate ? new Date(item.expirationdate).toLocaleDateString() : '-';
+                const hasSerial = item.srno_link && item.srno_link.length > 0;
+
+                html += `
+                    <tr>
+                        <td>${item.organization_code || '-'}</td>
+                        <td>${item.sub_inventory_code || '-'}</td>
+                        <td><strong>${item.item_number || '-'}</strong></td>
+                        <td title="${item.item_description || ''}">${truncateText(item.item_description, 40)}</td>
+                        <td>${item.lotnumber || '-'}</td>
+                        <td style="text-align: right; font-weight: 600;">${formatNumber(item.primaryquantity)}</td>
+                        <td><span class="status-badge ${statusClass}">${item.materialstatus || '-'}</span></td>
+                        <td>${expDate}</td>
+                        <td style="text-align: center;">
+                            ${hasSerial ? `<button class="btn-icon serial" onclick="showSerialNumbers('${encodeURIComponent(item.srno_link)}')" title="View Serial Numbers">&#128279;</button>` : '-'}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        // Filter on-hand grid
+        function filterOnHandGrid() {
+            const searchText = document.getElementById('gridSearchInput').value.toLowerCase().trim();
+
+            if (!searchText) {
+                filteredOnHandData = [...onHandData];
+            } else {
+                filteredOnHandData = onHandData.filter(item => {
+                    return (
+                        (item.organization_code || '').toLowerCase().includes(searchText) ||
+                        (item.sub_inventory_code || '').toLowerCase().includes(searchText) ||
+                        (item.item_number || '').toLowerCase().includes(searchText) ||
+                        (item.item_description || '').toLowerCase().includes(searchText) ||
+                        (item.lotnumber || '').toLowerCase().includes(searchText) ||
+                        (item.materialstatus || '').toLowerCase().includes(searchText)
+                    );
+                });
+            }
+
+            renderOnHandTable(filteredOnHandData);
+        }
+
+        // Show serial numbers modal
+        async function showSerialNumbers(encodedUrl) {
+            const url = decodeURIComponent(encodedUrl);
+            const modal = document.getElementById('serialModal');
+            const modalBody = document.getElementById('serialModalBody');
+
+            modal.style.display = 'flex';
+            modalBody.innerHTML = '<div class="loading">Loading serial numbers</div>';
+
+            try {
+                const response = await fetchWithBridge(url);
+
+                if (response && response.items && response.items.length > 0) {
+                    let html = '<table class="data-table"><thead><tr><th>Serial Number</th><th>Status</th></tr></thead><tbody>';
+                    response.items.forEach(item => {
+                        html += `<tr><td>${item.SerialNumber || item.serialNumber || '-'}</td><td>${item.Status || item.status || '-'}</td></tr>`;
+                    });
+                    html += '</tbody></table>';
+                    modalBody.innerHTML = html;
+                } else {
+                    modalBody.innerHTML = '<p style="text-align: center; color: #888;">No serial numbers found</p>';
+                }
+            } catch (error) {
+                console.error('[INV] Error fetching serial numbers:', error);
+                modalBody.innerHTML = `<p style="color: #dc3545;">Error loading serial numbers: ${error.message}</p>`;
+            }
+        }
+
+        // Close serial modal
+        function closeSerialModal() {
+            document.getElementById('serialModal').style.display = 'none';
+        }
+
+        // Utility: Truncate text
+        function truncateText(text, maxLength) {
+            if (!text) return '-';
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        }
+
+        // Utility: Format number
+        function formatNumber(num) {
+            if (num === null || num === undefined) return '0';
+            return parseFloat(num).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
         }
 
         // Open Report

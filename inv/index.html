@@ -1852,6 +1852,13 @@
         let serialNumberData = [];
         let filteredSerialData = [];
 
+        // PO Receipts data storage
+        let poReceiptsData = [];
+        let filteredPoReceiptsData = [];
+        let poReceiptsLinesData = [];
+        let filteredPoLinesData = [];
+        let selectedPoReceipts = new Set();
+
         // Open Menu Item
         function openMenuItem(task, item) {
             console.log('[INV] Opening:', task, '-', item);
@@ -1870,6 +1877,8 @@
             // Handle specific menu items
             if (item === 'Manage Item Quantities') {
                 showManageItemQuantities(contentDisplay);
+            } else if (item === 'Receive Expected Shipments') {
+                showReceiveExpectedShipments(contentDisplay);
             } else {
                 contentDisplay.innerHTML = `
                     <div style="padding: 30px;">
@@ -2160,6 +2169,697 @@
             }
         });
 
+        // =====================================
+        // RECEIVE EXPECTED SHIPMENTS PAGE
+        // =====================================
+
+        let poReceiptsFullscreen = false;
+        let poOriginalTabParent = null;
+        let poOriginalTabNextSibling = null;
+
+        function showReceiveExpectedShipments(container) {
+            const selectedOrgCode = localStorage.getItem('wms_org_code') || '';
+            poReceiptsData = [];
+            filteredPoReceiptsData = [];
+            poReceiptsLinesData = [];
+            filteredPoLinesData = [];
+            selectedPoReceipts = new Set();
+
+            container.innerHTML = `
+                <div style="padding: 20px; height: 100%; overflow-y: auto;">
+                    <h2 style="color: #667eea; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 24px;">&#128229;</span>
+                        Receive Expected Shipments
+                    </h2>
+
+                    <!-- Collapsible Parameter Section -->
+                    <div class="collapsible-section" id="poSearchSection">
+                        <div class="collapsible-header" onclick="togglePoSearchSection()">
+                            <h3><span>&#128269;</span> Search Parameters</h3>
+                            <span class="collapsible-toggle">&#9660;</span>
+                        </div>
+                        <div class="collapsible-content">
+                            <div class="param-row">
+                                <div class="param-group">
+                                    <label>Organization Code *</label>
+                                    <select id="poParamOrgCode">
+                                        ${getOrgOptionsHtml(selectedOrgCode)}
+                                    </select>
+                                </div>
+                                <div class="param-group">
+                                    <label>PO Number</label>
+                                    <input type="text" id="poParamPoNumber" placeholder="Enter PO number">
+                                </div>
+                                <div class="param-group">
+                                    <label>Vendor Name</label>
+                                    <input type="text" id="poParamVendorName" placeholder="Enter vendor name">
+                                </div>
+                            </div>
+                            <div class="param-buttons">
+                                <button class="btn-search" id="btnSearchPo" onclick="searchExpectedReceipts()">
+                                    <span>&#128269;</span> Search
+                                </button>
+                                <button class="btn-clear" onclick="clearPoParams()">Clear</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabbed Results Section -->
+                    <div class="tab-container" id="poTabContainer">
+                        <div class="tab-header" id="poTabHeader">
+                            <button class="tab-btn active" data-tab="po-tab-summary" onclick="switchPoTab('po-tab-summary')">
+                                &#128202; Summary
+                            </button>
+                            <button class="tab-btn" data-tab="po-tab-orders" onclick="switchPoTab('po-tab-orders')">
+                                &#128196; By Purchase Orders
+                            </button>
+                            <button class="tab-btn" data-tab="po-tab-details" onclick="switchPoTab('po-tab-details')">
+                                &#128203; By PO Details
+                            </button>
+                            <button class="btn-fullscreen" onclick="togglePoFullscreen()" title="Fit to Page" style="margin-left: auto;">
+                                &#9974; Fit to Page
+                            </button>
+                        </div>
+
+                        <!-- Tab 1: Summary -->
+                        <div class="tab-content active" id="po-tab-summary">
+                            <div class="stats-grid" id="poStatsGrid">
+                                <div class="stat-card">
+                                    <div class="stat-value" id="poStatTotalOrders">0</div>
+                                    <div class="stat-label">Total Orders</div>
+                                </div>
+                                <div class="stat-card green">
+                                    <div class="stat-value" id="poStatTotalItems">0</div>
+                                    <div class="stat-label">Total Items</div>
+                                </div>
+                                <div class="stat-card orange">
+                                    <div class="stat-value" id="poStatVendors">0</div>
+                                    <div class="stat-label">Vendors</div>
+                                </div>
+                                <div class="stat-card red">
+                                    <div class="stat-value" id="poStatDestinations">0</div>
+                                    <div class="stat-label">Destinations</div>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <div class="chart-card">
+                                    <h4>&#128200; Orders by Vendor (Top 10)</h4>
+                                    <div class="chart-bar-container" id="poChartByVendor">
+                                        <div style="color: #888; text-align: center; padding: 20px;">Search to view chart data</div>
+                                    </div>
+                                </div>
+                                <div class="chart-card">
+                                    <h4>&#128202; Orders by Destination</h4>
+                                    <div class="chart-bar-container" id="poChartByDestination">
+                                        <div style="color: #888; text-align: center; padding: 20px;">Search to view chart data</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab 2: By Purchase Orders -->
+                        <div class="tab-content" id="po-tab-orders">
+                            <div class="grid-header" style="margin-bottom: 10px; padding: 10px 0; border: none; background: none;">
+                                <div class="grid-title">
+                                    Expected Purchase Orders
+                                    <button class="btn-expand-collapse" onclick="selectAllPoReceipts()" title="Select All">&#9745; Select All</button>
+                                    <button class="btn-expand-collapse" onclick="deselectAllPoReceipts()" title="Deselect All">&#9744; Deselect All</button>
+                                </div>
+                                <div class="grid-search">
+                                    <input type="text" id="poGridSearchInput" placeholder="Filter results..." oninput="filterPoReceiptsGrid()">
+                                    <span class="record-count" id="poRecordCount">0 Order(s)</span>
+                                </div>
+                            </div>
+                            <div class="table-container" style="max-height: calc(100vh - 450px);">
+                                <table class="data-table" id="poOrdersTable">
+                                    <thead style="background: #667eea; color: #fff;">
+                                        <tr>
+                                            <th style="padding: 10px 8px; font-size: 11px; width: 40px;">
+                                                <input type="checkbox" id="poSelectAllCheckbox" onchange="toggleAllPoCheckboxes(this)">
+                                            </th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Document Number</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Picker Name</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">To Org Code</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">From Org Name</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">From Org Code</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Items</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Doc Type</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Vendor Name</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Vendor Site</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Destination</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Ship To Location</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="poOrdersTableBody">
+                                        <tr><td colspan="12" class="no-data">Enter search parameters and click Search</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px; display: flex; gap: 10px; align-items: center;">
+                                <span id="poSelectedCount" style="font-size: 12px; color: #666;">0 selected</span>
+                                <button class="btn-search" onclick="receiveSelectedOrders()" style="padding: 8px 15px; font-size: 12px;">
+                                    &#128229; Receive Selected
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tab 3: By PO Details (Lines) -->
+                        <div class="tab-content" id="po-tab-details">
+                            <div class="grid-header" style="margin-bottom: 10px; padding: 10px 0; border: none; background: none;">
+                                <div class="grid-title">
+                                    Purchase Order Lines (Grouped by Document)
+                                    <button class="btn-expand-collapse" onclick="expandAllGroups('podetails')" title="Expand All">&#9654; Expand All</button>
+                                    <button class="btn-expand-collapse" onclick="collapseAllGroups('podetails')" title="Collapse All">&#9660; Collapse All</button>
+                                </div>
+                                <div class="grid-search">
+                                    <input type="text" id="poLinesSearchInput" placeholder="Filter results..." oninput="filterPoLinesGrid()">
+                                    <span class="record-count" id="poLinesCount">0 Line(s)</span>
+                                </div>
+                            </div>
+                            <div class="table-container" style="max-height: calc(100vh - 450px);">
+                                <table class="grouped-table" id="poLinesTable">
+                                    <thead style="background: #667eea; color: #fff;">
+                                        <tr>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Document</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Line</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Item Number</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Description</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Quantity</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">UOM</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Vendor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="poLinesTableBody">
+                                        <tr><td colspan="7" class="no-data">Enter search parameters and click Search</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fullscreen Overlay for PO -->
+                <div class="fullscreen-overlay" id="poFullscreenOverlay">
+                    <div class="fullscreen-header">
+                        <h3>&#128229; Receive Expected Shipments - Full View</h3>
+                        <button class="fullscreen-close" onclick="togglePoFullscreen()">
+                            &#10005; Close Full View
+                        </button>
+                    </div>
+                    <div class="fullscreen-content" id="poFullscreenContent">
+                    </div>
+                </div>
+            `;
+        }
+
+        // Toggle PO search section
+        function togglePoSearchSection() {
+            const section = document.getElementById('poSearchSection');
+            section.classList.toggle('collapsed');
+        }
+
+        // Switch PO tabs
+        function switchPoTab(tabId) {
+            document.querySelectorAll('#poTabContainer .tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.tab === tabId) btn.classList.add('active');
+            });
+            document.querySelectorAll('#poTabContainer .tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // Toggle PO fullscreen
+        function togglePoFullscreen() {
+            const overlay = document.getElementById('poFullscreenOverlay');
+            const tabContainer = document.getElementById('poTabContainer');
+            const fullscreenContent = document.getElementById('poFullscreenContent');
+
+            if (!poReceiptsFullscreen) {
+                poOriginalTabParent = tabContainer.parentNode;
+                poOriginalTabNextSibling = tabContainer.nextSibling;
+                fullscreenContent.appendChild(tabContainer);
+                overlay.classList.add('active');
+                poReceiptsFullscreen = true;
+                const btn = tabContainer.querySelector('.btn-fullscreen');
+                if (btn) {
+                    btn.innerHTML = '&#10005; Exit Full View';
+                    btn.classList.add('exit');
+                }
+            } else {
+                if (poOriginalTabParent) {
+                    if (poOriginalTabNextSibling) {
+                        poOriginalTabParent.insertBefore(tabContainer, poOriginalTabNextSibling);
+                    } else {
+                        poOriginalTabParent.appendChild(tabContainer);
+                    }
+                }
+                overlay.classList.remove('active');
+                poReceiptsFullscreen = false;
+                const btn = tabContainer.querySelector('.btn-fullscreen');
+                if (btn) {
+                    btn.innerHTML = '&#9974; Fit to Page';
+                    btn.classList.remove('exit');
+                }
+            }
+        }
+
+        // Clear PO params
+        function clearPoParams() {
+            document.getElementById('poParamPoNumber').value = '';
+            document.getElementById('poParamVendorName').value = '';
+        }
+
+        // Search expected receipts
+        async function searchExpectedReceipts() {
+            const orgCode = document.getElementById('poParamOrgCode').value;
+            const poNumber = document.getElementById('poParamPoNumber').value.trim();
+            const vendorName = document.getElementById('poParamVendorName').value.trim();
+
+            if (!orgCode) {
+                alert('Please select an Organization Code');
+                return;
+            }
+
+            const btn = document.getElementById('btnSearchPo');
+            btn.disabled = true;
+            btn.innerHTML = '<span>&#8987;</span> Searching...';
+
+            const tbody = document.getElementById('poOrdersTableBody');
+            tbody.innerHTML = '<tr><td colspan="12" class="loading">Loading data...</td></tr>';
+
+            const linesTbody = document.getElementById('poLinesTableBody');
+            linesTbody.innerHTML = '<tr><td colspan="7" class="loading">Loading lines...</td></tr>';
+
+            try {
+                // Fetch PO receipts
+                const receiptsEndpoint = await getPoReceiptsEndpoint();
+                if (!receiptsEndpoint) {
+                    throw new Error('EXPECTED_PO_RECEIPTS endpoint not configured');
+                }
+
+                let url = `${receiptsEndpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                if (poNumber) url += `&p_po_number=${encodeURIComponent(poNumber)}`;
+                if (vendorName) url += `&p_vendor_name=${encodeURIComponent(vendorName)}`;
+
+                console.log('[INV] Fetching PO receipts from:', url);
+                const response = await fetchWithBridge(url);
+
+                if (response && response.items) {
+                    poReceiptsData = response.items;
+                    filteredPoReceiptsData = [...poReceiptsData];
+                    updatePoCharts(filteredPoReceiptsData);
+                    renderPoReceiptsTable(filteredPoReceiptsData);
+                    console.log('[INV] Loaded', poReceiptsData.length, 'PO receipts');
+                } else {
+                    poReceiptsData = [];
+                    filteredPoReceiptsData = [];
+                    updatePoCharts([]);
+                    renderPoReceiptsTable([]);
+                }
+
+                // Fetch PO lines
+                await fetchPoReceiptsLines(orgCode);
+            } catch (error) {
+                console.error('[INV] Error fetching PO receipts:', error);
+                tbody.innerHTML = `<tr><td colspan="12" class="no-data" style="color: #dc3545;">Error: ${error.message}</td></tr>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>&#128269;</span> Search';
+            }
+        }
+
+        // Fetch PO receipts lines
+        async function fetchPoReceiptsLines(orgCode) {
+            try {
+                const linesEndpoint = await getPoReceiptsLinesEndpoint();
+                if (!linesEndpoint) {
+                    console.log('[INV] PO_EXPECTED_RECEIPTS_LINES endpoint not configured');
+                    poReceiptsLinesData = [];
+                    filteredPoLinesData = [];
+                    renderPoLinesTable([]);
+                    return;
+                }
+
+                const url = `${linesEndpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                console.log('[INV] Fetching PO lines from:', url);
+                const response = await fetchWithBridge(url);
+
+                if (response && response.items) {
+                    poReceiptsLinesData = response.items;
+                    filteredPoLinesData = [...poReceiptsLinesData];
+                    renderPoLinesTable(filteredPoLinesData);
+                    console.log('[INV] Loaded', poReceiptsLinesData.length, 'PO lines');
+                } else {
+                    poReceiptsLinesData = [];
+                    filteredPoLinesData = [];
+                    renderPoLinesTable([]);
+                }
+            } catch (error) {
+                console.error('[INV] Error fetching PO lines:', error);
+                const linesTbody = document.getElementById('poLinesTableBody');
+                linesTbody.innerHTML = `<tr><td colspan="7" class="no-data" style="color: #dc3545;">Error: ${error.message}</td></tr>`;
+            }
+        }
+
+        // Get EXPECTED_PO_RECEIPTS endpoint
+        async function getPoReceiptsEndpoint() {
+            const instanceName = localStorage.getItem('wms_instance') || 'PROD';
+            return new Promise((resolve) => {
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'endpoint_po_' + Date.now();
+                    const handler = function(event) {
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            if (data.requestId === requestId && data.endpoint) {
+                                resolve(data.endpoint);
+                                window.chrome.webview.removeEventListener('message', handler);
+                            }
+                        } catch (e) {}
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+                    window.chrome.webview.postMessage({
+                        action: 'getEndpoint',
+                        requestId: requestId,
+                        integrationCode: 'EXPECTED_PO_RECEIPTS',
+                        instanceName: instanceName
+                    });
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        resolve(null);
+                    }, 5000);
+                } else {
+                    resolve(null);
+                }
+            });
+        }
+
+        // Get PO_EXPECTED_RECEIPTS_LINES endpoint
+        async function getPoReceiptsLinesEndpoint() {
+            const instanceName = localStorage.getItem('wms_instance') || 'PROD';
+            return new Promise((resolve) => {
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'endpoint_po_lines_' + Date.now();
+                    const handler = function(event) {
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            if (data.requestId === requestId && data.endpoint) {
+                                resolve(data.endpoint);
+                                window.chrome.webview.removeEventListener('message', handler);
+                            }
+                        } catch (e) {}
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+                    window.chrome.webview.postMessage({
+                        action: 'getEndpoint',
+                        requestId: requestId,
+                        integrationCode: 'PO_EXPECTED_RECEIPTS_LINES',
+                        instanceName: instanceName
+                    });
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        resolve(null);
+                    }, 5000);
+                } else {
+                    resolve(null);
+                }
+            });
+        }
+
+        // Update PO charts
+        function updatePoCharts(data) {
+            if (!data || data.length === 0) {
+                document.getElementById('poStatTotalOrders').textContent = '0';
+                document.getElementById('poStatTotalItems').textContent = '0';
+                document.getElementById('poStatVendors').textContent = '0';
+                document.getElementById('poStatDestinations').textContent = '0';
+                document.getElementById('poChartByVendor').innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No data</div>';
+                document.getElementById('poChartByDestination').innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No data</div>';
+                return;
+            }
+
+            // Calculate stats
+            const totalOrders = data.length;
+            const totalItems = data.reduce((sum, d) => sum + (parseInt(d.no_of_items || d.NO_OF_ITEMS) || 0), 0);
+            const uniqueVendors = [...new Set(data.map(d => d.vendor_name || d.VENDOR_NAME).filter(v => v))];
+            const uniqueDestinations = [...new Set(data.map(d => d.destination_type || d.DESTINATION_TYPE).filter(d => d))];
+
+            document.getElementById('poStatTotalOrders').textContent = totalOrders.toLocaleString();
+            document.getElementById('poStatTotalItems').textContent = totalItems.toLocaleString();
+            document.getElementById('poStatVendors').textContent = uniqueVendors.length;
+            document.getElementById('poStatDestinations').textContent = uniqueDestinations.length;
+
+            // Chart by Vendor
+            const byVendor = {};
+            data.forEach(d => {
+                const vendor = d.vendor_name || d.VENDOR_NAME || 'Unknown';
+                byVendor[vendor] = (byVendor[vendor] || 0) + 1;
+            });
+            const sortedVendors = Object.entries(byVendor).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            const maxVendor = sortedVendors.length > 0 ? sortedVendors[0][1] : 1;
+
+            let vendorChartHtml = '';
+            sortedVendors.forEach(([vendor, count]) => {
+                const pct = (count / maxVendor) * 100;
+                const shortVendor = vendor.length > 15 ? vendor.substring(0, 15) + '...' : vendor;
+                vendorChartHtml += `
+                    <div class="chart-bar-row">
+                        <div class="chart-bar-label" title="${vendor}">${shortVendor}</div>
+                        <div class="chart-bar-track">
+                            <div class="chart-bar-fill" style="width: ${pct}%">${count}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('poChartByVendor').innerHTML = vendorChartHtml || '<div style="color: #888; text-align: center;">No data</div>';
+
+            // Chart by Destination
+            const byDest = {};
+            data.forEach(d => {
+                const dest = d.destination_type || d.DESTINATION_TYPE || 'Unknown';
+                byDest[dest] = (byDest[dest] || 0) + 1;
+            });
+            const sortedDest = Object.entries(byDest).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            const maxDest = sortedDest.length > 0 ? sortedDest[0][1] : 1;
+
+            let destChartHtml = '';
+            sortedDest.forEach(([dest, count]) => {
+                const pct = (count / maxDest) * 100;
+                destChartHtml += `
+                    <div class="chart-bar-row">
+                        <div class="chart-bar-label" title="${dest}">${dest}</div>
+                        <div class="chart-bar-track">
+                            <div class="chart-bar-fill" style="width: ${pct}%">${count}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('poChartByDestination').innerHTML = destChartHtml || '<div style="color: #888; text-align: center;">No data</div>';
+        }
+
+        // Render PO receipts table
+        function renderPoReceiptsTable(data) {
+            const tbody = document.getElementById('poOrdersTableBody');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="12" class="no-data">No data found</td></tr>';
+                document.getElementById('poRecordCount').textContent = '0 Order(s)';
+                return;
+            }
+
+            let html = '';
+            data.forEach((row, idx) => {
+                const docNum = row.document_number || row.DOCUMENT_NUMBER || '-';
+                const isSelected = selectedPoReceipts.has(docNum);
+
+                html += `
+                    <tr style="font-size: 11px;">
+                        <td style="padding: 6px 8px;">
+                            <input type="checkbox" class="po-checkbox" data-doc="${docNum}"
+                                ${isSelected ? 'checked' : ''} onchange="togglePoSelection('${docNum}', this)">
+                        </td>
+                        <td style="padding: 6px 8px;"><strong>${docNum}</strong></td>
+                        <td style="padding: 6px 8px;">${row.picker_name || row.PICKER_NAME || '-'}</td>
+                        <td style="padding: 6px 8px;">${row.to_organization_code || row.TO_ORGANIZATION_CODE || '-'}</td>
+                        <td style="padding: 6px 8px;">${row.from_organization_name || row.FROM_ORGANIZATION_NAME || '-'}</td>
+                        <td style="padding: 6px 8px;">${row.from_organization_code || row.FROM_ORGANIZATION_CODE || '-'}</td>
+                        <td style="padding: 6px 8px;">${row.no_of_items || row.NO_OF_ITEMS || '-'}</td>
+                        <td style="padding: 6px 8px;">${row.document_type || row.DOCUMENT_TYPE || '-'}</td>
+                        <td style="padding: 6px 8px;">${row.vendor_name || row.VENDOR_NAME || '-'}</td>
+                        <td style="padding: 6px 8px;">${row.vendor_site_code || row.VENDOR_SITE_CODE || '-'}</td>
+                        <td style="padding: 6px 8px;">${row.destination_type || row.DESTINATION_TYPE || '-'}</td>
+                        <td style="padding: 6px 8px;">${row.ship_to_location || row.SHIP_TO_LOCATION || '-'}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+            document.getElementById('poRecordCount').textContent = data.length + ' Order(s)';
+            updatePoSelectedCount();
+        }
+
+        // Render PO lines table (grouped by Document)
+        function renderPoLinesTable(data) {
+            const tbody = document.getElementById('poLinesTableBody');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-data">No line data found</td></tr>';
+                document.getElementById('poLinesCount').textContent = '0 Line(s)';
+                return;
+            }
+
+            // Group by Document Number
+            const grouped = {};
+            data.forEach(d => {
+                const docNum = d.document_number || d.DOCUMENT_NUMBER || 'Unknown';
+                if (!grouped[docNum]) {
+                    grouped[docNum] = {
+                        documentNumber: docNum,
+                        lineCount: 0,
+                        rows: []
+                    };
+                }
+                grouped[docNum].lineCount++;
+                grouped[docNum].rows.push(d);
+            });
+
+            let html = '';
+            let groupIdx = 0;
+            Object.values(grouped).forEach((group) => {
+                const groupId = 'po-line-group-' + groupIdx;
+
+                html += `
+                    <tr class="group-header" onclick="toggleGroup('${groupId}')" style="background: #f0f4ff;">
+                        <td colspan="4">
+                            <span class="group-toggle">&#9660;</span>
+                            <strong>&#128196; ${group.documentNumber}</strong>
+                        </td>
+                        <td colspan="3"><span class="group-qty">${group.lineCount} Line(s)</span></td>
+                    </tr>
+                `;
+
+                group.rows.forEach(row => {
+                    html += `
+                        <tr class="group-row" data-group="${groupId}">
+                            <td style="padding-left: 30px;"></td>
+                            <td>${row.line_number || row.LINE_NUMBER || '-'}</td>
+                            <td>${row.item_number || row.ITEM_NUMBER || '-'}</td>
+                            <td>${row.item_description || row.ITEM_DESCRIPTION || '-'}</td>
+                            <td>${row.quantity || row.QUANTITY || '-'}</td>
+                            <td>${row.uom || row.UOM || row.unit_of_measure || '-'}</td>
+                            <td>${row.vendor_name || row.VENDOR_NAME || '-'}</td>
+                        </tr>
+                    `;
+                });
+
+                groupIdx++;
+            });
+
+            tbody.innerHTML = html;
+            document.getElementById('poLinesCount').textContent = data.length + ' Line(s)';
+        }
+
+        // Toggle PO selection
+        function togglePoSelection(docNum, checkbox) {
+            if (checkbox.checked) {
+                selectedPoReceipts.add(docNum);
+            } else {
+                selectedPoReceipts.delete(docNum);
+            }
+            updatePoSelectedCount();
+        }
+
+        // Toggle all PO checkboxes
+        function toggleAllPoCheckboxes(masterCheckbox) {
+            const checkboxes = document.querySelectorAll('.po-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = masterCheckbox.checked;
+                const docNum = cb.dataset.doc;
+                if (masterCheckbox.checked) {
+                    selectedPoReceipts.add(docNum);
+                } else {
+                    selectedPoReceipts.delete(docNum);
+                }
+            });
+            updatePoSelectedCount();
+        }
+
+        // Select all PO receipts
+        function selectAllPoReceipts() {
+            const checkboxes = document.querySelectorAll('.po-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = true;
+                selectedPoReceipts.add(cb.dataset.doc);
+            });
+            document.getElementById('poSelectAllCheckbox').checked = true;
+            updatePoSelectedCount();
+        }
+
+        // Deselect all PO receipts
+        function deselectAllPoReceipts() {
+            const checkboxes = document.querySelectorAll('.po-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = false;
+            });
+            selectedPoReceipts.clear();
+            document.getElementById('poSelectAllCheckbox').checked = false;
+            updatePoSelectedCount();
+        }
+
+        // Update selected count
+        function updatePoSelectedCount() {
+            const count = selectedPoReceipts.size;
+            document.getElementById('poSelectedCount').textContent = count + ' selected';
+        }
+
+        // Filter PO receipts grid
+        function filterPoReceiptsGrid() {
+            const searchText = document.getElementById('poGridSearchInput').value.toLowerCase();
+            if (!poReceiptsData) return;
+
+            if (!searchText) {
+                renderPoReceiptsTable(poReceiptsData);
+                return;
+            }
+
+            const filtered = poReceiptsData.filter(row => {
+                return (row.document_number || row.DOCUMENT_NUMBER || '').toLowerCase().includes(searchText) ||
+                       (row.vendor_name || row.VENDOR_NAME || '').toLowerCase().includes(searchText) ||
+                       (row.destination_type || row.DESTINATION_TYPE || '').toLowerCase().includes(searchText);
+            });
+
+            renderPoReceiptsTable(filtered);
+        }
+
+        // Filter PO lines grid
+        function filterPoLinesGrid() {
+            const searchText = document.getElementById('poLinesSearchInput').value.toLowerCase();
+            if (!poReceiptsLinesData) return;
+
+            if (!searchText) {
+                renderPoLinesTable(poReceiptsLinesData);
+                return;
+            }
+
+            const filtered = poReceiptsLinesData.filter(row => {
+                return (row.document_number || row.DOCUMENT_NUMBER || '').toLowerCase().includes(searchText) ||
+                       (row.item_number || row.ITEM_NUMBER || '').toLowerCase().includes(searchText) ||
+                       (row.item_description || row.ITEM_DESCRIPTION || '').toLowerCase().includes(searchText);
+            });
+
+            renderPoLinesTable(filtered);
+        }
+
+        // Receive selected orders (placeholder)
+        function receiveSelectedOrders() {
+            if (selectedPoReceipts.size === 0) {
+                alert('Please select at least one order to receive');
+                return;
+            }
+            const selectedDocs = Array.from(selectedPoReceipts);
+            console.log('[INV] Receiving orders:', selectedDocs);
+            alert('Receiving ' + selectedDocs.length + ' order(s):\n' + selectedDocs.join('\n') + '\n\nThis feature is under development.');
+        }
+
         // Toggle collapsible search section
         function toggleSearchSection() {
             const section = document.getElementById('searchSection');
@@ -2411,6 +3111,7 @@
             let tableId = 'groupedTable';
             if (tabType === 'bysubinv') tableId = 'subinvGroupedTable';
             else if (tabType === 'byserial') tableId = 'serialGroupedTable';
+            else if (tabType === 'podetails') tableId = 'poLinesTable';
 
             const table = document.getElementById(tableId);
             if (!table) return;
@@ -2434,6 +3135,7 @@
             let tableId = 'groupedTable';
             if (tabType === 'bysubinv') tableId = 'subinvGroupedTable';
             else if (tabType === 'byserial') tableId = 'serialGroupedTable';
+            else if (tabType === 'podetails') tableId = 'poLinesTable';
 
             const table = document.getElementById(tableId);
             if (!table) return;

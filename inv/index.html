@@ -13,33 +13,33 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background: #ffffff;
             min-height: 100vh;
-            color: #fff;
+            color: #333;
             overflow-x: hidden;
         }
 
         /* Header */
         .header {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
+            background: #667eea;
             padding: 15px 30px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
         .header h1 {
             font-size: 22px;
             font-weight: 600;
+            color: #fff;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
         .header h1 .module-badge {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: rgba(255, 255, 255, 0.2);
             padding: 5px 12px;
             border-radius: 5px;
             font-size: 14px;
@@ -50,15 +50,15 @@
             align-items: center;
             gap: 20px;
             font-size: 14px;
+            color: #fff;
         }
 
         .user-info .username {
-            color: #667eea;
             font-weight: 600;
         }
 
         .btn-logout {
-            background: rgba(220, 53, 69, 0.8);
+            background: rgba(255, 255, 255, 0.2);
             color: white;
             border: none;
             padding: 8px 16px;
@@ -69,7 +69,7 @@
         }
 
         .btn-logout:hover {
-            background: #dc3545;
+            background: rgba(255, 255, 255, 0.3);
         }
 
         /* Main Content Area */
@@ -79,20 +79,19 @@
             position: relative;
         }
 
-        /* Left Menu Panel (hidden by default) */
+        /* Right Menu Panel (hidden by default, overlaps icons) */
         .menu-panel {
-            width: 350px;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            width: 320px;
+            background: #ffffff;
+            box-shadow: -5px 0 20px rgba(0, 0, 0, 0.15);
             padding: 20px;
-            transform: translateX(-100%);
+            transform: translateX(100%);
             transition: transform 0.3s ease;
-            position: absolute;
-            left: 0;
-            top: 0;
+            position: fixed;
+            right: 0;
+            top: 70px;
             bottom: 0;
-            z-index: 100;
+            z-index: 300;
             overflow-y: auto;
         }
 
@@ -115,7 +114,7 @@
 
         .dropdown-label {
             font-size: 12px;
-            color: #aaa;
+            color: #888;
             margin-bottom: 8px;
             text-transform: uppercase;
         }
@@ -123,50 +122,53 @@
         .dropdown {
             width: 100%;
             padding: 12px 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: #f5f5f5;
+            border: 1px solid #ddd;
             border-radius: 8px;
-            color: #fff;
+            color: #333;
             font-size: 14px;
             cursor: pointer;
             outline: none;
             appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23333' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 15px center;
         }
 
-        .dropdown option {
-            background: #1a1a2e;
-            color: #fff;
+        .dropdown:focus {
+            border-color: #667eea;
         }
 
-        /* Menu Items */
+        .dropdown option {
+            background: #fff;
+            color: #333;
+        }
+
+        /* Menu Items - No boxes, just text with highlight on hover */
         .menu-items {
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 2px;
         }
 
         .menu-item {
-            padding: 12px 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
+            padding: 10px 12px;
             cursor: pointer;
             transition: all 0.2s;
             font-size: 13px;
-            border-left: 3px solid transparent;
+            color: #333;
+            border-radius: 4px;
         }
 
         .menu-item:hover {
-            background: rgba(102, 126, 234, 0.2);
-            border-left-color: #667eea;
-            transform: translateX(5px);
+            background: #f0f4ff;
+            color: #667eea;
         }
 
         .menu-item.active {
-            background: rgba(102, 126, 234, 0.3);
-            border-left-color: #667eea;
+            background: #e8edff;
+            color: #667eea;
+            font-weight: 500;
         }
 
         /* Content Area */
@@ -176,6 +178,7 @@
             align-items: center;
             justify-content: center;
             padding: 40px;
+            background: #ffffff;
         }
 
         .welcome-message {
@@ -186,14 +189,11 @@
         .welcome-message h2 {
             font-size: 36px;
             margin-bottom: 20px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #667eea;
         }
 
         .welcome-message p {
-            color: #aaa;
+            color: #666;
             font-size: 16px;
             line-height: 1.6;
         }
@@ -208,6 +208,12 @@
             flex-direction: column;
             gap: 0;
             z-index: 200;
+            transition: opacity 0.3s;
+        }
+
+        .floating-panel.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
         .floating-btn {
@@ -263,23 +269,23 @@
             opacity: 1;
         }
 
-        /* Search Panel */
+        /* Search Panel - Right side overlay */
         .search-panel {
             position: fixed;
             top: 70px;
-            right: 80px;
-            width: 400px;
-            background: rgba(26, 26, 46, 0.98);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+            right: 0;
+            width: 320px;
+            height: calc(100vh - 70px);
+            background: #ffffff;
+            box-shadow: -5px 0 20px rgba(0, 0, 0, 0.15);
             padding: 20px;
-            display: none;
-            z-index: 150;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 300;
         }
 
         .search-panel.active {
-            display: block;
+            transform: translateX(0);
         }
 
         .search-panel h4 {
@@ -290,10 +296,10 @@
         .search-input {
             width: 100%;
             padding: 12px 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: #f5f5f5;
+            border: 1px solid #ddd;
             border-radius: 8px;
-            color: #fff;
+            color: #333;
             font-size: 14px;
             outline: none;
         }
@@ -302,23 +308,23 @@
             border-color: #667eea;
         }
 
-        /* Reports Panel */
+        /* Reports Panel - Right side overlay */
         .reports-panel {
             position: fixed;
             top: 70px;
-            right: 80px;
-            width: 350px;
-            background: rgba(26, 26, 46, 0.98);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+            right: 0;
+            width: 320px;
+            height: calc(100vh - 70px);
+            background: #ffffff;
+            box-shadow: -5px 0 20px rgba(0, 0, 0, 0.15);
             padding: 20px;
-            display: none;
-            z-index: 150;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 300;
         }
 
         .reports-panel.active {
-            display: block;
+            transform: translateX(0);
         }
 
         .reports-panel h4 {
@@ -327,49 +333,41 @@
         }
 
         .report-item {
-            padding: 10px 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 5px;
-            margin-bottom: 8px;
+            padding: 10px 12px;
             cursor: pointer;
             font-size: 13px;
+            color: #333;
             transition: all 0.2s;
+            border-radius: 4px;
         }
 
         .report-item:hover {
-            background: rgba(102, 126, 234, 0.2);
+            background: #f0f4ff;
+            color: #667eea;
         }
 
         /* Close button for panels */
         .panel-close {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 15px;
+            right: 15px;
             background: none;
             border: none;
-            color: #aaa;
-            font-size: 20px;
+            color: #999;
+            font-size: 24px;
             cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
         }
 
         .panel-close:hover {
-            color: #fff;
-        }
-
-        /* Overlay */
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: none;
-            z-index: 50;
-        }
-
-        .overlay.active {
-            display: block;
+            color: #333;
+            background: #f0f0f0;
         }
 
         /* Footer */
@@ -378,11 +376,12 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: rgba(0, 0, 0, 0.3);
+            background: #f8f8f8;
             padding: 10px 30px;
             font-size: 12px;
-            color: #666;
+            color: #888;
             text-align: center;
+            border-top: 1px solid #eee;
         }
 
         /* Scrollbar */
@@ -391,19 +390,20 @@
         }
 
         ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
+            background: #f5f5f5;
         }
 
         ::-webkit-scrollbar-thumb {
-            background: rgba(102, 126, 234, 0.5);
+            background: #ccc;
             border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #999;
         }
     </style>
 </head>
 <body>
-    <!-- Overlay -->
-    <div class="overlay" id="overlay" onclick="closeAllPanels()"></div>
-
     <!-- Header -->
     <header class="header">
         <h1>
@@ -420,27 +420,6 @@
 
     <!-- Main Content -->
     <div class="main-content">
-        <!-- Left Menu Panel -->
-        <div class="menu-panel" id="menuPanel">
-            <h3>Tasks</h3>
-
-            <div class="dropdown-container">
-                <div class="dropdown-label">Show Tasks</div>
-                <select class="dropdown" id="taskDropdown" onchange="onTaskChange()">
-                    <option value="">-- Select Task --</option>
-                    <option value="inventory">Inventory</option>
-                    <option value="counts">Counts</option>
-                    <option value="shipments">Shipments</option>
-                    <option value="picks">Picks</option>
-                    <option value="receipts">Receipts</option>
-                </select>
-            </div>
-
-            <div class="menu-items" id="menuItems">
-                <!-- Menu items will be populated dynamically -->
-            </div>
-        </div>
-
         <!-- Content Area -->
         <div class="content-area">
             <div class="welcome-message" id="welcomeMessage">
@@ -457,7 +436,7 @@
     </div>
 
     <!-- Floating Action Panel -->
-    <div class="floating-panel">
+    <div class="floating-panel" id="floatingPanel">
         <button class="floating-btn" id="btnTasks" onclick="toggleTasks()">
             <span>&#9776;</span>
             <span class="tooltip">Tasks</span>
@@ -470,6 +449,28 @@
             <span>&#128202;</span>
             <span class="tooltip">Reports</span>
         </button>
+    </div>
+
+    <!-- Right Menu Panel (Tasks) -->
+    <div class="menu-panel" id="menuPanel">
+        <button class="panel-close" onclick="closeTasks()">&times;</button>
+        <h3>Tasks</h3>
+
+        <div class="dropdown-container">
+            <div class="dropdown-label">Show Tasks</div>
+            <select class="dropdown" id="taskDropdown" onchange="onTaskChange()">
+                <option value="">-- Select Task --</option>
+                <option value="inventory">Inventory</option>
+                <option value="counts">Counts</option>
+                <option value="shipments">Shipments</option>
+                <option value="picks">Picks</option>
+                <option value="receipts">Receipts</option>
+            </select>
+        </div>
+
+        <div class="menu-items" id="menuItems">
+            <!-- Menu items will be populated dynamically -->
+        </div>
     </div>
 
     <!-- Search Panel -->
@@ -565,32 +566,50 @@
             document.getElementById('instanceDisplay').textContent = instance;
         });
 
+        // Show/Hide floating panel
+        function showFloatingPanel() {
+            document.getElementById('floatingPanel').classList.remove('hidden');
+        }
+
+        function hideFloatingPanel() {
+            document.getElementById('floatingPanel').classList.add('hidden');
+        }
+
         // Toggle Tasks Panel
         function toggleTasks() {
             const menuPanel = document.getElementById('menuPanel');
-            const overlay = document.getElementById('overlay');
-            const btn = document.getElementById('btnTasks');
+            const isActive = menuPanel.classList.contains('active');
 
             closeSearch();
             closeReports();
 
-            menuPanel.classList.toggle('active');
-            overlay.classList.toggle('active');
-            btn.classList.toggle('active');
+            if (isActive) {
+                menuPanel.classList.remove('active');
+                showFloatingPanel();
+                document.getElementById('btnTasks').classList.remove('active');
+            } else {
+                menuPanel.classList.add('active');
+                hideFloatingPanel();
+                document.getElementById('btnTasks').classList.add('active');
+            }
         }
 
         // Toggle Search Panel
         function toggleSearch() {
             const searchPanel = document.getElementById('searchPanel');
-            const btn = document.getElementById('btnSearch');
+            const isActive = searchPanel.classList.contains('active');
 
             closeTasks();
             closeReports();
 
-            searchPanel.classList.toggle('active');
-            btn.classList.toggle('active');
-
-            if (searchPanel.classList.contains('active')) {
+            if (isActive) {
+                searchPanel.classList.remove('active');
+                showFloatingPanel();
+                document.getElementById('btnSearch').classList.remove('active');
+            } else {
+                searchPanel.classList.add('active');
+                hideFloatingPanel();
+                document.getElementById('btnSearch').classList.add('active');
                 document.getElementById('searchInput').focus();
             }
         }
@@ -598,30 +617,39 @@
         // Toggle Reports Panel
         function toggleReports() {
             const reportsPanel = document.getElementById('reportsPanel');
-            const btn = document.getElementById('btnReports');
+            const isActive = reportsPanel.classList.contains('active');
 
             closeTasks();
             closeSearch();
 
-            reportsPanel.classList.toggle('active');
-            btn.classList.toggle('active');
+            if (isActive) {
+                reportsPanel.classList.remove('active');
+                showFloatingPanel();
+                document.getElementById('btnReports').classList.remove('active');
+            } else {
+                reportsPanel.classList.add('active');
+                hideFloatingPanel();
+                document.getElementById('btnReports').classList.add('active');
+            }
         }
 
         // Close functions
         function closeTasks() {
             document.getElementById('menuPanel').classList.remove('active');
-            document.getElementById('overlay').classList.remove('active');
             document.getElementById('btnTasks').classList.remove('active');
+            showFloatingPanel();
         }
 
         function closeSearch() {
             document.getElementById('searchPanel').classList.remove('active');
             document.getElementById('btnSearch').classList.remove('active');
+            showFloatingPanel();
         }
 
         function closeReports() {
             document.getElementById('reportsPanel').classList.remove('active');
             document.getElementById('btnReports').classList.remove('active');
+            showFloatingPanel();
         }
 
         function closeAllPanels() {
@@ -664,8 +692,8 @@
             contentDisplay.innerHTML = `
                 <div style="padding: 30px;">
                     <h2 style="color: #667eea; margin-bottom: 20px;">${item}</h2>
-                    <p style="color: #aaa;">This feature is under development.</p>
-                    <p style="color: #666; margin-top: 10px; font-size: 13px;">Task Category: ${task.charAt(0).toUpperCase() + task.slice(1)}</p>
+                    <p style="color: #666;">This feature is under development.</p>
+                    <p style="color: #888; margin-top: 10px; font-size: 13px;">Task Category: ${task.charAt(0).toUpperCase() + task.slice(1)}</p>
                 </div>
             `;
         }
@@ -681,7 +709,7 @@
             contentDisplay.innerHTML = `
                 <div style="padding: 30px;">
                     <h2 style="color: #667eea; margin-bottom: 20px;">Report: ${reportType.charAt(0).toUpperCase() + reportType.slice(1)}</h2>
-                    <p style="color: #aaa;">Report generation is under development.</p>
+                    <p style="color: #666;">Report generation is under development.</p>
                 </div>
             `;
         }

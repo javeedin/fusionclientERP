@@ -501,7 +501,7 @@ namespace WMSApp
                     writer.WriteElementString("IntegrationCode", ep.IntegrationCode ?? "");
                     writer.WriteElementString("InstanceName", ep.InstanceName ?? "");
                     writer.WriteElementString("URL", ep.BaseUrl ?? "");
-                    writer.WriteElementString("Endpoint", ep.Endpoint ?? "");
+                    writer.WriteElementString("Path", ep.Endpoint ?? "");  // Use Path instead of Endpoint to avoid XML confusion
                     writer.WriteElementString("Comments", ep.Comments ?? "");
                     writer.WriteEndElement();
                 }

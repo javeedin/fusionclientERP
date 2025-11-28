@@ -527,7 +527,8 @@ namespace WMSApp
                     var doc = new System.Xml.XmlDocument();
                     doc.Load(settingsPath);
 
-                    var endpoints = doc.SelectNodes("//Endpoint");
+                    // Use specific XPath to only select direct Endpoint children
+                    var endpoints = doc.SelectNodes("/Endpoints/Endpoint");
                     if (endpoints != null)
                     {
                         foreach (System.Xml.XmlNode endpoint in endpoints)
@@ -536,13 +537,20 @@ namespace WMSApp
                             string integrationCode = endpoint.SelectSingleNode("IntegrationCode")?.InnerText ?? "";
                             string instanceName = endpoint.SelectSingleNode("InstanceName")?.InnerText ?? "";
                             string url = endpoint.SelectSingleNode("URL")?.InnerText ?? "";
-                            string endpointPath = endpoint.SelectSingleNode("Endpoint")?.InnerText ?? "";
+                            // Support both Path and Endpoint element names for backwards compatibility
+                            string endpointPath = endpoint.SelectSingleNode("Path")?.InnerText
+                                ?? endpoint.SelectSingleNode("Endpoint")?.InnerText
+                                ?? "";
+
+                            // Skip invalid entries (must have integration code)
+                            if (string.IsNullOrWhiteSpace(integrationCode))
+                                continue;
 
                             // Add APEX LOGIN endpoints to instance URLs (URL + Endpoint)
                             if (source.Equals("APEX", StringComparison.OrdinalIgnoreCase) &&
                                 integrationCode.Equals("LOGIN", StringComparison.OrdinalIgnoreCase))
                             {
-                                if (!instanceUrls.ContainsKey(instanceName))
+                                if (!instanceUrls.ContainsKey(instanceName) && !string.IsNullOrWhiteSpace(url))
                                 {
                                     // Combine URL + Endpoint
                                     string fullUrl = url.TrimEnd('/') + endpointPath;

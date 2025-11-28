@@ -135,11 +135,18 @@ namespace WMSApp
                 var doc = new XmlDocument();
                 doc.Load(xmlPath);
 
-                var nodes = doc.SelectNodes("//Endpoint");
+                // Use specific XPath to only select direct Endpoint children of Endpoints root
+                // This avoids selecting the inner <Endpoint> (path) child elements
+                var nodes = doc.SelectNodes("/Endpoints/Endpoint");
                 if (nodes != null)
                 {
                     foreach (XmlNode node in nodes)
                     {
+                        // Read the endpoint path from either <Path> or <Endpoint> child element
+                        string endpointPath = node.SelectSingleNode("Path")?.InnerText
+                            ?? node.SelectSingleNode("Endpoint")?.InnerText
+                            ?? "";
+
                         var endpoint = new EndpointConfig
                         {
                             Sno = int.TryParse(node.SelectSingleNode("Sno")?.InnerText, out int sno) ? sno : 0,
@@ -147,14 +154,25 @@ namespace WMSApp
                             IntegrationCode = node.SelectSingleNode("IntegrationCode")?.InnerText ?? "",
                             InstanceName = node.SelectSingleNode("InstanceName")?.InnerText ?? "",
                             BaseUrl = node.SelectSingleNode("URL")?.InnerText ?? "",
-                            Endpoint = node.SelectSingleNode("Endpoint")?.InnerText ?? "",
+                            Endpoint = endpointPath,
                             Comments = node.SelectSingleNode("Comments")?.InnerText ?? ""
                         };
-                        endpoints.Add(endpoint);
+
+                        // Only add valid endpoints (must have at least IntegrationCode or URL)
+                        if (!string.IsNullOrWhiteSpace(endpoint.IntegrationCode) ||
+                            !string.IsNullOrWhiteSpace(endpoint.BaseUrl))
+                        {
+                            endpoints.Add(endpoint);
+                            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] Loaded: {endpoint.IntegrationCode} - {endpoint.InstanceName}");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] Skipped invalid/empty endpoint node");
+                        }
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] Loaded {endpoints.Count} endpoints from XML");
+                System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] Loaded {endpoints.Count} valid endpoints from XML");
             }
             catch (Exception ex)
             {

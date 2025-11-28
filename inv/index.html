@@ -2385,7 +2385,7 @@
                         </button>
                     </div>
                     <div style="overflow-x: auto;">
-                        <table class="instance-table" style="min-width: 900px;">
+                        <table class="instance-table" style="min-width: 1000px;">
                             <thead>
                                 <tr>
                                     <th style="width: 30px;"></th>
@@ -2395,6 +2395,7 @@
                                     <th style="width: 100px;">Instance</th>
                                     <th>URL</th>
                                     <th>Path</th>
+                                    <th style="width: 70px;">No Auth</th>
                                     <th>Comments</th>
                                 </tr>
                             </thead>
@@ -2523,6 +2524,10 @@
                 <div class="form-group">
                     <label for="endpointComments">Comments</label>
                     <input type="text" id="endpointComments" placeholder="Optional comments">
+                </div>
+                <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="endpointNoAuth" style="width: auto;">
+                    <label for="endpointNoAuth" style="margin: 0; cursor: pointer;">No Authorization Required</label>
                 </div>
                 <div class="form-actions">
                     <button class="btn-cancel" onclick="closeEndpointForm()">Cancel</button>
@@ -5425,12 +5430,12 @@
         // Get default endpoints matching XML structure
         function getDefaultEndpoints() {
             return [
-                { sno: 1, source: 'APEX', integrationCode: 'LOGIN', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/Login', comments: 'TEST' },
-                { sno: 2, source: 'APEX', integrationCode: 'INVENTORY_ORGS', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/getallinventoryorgs', comments: '' },
-                { sno: 3, source: 'APEX', integrationCode: 'INVENTORY_ON_HAND', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/getonhandbyorg', comments: '' },
-                { sno: 4, source: 'APEX', integrationCode: 'INVENTORY_ON_HAND_BY_SRNO', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/onhandbyserialnumber', comments: '' },
-                { sno: 5, source: 'APEX', integrationCode: 'EXPECTED_PO_RECEIPTS', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/poexpectedreceipts', comments: '' },
-                { sno: 6, source: 'APEX', integrationCode: 'PO_EXPECTED_RECEIPTS_LINES', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/poexpectedreceiptdetails', comments: '' }
+                { sno: 1, source: 'APEX', integrationCode: 'LOGIN', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/Login', comments: 'TEST', noAuth: false },
+                { sno: 2, source: 'APEX', integrationCode: 'INVENTORY_ORGS', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/getallinventoryorgs', comments: '', noAuth: false },
+                { sno: 3, source: 'APEX', integrationCode: 'INVENTORY_ON_HAND', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/getonhandbyorg', comments: '', noAuth: false },
+                { sno: 4, source: 'APEX', integrationCode: 'INVENTORY_ON_HAND_BY_SRNO', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/onhandbyserialnumber', comments: '', noAuth: false },
+                { sno: 5, source: 'APEX', integrationCode: 'EXPECTED_PO_RECEIPTS', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/poexpectedreceipts', comments: '', noAuth: false },
+                { sno: 6, source: 'APEX', integrationCode: 'PO_EXPECTED_RECEIPTS_LINES', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/poexpectedreceiptdetails', comments: '', noAuth: false }
             ];
         }
 
@@ -5452,11 +5457,12 @@
             if (!tbody) return;
 
             if (endpointsData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 30px; color: #888;">No endpoints configured. Click "New" to add one.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: #888;">No endpoints configured. Click "New" to add one.</td></tr>';
                 return;
             }
 
             tbody.innerHTML = endpointsData.map((endpoint, index) => {
+                const noAuthDisplay = endpoint.noAuth ? '&#10004;' : '';
                 return `
                 <tr onclick="selectEndpoint(${index})" class="${index === selectedEndpointIndex ? 'selected' : ''}">
                     <td><input type="radio" name="endpointSelect" ${index === selectedEndpointIndex ? 'checked' : ''} onclick="event.stopPropagation(); selectEndpoint(${index})"></td>
@@ -5466,6 +5472,7 @@
                     <td>${escapeHtml(endpoint.instanceName)}</td>
                     <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(endpoint.url)}">${escapeHtml(endpoint.url)}</td>
                     <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(endpoint.path)}">${escapeHtml(endpoint.path)}</td>
+                    <td style="text-align: center; color: #28a745;">${noAuthDisplay}</td>
                     <td>${escapeHtml(endpoint.comments || '')}</td>
                 </tr>
             `}).join('');
@@ -5501,6 +5508,7 @@
                 document.getElementById('endpointURL').value = '';
                 document.getElementById('endpointPath').value = '';
                 document.getElementById('endpointComments').value = '';
+                document.getElementById('endpointNoAuth').checked = false;
             } else if (mode === 'edit' && index !== null) {
                 title.textContent = 'Edit Endpoint';
                 const endpoint = endpointsData[index];
@@ -5511,6 +5519,7 @@
                 document.getElementById('endpointURL').value = endpoint.url || '';
                 document.getElementById('endpointPath').value = endpoint.path || '';
                 document.getElementById('endpointComments').value = endpoint.comments || '';
+                document.getElementById('endpointNoAuth').checked = endpoint.noAuth || false;
             }
 
             overlay.classList.add('active');
@@ -5537,6 +5546,7 @@
             const url = document.getElementById('endpointURL').value.trim();
             const path = document.getElementById('endpointPath').value.trim();
             const comments = document.getElementById('endpointComments').value.trim();
+            const noAuth = document.getElementById('endpointNoAuth').checked;
 
             // Validation
             if (!source || !integrationCode || !instanceName || !url || !path) {
@@ -5547,23 +5557,30 @@
             const mode = document.getElementById('endpointFormMode').value;
             const indexStr = document.getElementById('endpointFormIndex').value;
 
-            const endpointObj = { sno, source, integrationCode, instanceName, url, path, comments };
+            const endpointObj = { sno, source, integrationCode, instanceName, url, path, comments, noAuth };
+
+            // Uniqueness check: Instance + Source + IntegrationCode combination must be unique
+            const isDuplicate = (ep) => {
+                return ep.instanceName.toLowerCase() === instanceName.toLowerCase() &&
+                       ep.source.toLowerCase() === source.toLowerCase() &&
+                       ep.integrationCode.toLowerCase() === integrationCode.toLowerCase();
+            };
 
             if (mode === 'new') {
-                // Check for duplicate integration code
-                const exists = endpointsData.some(ep => ep.integrationCode.toLowerCase() === integrationCode.toLowerCase());
+                // Check for duplicate combination
+                const exists = endpointsData.some(isDuplicate);
                 if (exists) {
-                    alert('An endpoint with this Integration Code already exists. Please use a different code.');
+                    alert('An endpoint with this Instance + Source + Integration Code combination already exists.');
                     return;
                 }
                 endpointsData.push(endpointObj);
                 selectedEndpointIndex = endpointsData.length - 1;
             } else if (mode === 'edit' && indexStr !== '') {
                 const index = parseInt(indexStr);
-                // Check for duplicate integration code (excluding current)
-                const exists = endpointsData.some((ep, i) => i !== index && ep.integrationCode.toLowerCase() === integrationCode.toLowerCase());
+                // Check for duplicate combination (excluding current)
+                const exists = endpointsData.some((ep, i) => i !== index && isDuplicate(ep));
                 if (exists) {
-                    alert('An endpoint with this Integration Code already exists. Please use a different code.');
+                    alert('An endpoint with this Instance + Source + Integration Code combination already exists.');
                     return;
                 }
                 endpointsData[index] = endpointObj;

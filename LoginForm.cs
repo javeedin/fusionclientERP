@@ -368,6 +368,17 @@ namespace WMSApp
         {
             try
             {
+                // Validate the base URL before making the request
+                if (string.IsNullOrWhiteSpace(baseUrl))
+                {
+                    throw new InvalidOperationException("Login URL is not configured. Please add LOGIN endpoints in Settings.");
+                }
+
+                if (!Uri.IsWellFormedUriString(baseUrl, UriKind.Absolute))
+                {
+                    throw new InvalidOperationException($"Invalid login URL format: '{baseUrl}'. Please check LOGIN endpoints in Settings.");
+                }
+
                 string loginUrl = $"{baseUrl}/login?username={Uri.EscapeDataString(username)}&password={Uri.EscapeDataString(password)}";
 
                 System.Diagnostics.Debug.WriteLine($"[LOGIN] ========================================");
@@ -543,6 +554,14 @@ namespace WMSApp
                     }
 
                     System.Diagnostics.Debug.WriteLine($"[LOGIN] Loaded {instanceUrls.Count} LOGIN endpoints from settings");
+
+                    // If no LOGIN endpoints found in the file, use defaults
+                    if (instanceUrls.Count == 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[LOGIN] No LOGIN endpoints found in settings file, using defaults");
+                        instanceUrls["PROD"] = "https://g09254cbbf8e7af-graysprod.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT";
+                        instanceUrls["TEST"] = "https://g09254cbbf8e7af-graystest.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT";
+                    }
                 }
                 else
                 {

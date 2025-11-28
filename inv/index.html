@@ -2348,6 +2348,12 @@
             // Hide welcome message when switching to a tab
             document.getElementById('welcomeMessage').style.display = 'none';
 
+            // Show tab content area
+            const mainTabContent = document.getElementById('mainTabContent');
+            if (mainTabContent) {
+                mainTabContent.style.display = 'block';
+            }
+
             // Remove active from all tabs
             document.querySelectorAll('.main-tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.main-tab-panel').forEach(panel => panel.classList.remove('active'));
@@ -2399,8 +2405,14 @@
             document.querySelectorAll('.main-tab-panel').forEach(panel => panel.classList.remove('active'));
             activeMainTabId = null;
 
-            // Show welcome message
-            document.getElementById('welcomeMessage').style.display = 'block';
+            // Hide the tab content area but keep tabs header visible if there are tabs
+            const mainTabContent = document.getElementById('mainTabContent');
+            if (mainTabContent) {
+                mainTabContent.style.display = 'none';
+            }
+
+            // Show welcome message (use flex to match CSS)
+            document.getElementById('welcomeMessage').style.display = 'flex';
 
             // Close any open panels
             closeAllPanels();

@@ -36,8 +36,6 @@ namespace WMSApp
         private Button homeButton;
         private Button openFileButton;
         private Button clearCacheButton;
-        private Button wmsDevButton;
-        private Button wmsProdButton;
         private Button modulesButton;
         private ContextMenuStrip modulesContextMenu;
         private Label securityIcon;
@@ -594,202 +592,51 @@ namespace WMSApp
             moduleToolTip.SetToolTip(clearCacheButton, "Clear Browser Cache");
             leftPosition += 45;
 
-            // WMS (Dev) Button - Launches local development version
-            wmsDevButton = new Button
+            // Settings Button - Opens endpoint settings
+            Button navSettingsButton = new Button
             {
-                Text = "WMS (Dev)",
+                Text = "Settings",
+                Width = 80,
+                Height = 30,
+                Left = leftPosition,
+                Top = 10,
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand,
+                BackColor = Color.FromArgb(108, 117, 125),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Tag = "SETTINGS"
+            };
+            navSettingsButton.FlatAppearance.BorderSize = 0;
+            navSettingsButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(90, 98, 104);
+            navSettingsButton.Click += (s, e) =>
+            {
+                var settingsForm = new EndpointSettingsForm();
+                settingsForm.ShowDialog();
+            };
+            moduleToolTip.SetToolTip(navSettingsButton, "Endpoint Settings");
+            leftPosition += 85;
+
+            // Inventory Button - Opens inventory module (requires login)
+            Button inventoryButton = new Button
+            {
+                Text = "Inventory",
                 Width = 85,
                 Height = 30,
                 Left = leftPosition,
                 Top = 10,
                 FlatStyle = FlatStyle.Flat,
                 Cursor = Cursors.Hand,
-                BackColor = Color.FromArgb(255, 245, 200),
-                ForeColor = Color.FromArgb(80, 80, 80),
-                Font = new Font("Segoe UI", 8, FontStyle.Bold),
-                Tag = "WMS_DEV"
-            };
-            wmsDevButton.FlatAppearance.BorderColor = Color.FromArgb(220, 180, 80);
-            wmsDevButton.FlatAppearance.BorderSize = 1;
-            wmsDevButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(255, 240, 180);
-            wmsDevButton.Click += (s, e) =>
-            {
-                System.Diagnostics.Debug.WriteLine("[DEBUG] ========================================");
-                System.Diagnostics.Debug.WriteLine("[DEBUG] WMS DEV BUTTON CLICKED!");
-                System.Diagnostics.Debug.WriteLine($"[DEBUG] Current _isLoggedIn: {_isLoggedIn}");
-
-                // Hardcoded path for WMS Dev - always points to local development folder
-                string repoRoot = @"C:\Users\Javeed Shaik\source\repos\javeedin\graysWMSwebviewnew";
-
-                // Debug: Show all paths being used
-                System.Diagnostics.Debug.WriteLine($"[DEBUG] ========== WMS DEV PATHS ==========");
-                System.Diagnostics.Debug.WriteLine($"[DEBUG] repoRoot: {repoRoot}");
-                System.Diagnostics.Debug.WriteLine($"[DEBUG] WMS index: {Path.Combine(repoRoot, "wms", "index.html")}");
-                System.Diagnostics.Debug.WriteLine($"[DEBUG] Login page: {Path.Combine(repoRoot, "login.html")}");
-                System.Diagnostics.Debug.WriteLine($"[DEBUG] Instance name: {_loggedInInstance}");
-                System.Diagnostics.Debug.WriteLine($"[DEBUG] =====================================");
-
-                // Check if user is logged in for WMS, if not navigate to HTML login page
-                if (!_isLoggedIn)
-                {
-                    System.Diagnostics.Debug.WriteLine("[DEBUG] User NOT logged in, navigating to login page...");
-
-                    // Navigate to HTML login page
-                    string loginPath = Path.GetFullPath(Path.Combine(repoRoot, "login.html"));
-                    if (File.Exists(loginPath))
-                    {
-                        // Clear any stale localStorage login state before navigation
-                        _ = ClearWebViewLoginStateAsync();
-                        string loginUrl = "file:///" + loginPath.Replace("\\", "/");
-                        System.Diagnostics.Debug.WriteLine($"[WMS Dev] Navigating to login: {loginUrl}");
-                        Navigate(loginUrl);
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[WMS Dev] Login page not found at: {loginPath}");
-                        // Fallback to C# login form
-                        if (!ShowLoginForm())
-                        {
-                            return;
-                        }
-                        NavigateToWmsIndex(repoRoot);
-                    }
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("[DEBUG] User already logged in, going directly to WMS");
-                    NavigateToWmsIndex(repoRoot);
-                }
-            };
-            moduleToolTip.SetToolTip(wmsDevButton, "WMS Development - Local Version");
-            leftPosition += 90;
-
-            // WMS (Prod) Button - Launches production version from GitHub distribution
-            wmsProdButton = new Button
-            {
-                Text = "WMS (Prod)",
-                Width = 90,
-                Height = 30,
-                Left = leftPosition,
-                Top = 10,
-                FlatStyle = FlatStyle.Flat,
-                Cursor = Cursors.Hand,
-                BackColor = Color.FromArgb(100, 180, 255),
+                BackColor = Color.FromArgb(0, 123, 255),
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 8, FontStyle.Bold),
-                Tag = "WMS_PROD"
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Tag = "INVENTORY"
             };
-            wmsProdButton.FlatAppearance.BorderColor = Color.FromArgb(50, 150, 255);
-            wmsProdButton.FlatAppearance.BorderSize = 1;
-            wmsProdButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(120, 200, 255);
-            wmsProdButton.Click += (s, e) =>
-            {
-                System.Diagnostics.Debug.WriteLine("[DEBUG] ========================================");
-                System.Diagnostics.Debug.WriteLine("[DEBUG] WMS PROD BUTTON CLICKED!");
-                System.Diagnostics.Debug.WriteLine($"[DEBUG] Current _isLoggedIn: {_isLoggedIn}");
-
-                // Get repo root path
-                string repoRoot = GetWebFilesBasePath();
-
-                // Check if user is logged in for WMS, if not navigate to HTML login page
-                if (!_isLoggedIn)
-                {
-                    System.Diagnostics.Debug.WriteLine("[DEBUG] User NOT logged in, navigating to login page...");
-
-                    // Navigate to HTML login page
-                    string loginPath = Path.GetFullPath(Path.Combine(repoRoot, "login.html"));
-                    if (File.Exists(loginPath))
-                    {
-                        // Clear any stale localStorage login state before navigation
-                        _ = ClearWebViewLoginStateAsync();
-                        string loginUrl = "file:///" + loginPath.Replace("\\", "/");
-                        System.Diagnostics.Debug.WriteLine($"[WMS Prod] Navigating to login: {loginUrl}");
-                        Navigate(loginUrl);
-                        return; // Exit - user will be redirected to WMS after login
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[WMS Prod] Login page not found at: {loginPath}");
-                        // Fallback to C# login form
-                        if (!ShowLoginForm())
-                        {
-                            return;
-                        }
-                    }
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("[DEBUG] User already logged in, going directly to WMS");
-                }
-
-                // Check if distribution folder exists
-                string distributionFolder = "C:\\fusion\\fusionclientweb\\wms";
-                string indexPath = Path.Combine(distributionFolder, "index.html");
-
-                if (Directory.Exists(distributionFolder) && File.Exists(indexPath))
-                {
-                    // Distribution exists - navigate to it
-                    System.Diagnostics.Debug.WriteLine($"[WMS Prod] Launching from distribution: {indexPath}");
-                    // Clear any stale localStorage login state before navigation
-                    _ = ClearWebViewLoginStateAsync();
-                    string fileUrl = "file:///" + indexPath.Replace("\\", "/");
-                    Navigate(fileUrl);
-                }
-                else
-                {
-                    // Distribution doesn't exist - prompt to download
-                    System.Diagnostics.Debug.WriteLine($"[WMS Prod] Distribution not found: {distributionFolder}");
-                    var result = MessageBox.Show(
-                        "WMS module not installed yet.\n\n" +
-                        "Would you like to download it now?\n" +
-                        "This will download from GitHub and install to:\n" +
-                        distributionFolder,
-                        "WMS Not Installed",
-                        MessageBoxButtons.YesNo,
-                        MessageBoxIcon.Question);
-
-                    if (result == DialogResult.Yes)
-                    {
-                        // Navigate to local WMS page which has the distribution manager
-                        repoRoot = GetWebFilesBasePath();
-                        string launcherPath = Path.GetFullPath(Path.Combine(repoRoot, "wms", "index.html"));
-                        if (File.Exists(launcherPath))
-                        {
-                            // Clear any stale localStorage login state before navigation
-                            _ = ClearWebViewLoginStateAsync();
-                            string launcherUrl = "file:///" + launcherPath.Replace("\\", "/");
-                            Navigate(launcherUrl);
-
-                            // Wait for page to load, then trigger download
-                            var downloadTimer = new System.Windows.Forms.Timer();
-                            downloadTimer.Interval = 1500;
-                            downloadTimer.Tick += (sender2, e2) =>
-                            {
-                                downloadTimer.Stop();
-                                downloadTimer.Dispose();
-
-                                var wv = GetCurrentWebView();
-                                if (wv?.CoreWebView2 != null)
-                                {
-                                    System.Diagnostics.Debug.WriteLine("[WMS Prod] Triggering download...");
-                                    wv.CoreWebView2.ExecuteScriptAsync("if (typeof downloadNewVersion === 'function') { downloadNewVersion(); }");
-                                }
-                            };
-                            downloadTimer.Start();
-                        }
-                        else
-                        {
-                            MessageBox.Show(
-                                "Cannot trigger download. Local WMS files not found.",
-                                "Error",
-                                MessageBoxButtons.OK,
-                                MessageBoxIcon.Error);
-                        }
-                    }
-                }
-            };
-            moduleToolTip.SetToolTip(wmsProdButton, "WMS Production - GitHub Distribution");
-            leftPosition += 95;
+            inventoryButton.FlatAppearance.BorderSize = 0;
+            inventoryButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 105, 217);
+            inventoryButton.Click += InventoryButton_Click;
+            moduleToolTip.SetToolTip(inventoryButton, "Inventory Management");
+            leftPosition += 90;
 
             // Modules Dropdown Button
             modulesButton = new Button
@@ -1074,8 +921,8 @@ namespace WMSApp
             navPanel.Controls.Add(homeButton);
             navPanel.Controls.Add(openFileButton);
             navPanel.Controls.Add(clearCacheButton);
-            navPanel.Controls.Add(wmsDevButton);
-            navPanel.Controls.Add(wmsProdButton);
+            navPanel.Controls.Add(navSettingsButton);
+            navPanel.Controls.Add(inventoryButton);
             navPanel.Controls.Add(modulesButton);
             // navPanel.Controls.Add(urlPanel); // HIDDEN: Address bar removed per user request
             navPanel.Controls.Add(profileButton);
@@ -1112,6 +959,47 @@ namespace WMSApp
         {
             var settingsForm = new EndpointSettingsForm();
             settingsForm.ShowDialog();
+        }
+
+        private void InventoryButton_Click(object sender, EventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("[DEBUG] Inventory button clicked");
+            System.Diagnostics.Debug.WriteLine($"[DEBUG] Current _isLoggedIn: {_isLoggedIn}");
+
+            // Check if user is logged in
+            if (!_isLoggedIn)
+            {
+                System.Diagnostics.Debug.WriteLine("[DEBUG] User NOT logged in, showing login form...");
+
+                // Show login form
+                if (!ShowLoginForm())
+                {
+                    System.Diagnostics.Debug.WriteLine("[DEBUG] Login cancelled or failed");
+                    return;
+                }
+            }
+
+            // User is logged in, navigate to Inventory module
+            System.Diagnostics.Debug.WriteLine("[DEBUG] User logged in, navigating to Inventory module");
+
+            string repoRoot = GetWebFilesBasePath();
+            string indexPath = Path.GetFullPath(Path.Combine(repoRoot, "inv", "index.html"));
+
+            if (File.Exists(indexPath))
+            {
+                string fileUrl = "file:///" + indexPath.Replace("\\", "/");
+                Navigate(fileUrl);
+            }
+            else
+            {
+                MessageBox.Show(
+                    "Inventory module not found.\n\n" +
+                    $"Expected path: {indexPath}\n\n" +
+                    "Please ensure the INV module is installed.",
+                    "Module Not Found",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
         }
 
         private void UrlPanel_Paint(object sender, PaintEventArgs e)

@@ -27,7 +27,7 @@ namespace WMSApp
         private void InitializeComponent()
         {
             this.Text = "Select Organization";
-            this.Size = new Size(450, 400);
+            this.Size = new Size(550, 400);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -66,7 +66,7 @@ namespace WMSApp
             lstOrganizations = new ListBox
             {
                 Location = new Point(20, 90),
-                Size = new Size(395, 200),
+                Size = new Size(495, 200),
                 Font = new Font("Segoe UI", 11),
                 BorderStyle = BorderStyle.FixedSingle,
                 ItemHeight = 30
@@ -79,7 +79,7 @@ namespace WMSApp
             Panel buttonPanel = new Panel
             {
                 Location = new Point(20, 305),
-                Size = new Size(395, 45),
+                Size = new Size(495, 45),
                 BackColor = Color.Transparent
             };
 
@@ -88,7 +88,7 @@ namespace WMSApp
                 Text = "Cancel",
                 Width = 100,
                 Height = 38,
-                Location = new Point(170, 0),
+                Location = new Point(270, 0),
                 BackColor = Color.FromArgb(180, 180, 180),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
@@ -103,7 +103,7 @@ namespace WMSApp
                 Text = "Select",
                 Width = 100,
                 Height = 38,
-                Location = new Point(280, 0),
+                Location = new Point(380, 0),
                 BackColor = Color.FromArgb(76, 175, 80),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,

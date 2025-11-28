@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.IO.Compression;
@@ -1322,6 +1323,40 @@ namespace WMSApp
             }
         }
 
+        private void HandleOrganizationChanged(JsonElement root)
+        {
+            try
+            {
+                if (root.TryGetProperty("organization", out var orgElement))
+                {
+                    var org = new InventoryOrganization
+                    {
+                        OrganizationId = orgElement.TryGetProperty("organization_id", out var idProp) ? idProp.GetInt64() : 0,
+                        OrganizationName = orgElement.TryGetProperty("organization_name", out var nameProp) ? nameProp.GetString() : "",
+                        OrganizationCode = orgElement.TryGetProperty("organization_code", out var codeProp) ? codeProp.GetString() : "",
+                        ClassificationCode = orgElement.TryGetProperty("classification_code", out var classProp) ? classProp.GetString() : "",
+                        Status = orgElement.TryGetProperty("status", out var statusProp) ? statusProp.GetString() : "",
+                        MasterOrganizationId = orgElement.TryGetProperty("master_organization_id", out var masterProp) ? masterProp.GetInt64() : 0
+                    };
+
+                    // Update SessionManager
+                    SessionManager.SetOrganization(org);
+
+                    // Update toolbar display
+                    this.Invoke((MethodInvoker)delegate
+                    {
+                        UpdateOrganizationDisplay();
+                    });
+
+                    System.Diagnostics.Debug.WriteLine($"[ORG] Organization changed from WebView: {org.OrganizationName} ({org.OrganizationCode})");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ORG] Error handling organization change: {ex.Message}");
+            }
+        }
+
         private async Task SendLoginInfoToInventoryAsync()
         {
             // Wait for page to load
@@ -1335,18 +1370,38 @@ namespace WMSApp
                 string orgCode = SessionManager.OrganizationCode?.Replace("'", "\\'") ?? "";
                 long orgId = SessionManager.OrganizationId;
 
+                // Serialize organizations list for the dropdown
+                string orgsJson = "[]";
+                if (SessionManager.AvailableOrganizations?.Count > 0)
+                {
+                    var orgsList = SessionManager.AvailableOrganizations.Select(o => new
+                    {
+                        organization_id = o.OrganizationId,
+                        organization_name = o.OrganizationName,
+                        organization_code = o.OrganizationCode,
+                        classification_code = o.ClassificationCode,
+                        status = o.Status,
+                        master_organization_id = o.MasterOrganizationId
+                    });
+                    orgsJson = System.Text.Json.JsonSerializer.Serialize(orgsList);
+                }
+
                 string script = $@"
                     localStorage.setItem('wms_username', '{_loggedInUsername}');
                     localStorage.setItem('wms_instance', '{_loggedInInstance}');
                     localStorage.setItem('wms_org_name', '{orgName}');
                     localStorage.setItem('wms_org_code', '{orgCode}');
                     localStorage.setItem('wms_org_id', '{orgId}');
+                    localStorage.setItem('wms_organizations', '{orgsJson.Replace("'", "\\'")}');
                     if(document.getElementById('usernameDisplay'))
                         document.getElementById('usernameDisplay').textContent = '{_loggedInUsername}';
                     if(document.getElementById('instanceDisplay'))
                         document.getElementById('instanceDisplay').textContent = '{_loggedInInstance}';
-                    if(document.getElementById('orgDisplay'))
-                        document.getElementById('orgDisplay').textContent = '{orgName}';
+
+                    // Populate organizations dropdown if function exists
+                    if(typeof setOrganizations === 'function') {{
+                        setOrganizations('{orgsJson.Replace("'", "\\'")}');
+                    }}
                 ";
 
                 await wv.CoreWebView2.ExecuteScriptAsync(script);
@@ -1670,12 +1725,17 @@ namespace WMSApp
                         using (var doc = JsonDocument.Parse(messageJson))
                         {
                             var root = doc.RootElement;
+                            // Check both "action" and "type" properties for compatibility
                             string action = root.TryGetProperty("action", out var actionProp) ? actionProp.GetString() : "";
+                            if (string.IsNullOrEmpty(action))
+                            {
+                                action = root.TryGetProperty("type", out var typeProp) ? typeProp.GetString() : "";
+                            }
                             string requestId = root.TryGetProperty("requestId", out var reqIdProp) ? reqIdProp.GetString() : "";
 
                             if (string.IsNullOrEmpty(action))
                             {
-                                System.Diagnostics.Debug.WriteLine($"[C#] No action in message, skipping");
+                                System.Diagnostics.Debug.WriteLine($"[C#] No action/type in message, skipping");
                                 return;
                             }
 
@@ -1819,6 +1879,11 @@ namespace WMSApp
 
                                 case "logout":
                                     HandleLogout();
+                                    break;
+
+                                // Organization change from inventory page
+                                case "organizationChanged":
+                                    HandleOrganizationChanged(root);
                                     break;
 
                                 // MRA Interface Processing

@@ -48,13 +48,54 @@
         .user-info {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 15px;
             font-size: 14px;
             color: #fff;
         }
 
         .user-info .username {
             font-weight: 600;
+        }
+
+        /* Organization Selector in Header */
+        .org-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 5px 12px;
+            border-radius: 5px;
+        }
+
+        .org-selector label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.8);
+            text-transform: uppercase;
+        }
+
+        .org-selector select {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 5px 25px 5px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            outline: none;
+            min-width: 180px;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+        }
+
+        .org-selector select:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .org-selector select option {
+            background: #667eea;
+            color: #fff;
         }
 
         .btn-logout {
@@ -462,11 +503,16 @@
             Inventory Management
         </h1>
         <div class="user-info">
+            <div class="org-selector">
+                <label>Org:</label>
+                <select id="orgDropdown" onchange="onOrganizationChange()">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+            <span>|</span>
             <span>Welcome, <span class="username" id="usernameDisplay">User</span></span>
             <span>|</span>
             <span id="instanceDisplay">PROD</span>
-            <span>|</span>
-            <span id="orgDisplay" style="font-weight: 600; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Organization</span>
             <button class="btn-logout" onclick="logout()">Logout</button>
         </div>
     </header>
@@ -672,22 +718,122 @@
             }
         };
 
+        // Available organizations (populated from C#)
+        let availableOrganizations = [];
+        let selectedOrgId = null;
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             console.log('[INV] Inventory module loaded');
 
             const username = localStorage.getItem('wms_username') || 'User';
             const instance = localStorage.getItem('wms_instance') || 'PROD';
-            const orgName = localStorage.getItem('wms_org_name') || 'Organization';
+            const orgName = localStorage.getItem('wms_org_name') || '';
             const orgCode = localStorage.getItem('wms_org_code') || '';
             const orgId = localStorage.getItem('wms_org_id') || '';
 
             document.getElementById('usernameDisplay').textContent = username;
             document.getElementById('instanceDisplay').textContent = instance;
-            document.getElementById('orgDisplay').textContent = orgName;
+
+            // Store selected org ID
+            selectedOrgId = orgId;
+
+            // Try to load organizations from localStorage
+            const orgsJson = localStorage.getItem('wms_organizations');
+            if (orgsJson) {
+                try {
+                    availableOrganizations = JSON.parse(orgsJson);
+                    populateOrgDropdown();
+                } catch (e) {
+                    console.log('[INV] Error parsing organizations:', e);
+                }
+            }
+
+            // If no organizations loaded, show current org
+            if (availableOrganizations.length === 0 && orgName) {
+                const dropdown = document.getElementById('orgDropdown');
+                dropdown.innerHTML = `<option value="${orgId}">${orgName}</option>`;
+            }
 
             console.log('[INV] Organization:', orgName, '(' + orgCode + ')', 'ID:', orgId);
         });
+
+        // Populate organization dropdown
+        function populateOrgDropdown() {
+            const dropdown = document.getElementById('orgDropdown');
+            dropdown.innerHTML = '';
+
+            availableOrganizations.forEach(org => {
+                const option = document.createElement('option');
+                option.value = org.organization_id;
+                option.textContent = org.organization_name;
+                option.setAttribute('data-code', org.organization_code);
+                option.setAttribute('data-status', org.status);
+                option.setAttribute('data-master-id', org.master_organization_id);
+                option.setAttribute('data-classification', org.classification_code);
+
+                if (org.organization_id == selectedOrgId) {
+                    option.selected = true;
+                }
+
+                dropdown.appendChild(option);
+            });
+
+            console.log('[INV] Populated dropdown with', availableOrganizations.length, 'organizations');
+        }
+
+        // Handle organization change
+        function onOrganizationChange() {
+            const dropdown = document.getElementById('orgDropdown');
+            const selectedOption = dropdown.options[dropdown.selectedIndex];
+
+            if (!selectedOption || !selectedOption.value) return;
+
+            const orgId = selectedOption.value;
+            const orgName = selectedOption.textContent;
+            const orgCode = selectedOption.getAttribute('data-code') || '';
+            const orgStatus = selectedOption.getAttribute('data-status') || '';
+            const masterOrgId = selectedOption.getAttribute('data-master-id') || '';
+            const classificationCode = selectedOption.getAttribute('data-classification') || '';
+
+            console.log('[INV] Organization changed to:', orgName, '(' + orgCode + ')');
+
+            // Update localStorage
+            localStorage.setItem('wms_org_id', orgId);
+            localStorage.setItem('wms_org_name', orgName);
+            localStorage.setItem('wms_org_code', orgCode);
+
+            selectedOrgId = orgId;
+
+            // Send message to C# to update the global properties
+            if (window.chrome && window.chrome.webview) {
+                const message = {
+                    type: 'organizationChanged',
+                    organization: {
+                        organization_id: parseInt(orgId),
+                        organization_name: orgName,
+                        organization_code: orgCode,
+                        classification_code: classificationCode,
+                        status: orgStatus,
+                        master_organization_id: parseInt(masterOrgId) || 0
+                    }
+                };
+                window.chrome.webview.postMessage(JSON.stringify(message));
+                console.log('[INV] Sent organization change to C#:', message);
+            }
+        }
+
+        // Function to receive organizations from C#
+        function setOrganizations(orgsJson) {
+            try {
+                availableOrganizations = JSON.parse(orgsJson);
+                localStorage.setItem('wms_organizations', orgsJson);
+                populateOrgDropdown();
+                console.log('[INV] Received', availableOrganizations.length, 'organizations from C#');
+            } catch (e) {
+                console.log('[INV] Error setting organizations:', e);
+            }
+        }
 
         // Show/Hide floating panel
         function showFloatingPanel() {

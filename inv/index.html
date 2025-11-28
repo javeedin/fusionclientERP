@@ -465,6 +465,8 @@
             <span>Welcome, <span class="username" id="usernameDisplay">User</span></span>
             <span>|</span>
             <span id="instanceDisplay">PROD</span>
+            <span>|</span>
+            <span id="orgDisplay" style="font-weight: 600; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Organization</span>
             <button class="btn-logout" onclick="logout()">Logout</button>
         </div>
     </header>
@@ -676,9 +678,15 @@
 
             const username = localStorage.getItem('wms_username') || 'User';
             const instance = localStorage.getItem('wms_instance') || 'PROD';
+            const orgName = localStorage.getItem('wms_org_name') || 'Organization';
+            const orgCode = localStorage.getItem('wms_org_code') || '';
+            const orgId = localStorage.getItem('wms_org_id') || '';
 
             document.getElementById('usernameDisplay').textContent = username;
             document.getElementById('instanceDisplay').textContent = instance;
+            document.getElementById('orgDisplay').textContent = orgName;
+
+            console.log('[INV] Organization:', orgName, '(' + orgCode + ')', 'ID:', orgId);
         });
 
         // Show/Hide floating panel

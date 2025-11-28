@@ -63,6 +63,12 @@ namespace WMSApp
         private bool _isLoggedIn = false;
         private bool _isDevelopmentMode = true; // Toggle between Development and Distribution mode
 
+        // Organization UI Fields
+        private Panel _orgPanel;
+        private Label _orgLabel;
+        private Button _orgChangeButton;
+        private InventoryOrganizationService _orgService;
+
         // Path constants
         private const string DEV_BASE_PATH = @"C:\Users\Javeed Shaik\source\repos\javeedin\fusionclientERP";
         private const string DIST_BASE_PATH = @"C:\fusionclient\ERP";
@@ -91,6 +97,9 @@ namespace WMSApp
             _storageManager = new LocalStorageManager();
             _printerService = new PrinterService();
             _restApiClient = new RestApiClient();
+
+            // Initialize Organization Service
+            _orgService = new InventoryOrganizationService();
         }
 
         private void InitializeComponent1()
@@ -249,6 +258,15 @@ namespace WMSApp
             _loggedInPassword = null;
             _loggedInInstance = null;
             _loggedInDateTime = null;
+
+            // Clear organization and session manager
+            SessionManager.Clear();
+
+            // Hide organization panel
+            if (_orgPanel != null)
+            {
+                _orgPanel.Visible = false;
+            }
 
             System.Diagnostics.Debug.WriteLine("[LOGOUT] User session cleared successfully");
         }
@@ -701,6 +719,54 @@ namespace WMSApp
             modePanel.Controls.Add(btnModeToggle);
             leftPosition += 105;
 
+            // Organization Display Panel
+            _orgPanel = new Panel
+            {
+                Width = 200,
+                Height = 30,
+                Left = leftPosition,
+                Top = 10,
+                BackColor = Color.FromArgb(245, 245, 245),
+                Visible = false // Hidden until organization is selected
+            };
+
+            _orgLabel = new Label
+            {
+                Text = "No Organization",
+                AutoSize = false,
+                Width = 160,
+                Height = 24,
+                Top = 3,
+                Left = 5,
+                Font = new Font("Segoe UI", 8),
+                ForeColor = Color.FromArgb(60, 60, 60),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Cursor = Cursors.Hand
+            };
+            _orgLabel.Click += OrgLabel_Click;
+            moduleToolTip.SetToolTip(_orgLabel, "Click to change organization");
+
+            _orgChangeButton = new Button
+            {
+                Text = "⟳",
+                Width = 28,
+                Height = 24,
+                Left = 168,
+                Top = 3,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(102, 126, 234),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10),
+                Cursor = Cursors.Hand
+            };
+            _orgChangeButton.FlatAppearance.BorderSize = 0;
+            _orgChangeButton.Click += OrgChangeButton_Click;
+            moduleToolTip.SetToolTip(_orgChangeButton, "Change Organization");
+
+            _orgPanel.Controls.Add(_orgLabel);
+            _orgPanel.Controls.Add(_orgChangeButton);
+            leftPosition += 205;
+
             // Modules Dropdown Button
             modulesButton = new Button
             {
@@ -987,6 +1053,7 @@ namespace WMSApp
             navPanel.Controls.Add(navSettingsButton);
             navPanel.Controls.Add(inventoryButton);
             navPanel.Controls.Add(modePanel);
+            navPanel.Controls.Add(_orgPanel);
             navPanel.Controls.Add(modulesButton);
             // navPanel.Controls.Add(urlPanel); // HIDDEN: Address bar removed per user request
             navPanel.Controls.Add(profileButton);
@@ -1079,7 +1146,7 @@ namespace WMSApp
             }
         }
 
-        private void InventoryButton_Click(object sender, EventArgs e)
+        private async void InventoryButton_Click(object sender, EventArgs e)
         {
             System.Diagnostics.Debug.WriteLine("[DEBUG] Inventory button clicked");
             System.Diagnostics.Debug.WriteLine($"[DEBUG] Current _isLoggedIn: {_isLoggedIn}");
@@ -1096,11 +1163,29 @@ namespace WMSApp
                     System.Diagnostics.Debug.WriteLine("[DEBUG] Login cancelled or failed");
                     return;
                 }
+
+                // After successful login, fetch organizations
+                await FetchAndSelectOrganizationAsync();
             }
 
-            // User is logged in, navigate to Inventory module
+            // Check if organization is selected
+            if (!SessionManager.HasOrganization)
+            {
+                System.Diagnostics.Debug.WriteLine("[DEBUG] No organization selected, showing selection form...");
+                await FetchAndSelectOrganizationAsync();
+
+                // If still no organization selected, cancel
+                if (!SessionManager.HasOrganization)
+                {
+                    System.Diagnostics.Debug.WriteLine("[DEBUG] Organization selection cancelled");
+                    return;
+                }
+            }
+
+            // User is logged in and has organization, navigate to Inventory module
             System.Diagnostics.Debug.WriteLine("[DEBUG] User logged in, navigating to Inventory module");
             System.Diagnostics.Debug.WriteLine($"[DEBUG] Username: {_loggedInUsername}, Instance: {_loggedInInstance}");
+            System.Diagnostics.Debug.WriteLine($"[DEBUG] Organization: {SessionManager.OrganizationDisplayName}");
 
             // Get path based on mode
             string basePath = _isDevelopmentMode ? DEV_BASE_PATH : DIST_BASE_PATH;
@@ -1130,6 +1215,113 @@ namespace WMSApp
             }
         }
 
+        private async Task FetchAndSelectOrganizationAsync()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("[DEBUG] Fetching inventory organizations...");
+
+                // Show loading cursor
+                this.Cursor = Cursors.WaitCursor;
+
+                // Fetch organizations from webservice
+                var organizations = await _orgService.GetOrganizationsAsync(_loggedInUsername, _loggedInInstance);
+
+                this.Cursor = Cursors.Default;
+
+                if (organizations == null || organizations.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("[DEBUG] No organizations found");
+                    MessageBox.Show(
+                        "No inventory organizations found for your account.\n\n" +
+                        "Please contact your administrator to configure INVENTORY_ORGS endpoint in Settings.",
+                        "No Organizations",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Store available organizations
+                SessionManager.AvailableOrganizations = organizations;
+
+                // Show organization selection form
+                using (var orgForm = new OrganizationSelectionForm(organizations, SessionManager.SelectedOrganization))
+                {
+                    if (orgForm.ShowDialog() == DialogResult.OK && orgForm.SelectedOrganization != null)
+                    {
+                        SessionManager.SetOrganization(orgForm.SelectedOrganization);
+                        UpdateOrganizationDisplay();
+                        System.Diagnostics.Debug.WriteLine($"[DEBUG] Organization selected: {SessionManager.OrganizationDisplayName}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                this.Cursor = Cursors.Default;
+                System.Diagnostics.Debug.WriteLine($"[DEBUG] Error fetching organizations: {ex.Message}");
+                MessageBox.Show(
+                    $"Error fetching organizations:\n\n{ex.Message}",
+                    "Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
+        private void UpdateOrganizationDisplay()
+        {
+            if (SessionManager.HasOrganization)
+            {
+                _orgLabel.Text = SessionManager.OrganizationDisplayName;
+                _orgPanel.Visible = true;
+                System.Diagnostics.Debug.WriteLine($"[DEBUG] Organization display updated: {SessionManager.OrganizationDisplayName}");
+            }
+            else
+            {
+                _orgLabel.Text = "No Organization";
+                _orgPanel.Visible = false;
+            }
+        }
+
+        private void OrgLabel_Click(object sender, EventArgs e)
+        {
+            // Show organization selection form
+            ShowOrganizationSelectionForm();
+        }
+
+        private void OrgChangeButton_Click(object sender, EventArgs e)
+        {
+            // Show organization selection form
+            ShowOrganizationSelectionForm();
+        }
+
+        private void ShowOrganizationSelectionForm()
+        {
+            if (!_isLoggedIn)
+            {
+                MessageBox.Show("Please login first.", "Not Logged In",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            if (SessionManager.AvailableOrganizations.Count == 0)
+            {
+                // Fetch organizations first
+                _ = FetchAndSelectOrganizationAsync();
+                return;
+            }
+
+            // Show organization selection form
+            using (var orgForm = new OrganizationSelectionForm(SessionManager.AvailableOrganizations, SessionManager.SelectedOrganization))
+            {
+                if (orgForm.ShowDialog() == DialogResult.OK && orgForm.SelectedOrganization != null)
+                {
+                    SessionManager.SetOrganization(orgForm.SelectedOrganization);
+                    UpdateOrganizationDisplay();
+                    System.Diagnostics.Debug.WriteLine($"[DEBUG] Organization changed to: {SessionManager.OrganizationDisplayName}");
+                }
+            }
+        }
+
         private async Task SendLoginInfoToInventoryAsync()
         {
             // Wait for page to load
@@ -1138,17 +1330,27 @@ namespace WMSApp
             var wv = GetCurrentWebView();
             if (wv?.CoreWebView2 != null)
             {
+                // Include organization info in the script
+                string orgName = SessionManager.OrganizationDisplayName?.Replace("'", "\\'") ?? "";
+                string orgCode = SessionManager.OrganizationCode?.Replace("'", "\\'") ?? "";
+                long orgId = SessionManager.OrganizationId;
+
                 string script = $@"
                     localStorage.setItem('wms_username', '{_loggedInUsername}');
                     localStorage.setItem('wms_instance', '{_loggedInInstance}');
+                    localStorage.setItem('wms_org_name', '{orgName}');
+                    localStorage.setItem('wms_org_code', '{orgCode}');
+                    localStorage.setItem('wms_org_id', '{orgId}');
                     if(document.getElementById('usernameDisplay'))
                         document.getElementById('usernameDisplay').textContent = '{_loggedInUsername}';
                     if(document.getElementById('instanceDisplay'))
                         document.getElementById('instanceDisplay').textContent = '{_loggedInInstance}';
+                    if(document.getElementById('orgDisplay'))
+                        document.getElementById('orgDisplay').textContent = '{orgName}';
                 ";
 
                 await wv.CoreWebView2.ExecuteScriptAsync(script);
-                System.Diagnostics.Debug.WriteLine("[DEBUG] Sent login info to Inventory webview");
+                System.Diagnostics.Debug.WriteLine("[DEBUG] Sent login and org info to Inventory webview");
             }
         }
 

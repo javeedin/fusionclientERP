@@ -2385,17 +2385,15 @@
                         </button>
                     </div>
                     <div style="overflow-x: auto;">
-                        <table class="instance-table" style="min-width: 1000px;">
+                        <table class="instance-table" style="min-width: 900px;">
                             <thead>
                                 <tr>
                                     <th style="width: 30px;"></th>
                                     <th style="width: 50px;">S.No</th>
-                                    <th style="width: 80px;">Source</th>
+                                    <th style="width: 120px;">Source</th>
                                     <th>Integration Code</th>
-                                    <th style="width: 100px;">Instance</th>
                                     <th>URL</th>
                                     <th>Path</th>
-                                    <th style="width: 70px;">No Auth</th>
                                     <th>Comments</th>
                                 </tr>
                             </thead>
@@ -2430,6 +2428,7 @@
                                 <th>Source</th>
                                 <th>Base URL</th>
                                 <th>Username</th>
+                                <th style="width: 70px;">No Auth</th>
                             </tr>
                         </thead>
                         <tbody id="instanceTableBody">
@@ -2475,6 +2474,10 @@
                     <label for="instancePassword">Password *</label>
                     <input type="password" id="instancePassword" placeholder="Enter password">
                 </div>
+                <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="instanceNoAuth" style="width: auto;">
+                    <label for="instanceNoAuth" style="margin: 0; cursor: pointer;">No Authorization Required</label>
+                </div>
                 <div class="form-actions">
                     <button class="btn-cancel" onclick="closeInstanceForm()">Cancel</button>
                     <button class="btn-save" onclick="saveInstance()">Save</button>
@@ -2498,11 +2501,9 @@
                     <input type="number" id="endpointSno" placeholder="Auto-generated" readonly style="background: #f5f5f5;">
                 </div>
                 <div class="form-group">
-                    <label for="endpointSource">Source *</label>
-                    <select id="endpointSource">
-                        <option value="">-- Select Source --</option>
-                        <option value="APEX">APEX</option>
-                        <option value="Fusion">Fusion</option>
+                    <label for="endpointSourceInstance">Source (Instance) *</label>
+                    <select id="endpointSourceInstance" onchange="onEndpointSourceInstanceChange()">
+                        <option value="">-- Select Instance --</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -2510,12 +2511,8 @@
                     <input type="text" id="endpointIntegrationCode" placeholder="e.g., INVENTORY_ON_HAND">
                 </div>
                 <div class="form-group">
-                    <label for="endpointInstanceName">Instance Name *</label>
-                    <input type="text" id="endpointInstanceName" placeholder="e.g., PROD, DEV, TEST">
-                </div>
-                <div class="form-group">
-                    <label for="endpointURL">URL *</label>
-                    <input type="text" id="endpointURL" placeholder="e.g., https://your-instance.oraclecloud.com">
+                    <label for="endpointURL">URL (auto-filled from instance)</label>
+                    <input type="text" id="endpointURL" placeholder="Auto-filled from selected instance" readonly style="background: #f5f5f5;">
                 </div>
                 <div class="form-group">
                     <label for="endpointPath">Path *</label>
@@ -2524,10 +2521,6 @@
                 <div class="form-group">
                     <label for="endpointComments">Comments</label>
                     <input type="text" id="endpointComments" placeholder="Optional comments">
-                </div>
-                <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-                    <input type="checkbox" id="endpointNoAuth" style="width: auto;">
-                    <label for="endpointNoAuth" style="margin: 0; cursor: pointer;">No Authorization Required</label>
                 </div>
                 <div class="form-actions">
                     <button class="btn-cancel" onclick="closeEndpointForm()">Cancel</button>
@@ -5273,19 +5266,22 @@
             if (!tbody) return;
 
             if (instancesData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 30px; color: #888;">No instances configured. Click "New" to add one.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px; color: #888;">No instances configured. Click "New" to add one.</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = instancesData.map((instance, index) => `
+            tbody.innerHTML = instancesData.map((instance, index) => {
+                const noAuthDisplay = instance.noAuth ? '&#10004;' : '';
+                return `
                 <tr onclick="selectInstance(${index})" class="${index === selectedInstanceIndex ? 'selected' : ''}">
                     <td><input type="radio" name="instanceSelect" ${index === selectedInstanceIndex ? 'checked' : ''} onclick="event.stopPropagation(); selectInstance(${index})"></td>
                     <td>${escapeHtml(instance.name)}</td>
                     <td>${escapeHtml(instance.source)}</td>
                     <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(instance.url)}</td>
                     <td>${escapeHtml(instance.username)}</td>
+                    <td style="text-align: center; color: #28a745;">${noAuthDisplay}</td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
         // Select an instance row
@@ -5309,6 +5305,7 @@
                 document.getElementById('instanceUrl').value = '';
                 document.getElementById('instanceUsername').value = '';
                 document.getElementById('instancePassword').value = '';
+                document.getElementById('instanceNoAuth').checked = false;
             } else if (mode === 'edit' && index !== null) {
                 title.textContent = 'Edit Instance';
                 const instance = instancesData[index];
@@ -5317,6 +5314,7 @@
                 document.getElementById('instanceUrl').value = instance.url || '';
                 document.getElementById('instanceUsername').value = instance.username || '';
                 document.getElementById('instancePassword').value = instance.password || '';
+                document.getElementById('instanceNoAuth').checked = instance.noAuth || false;
             }
 
             overlay.classList.add('active');
@@ -5341,17 +5339,22 @@
             const url = document.getElementById('instanceUrl').value.trim();
             const username = document.getElementById('instanceUsername').value.trim();
             const password = document.getElementById('instancePassword').value;
+            const noAuth = document.getElementById('instanceNoAuth').checked;
 
-            // Validation
-            if (!name || !source || !url || !username || !password) {
-                alert('Please fill in all required fields.');
+            // Validation - password not required if noAuth is checked
+            if (!name || !source || !url) {
+                alert('Please fill in Instance Name, Source, and Base URL.');
+                return;
+            }
+            if (!noAuth && (!username || !password)) {
+                alert('Please fill in Username and Password, or check "No Authorization Required".');
                 return;
             }
 
             const mode = document.getElementById('instanceFormMode').value;
             const indexStr = document.getElementById('instanceFormIndex').value;
 
-            const instanceObj = { name, source, url, username, password };
+            const instanceObj = { name, source, url, username, password, noAuth };
 
             if (mode === 'new') {
                 // Check for duplicate name
@@ -5430,12 +5433,12 @@
         // Get default endpoints matching XML structure
         function getDefaultEndpoints() {
             return [
-                { sno: 1, source: 'APEX', integrationCode: 'LOGIN', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/Login', comments: 'TEST', noAuth: false },
-                { sno: 2, source: 'APEX', integrationCode: 'INVENTORY_ORGS', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/getallinventoryorgs', comments: '', noAuth: false },
-                { sno: 3, source: 'APEX', integrationCode: 'INVENTORY_ON_HAND', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/getonhandbyorg', comments: '', noAuth: false },
-                { sno: 4, source: 'APEX', integrationCode: 'INVENTORY_ON_HAND_BY_SRNO', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/onhandbyserialnumber', comments: '', noAuth: false },
-                { sno: 5, source: 'APEX', integrationCode: 'EXPECTED_PO_RECEIPTS', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/poexpectedreceipts', comments: '', noAuth: false },
-                { sno: 6, source: 'APEX', integrationCode: 'PO_EXPECTED_RECEIPTS_LINES', instanceName: 'PROD', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/poexpectedreceiptdetails', comments: '', noAuth: false }
+                { sno: 1, sourceInstance: 'APEX-PROD', integrationCode: 'LOGIN', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/Login', comments: 'TEST' },
+                { sno: 2, sourceInstance: 'APEX-PROD', integrationCode: 'INVENTORY_ORGS', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/getallinventoryorgs', comments: '' },
+                { sno: 3, sourceInstance: 'APEX-PROD', integrationCode: 'INVENTORY_ON_HAND', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/getonhandbyorg', comments: '' },
+                { sno: 4, sourceInstance: 'APEX-PROD', integrationCode: 'INVENTORY_ON_HAND_BY_SRNO', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/onhandbyserialnumber', comments: '' },
+                { sno: 5, sourceInstance: 'APEX-PROD', integrationCode: 'EXPECTED_PO_RECEIPTS', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/poexpectedreceipts', comments: '' },
+                { sno: 6, sourceInstance: 'APEX-PROD', integrationCode: 'PO_EXPECTED_RECEIPTS_LINES', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/poexpectedreceiptdetails', comments: '' }
             ];
         }
 
@@ -5457,22 +5460,21 @@
             if (!tbody) return;
 
             if (endpointsData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: #888;">No endpoints configured. Click "New" to add one.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px; color: #888;">No endpoints configured. Click "New" to add one.</td></tr>';
                 return;
             }
 
             tbody.innerHTML = endpointsData.map((endpoint, index) => {
-                const noAuthDisplay = endpoint.noAuth ? '&#10004;' : '';
+                // Source column shows "Source-Instance" format
+                const sourceDisplay = endpoint.sourceInstance || `${endpoint.source || ''}-${endpoint.instanceName || ''}`;
                 return `
                 <tr onclick="selectEndpoint(${index})" class="${index === selectedEndpointIndex ? 'selected' : ''}">
                     <td><input type="radio" name="endpointSelect" ${index === selectedEndpointIndex ? 'checked' : ''} onclick="event.stopPropagation(); selectEndpoint(${index})"></td>
                     <td>${endpoint.sno || index + 1}</td>
-                    <td>${escapeHtml(endpoint.source)}</td>
+                    <td>${escapeHtml(sourceDisplay)}</td>
                     <td>${escapeHtml(endpoint.integrationCode)}</td>
-                    <td>${escapeHtml(endpoint.instanceName)}</td>
                     <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(endpoint.url)}">${escapeHtml(endpoint.url)}</td>
                     <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(endpoint.path)}">${escapeHtml(endpoint.path)}</td>
-                    <td style="text-align: center; color: #28a745;">${noAuthDisplay}</td>
                     <td>${escapeHtml(endpoint.comments || '')}</td>
                 </tr>
             `}).join('');
@@ -5491,10 +5493,42 @@
             return maxSno + 1;
         }
 
+        // Populate source dropdown in endpoint form from instances
+        function populateEndpointSourceDropdown() {
+            const select = document.getElementById('endpointSourceInstance');
+            if (!select) return;
+
+            select.innerHTML = '<option value="">-- Select Instance --</option>';
+            instancesData.forEach((instance) => {
+                const optionValue = `${instance.source}-${instance.name}`;
+                const option = document.createElement('option');
+                option.value = optionValue;
+                option.textContent = optionValue;
+                option.dataset.url = instance.url;
+                select.appendChild(option);
+            });
+        }
+
+        // Handle source instance change - auto-fill URL
+        function onEndpointSourceInstanceChange() {
+            const select = document.getElementById('endpointSourceInstance');
+            const urlInput = document.getElementById('endpointURL');
+            const selectedOption = select.options[select.selectedIndex];
+
+            if (selectedOption && selectedOption.dataset.url) {
+                urlInput.value = selectedOption.dataset.url;
+            } else {
+                urlInput.value = '';
+            }
+        }
+
         // Show endpoint form (new or edit)
         function showEndpointForm(mode, index = null) {
             const overlay = document.getElementById('endpointFormOverlay');
             const title = document.getElementById('endpointFormTitle');
+
+            // Populate source dropdown from instances
+            populateEndpointSourceDropdown();
 
             document.getElementById('endpointFormMode').value = mode;
             document.getElementById('endpointFormIndex').value = index !== null ? index : '';
@@ -5502,24 +5536,22 @@
             if (mode === 'new') {
                 title.textContent = 'New Endpoint';
                 document.getElementById('endpointSno').value = getNextSno();
-                document.getElementById('endpointSource').value = '';
+                document.getElementById('endpointSourceInstance').value = '';
                 document.getElementById('endpointIntegrationCode').value = '';
-                document.getElementById('endpointInstanceName').value = '';
                 document.getElementById('endpointURL').value = '';
                 document.getElementById('endpointPath').value = '';
                 document.getElementById('endpointComments').value = '';
-                document.getElementById('endpointNoAuth').checked = false;
             } else if (mode === 'edit' && index !== null) {
                 title.textContent = 'Edit Endpoint';
                 const endpoint = endpointsData[index];
                 document.getElementById('endpointSno').value = endpoint.sno || index + 1;
-                document.getElementById('endpointSource').value = endpoint.source || '';
+                // Set source instance dropdown
+                const sourceInstance = endpoint.sourceInstance || `${endpoint.source || ''}-${endpoint.instanceName || ''}`;
+                document.getElementById('endpointSourceInstance').value = sourceInstance;
                 document.getElementById('endpointIntegrationCode').value = endpoint.integrationCode || '';
-                document.getElementById('endpointInstanceName').value = endpoint.instanceName || '';
                 document.getElementById('endpointURL').value = endpoint.url || '';
                 document.getElementById('endpointPath').value = endpoint.path || '';
                 document.getElementById('endpointComments').value = endpoint.comments || '';
-                document.getElementById('endpointNoAuth').checked = endpoint.noAuth || false;
             }
 
             overlay.classList.add('active');
@@ -5540,29 +5572,27 @@
         // Save endpoint
         function saveEndpoint() {
             const sno = parseInt(document.getElementById('endpointSno').value) || getNextSno();
-            const source = document.getElementById('endpointSource').value;
+            const sourceInstance = document.getElementById('endpointSourceInstance').value;
             const integrationCode = document.getElementById('endpointIntegrationCode').value.trim();
-            const instanceName = document.getElementById('endpointInstanceName').value.trim();
             const url = document.getElementById('endpointURL').value.trim();
             const path = document.getElementById('endpointPath').value.trim();
             const comments = document.getElementById('endpointComments').value.trim();
-            const noAuth = document.getElementById('endpointNoAuth').checked;
 
             // Validation
-            if (!source || !integrationCode || !instanceName || !url || !path) {
-                alert('Please fill in all required fields (Source, Integration Code, Instance Name, URL, Path).');
+            if (!sourceInstance || !integrationCode || !url || !path) {
+                alert('Please fill in all required fields (Source Instance, Integration Code, URL, Path).');
                 return;
             }
 
             const mode = document.getElementById('endpointFormMode').value;
             const indexStr = document.getElementById('endpointFormIndex').value;
 
-            const endpointObj = { sno, source, integrationCode, instanceName, url, path, comments, noAuth };
+            const endpointObj = { sno, sourceInstance, integrationCode, url, path, comments };
 
-            // Uniqueness check: Instance + Source + IntegrationCode combination must be unique
+            // Uniqueness check: SourceInstance + IntegrationCode combination must be unique
             const isDuplicate = (ep) => {
-                return ep.instanceName.toLowerCase() === instanceName.toLowerCase() &&
-                       ep.source.toLowerCase() === source.toLowerCase() &&
+                const epSourceInstance = ep.sourceInstance || `${ep.source || ''}-${ep.instanceName || ''}`;
+                return epSourceInstance.toLowerCase() === sourceInstance.toLowerCase() &&
                        ep.integrationCode.toLowerCase() === integrationCode.toLowerCase();
             };
 
@@ -5570,7 +5600,7 @@
                 // Check for duplicate combination
                 const exists = endpointsData.some(isDuplicate);
                 if (exists) {
-                    alert('An endpoint with this Instance + Source + Integration Code combination already exists.');
+                    alert('An endpoint with this Source-Instance + Integration Code combination already exists.');
                     return;
                 }
                 endpointsData.push(endpointObj);
@@ -5580,7 +5610,7 @@
                 // Check for duplicate combination (excluding current)
                 const exists = endpointsData.some((ep, i) => i !== index && isDuplicate(ep));
                 if (exists) {
-                    alert('An endpoint with this Instance + Source + Integration Code combination already exists.');
+                    alert('An endpoint with this Source-Instance + Integration Code combination already exists.');
                     return;
                 }
                 endpointsData[index] = endpointObj;

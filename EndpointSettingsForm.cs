@@ -38,29 +38,30 @@ namespace WMSApp
         {
             string settingsPath = @"C:\fusionclient\ERP\settings";
 
-            // Create directory if it doesn't exist
-            if (!Directory.Exists(settingsPath))
+            try
             {
-                try
+                // Create directory if it doesn't exist
+                if (!Directory.Exists(settingsPath))
                 {
                     Directory.CreateDirectory(settingsPath);
                     System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Created settings path: {settingsPath}");
+                }
 
-                    // Copy default endpoints.xml from app directory if it exists
-                    string appPath = Path.Combine(Application.StartupPath, "ERP", "settings", "endpoints.xml");
-                    string destPath = Path.Combine(settingsPath, "endpoints.xml");
-                    if (File.Exists(appPath) && !File.Exists(destPath))
-                    {
-                        File.Copy(appPath, destPath);
-                        System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Copied default endpoints.xml");
-                    }
-                }
-                catch (Exception ex)
+                // Create empty endpoints.xml if it doesn't exist
+                string xmlPath = Path.Combine(settingsPath, "endpoints.xml");
+                if (!File.Exists(xmlPath))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Error creating path: {ex.Message}");
-                    MessageBox.Show($"Error creating settings directory:\n{ex.Message}", "Error",
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    // Create empty XML file
+                    string emptyXml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<Endpoints>\r\n</Endpoints>";
+                    File.WriteAllText(xmlPath, emptyXml);
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Created empty endpoints.xml at: {xmlPath}");
                 }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Error: {ex.Message}");
+                MessageBox.Show($"Error creating settings:\n{settingsPath}\n\n{ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
             System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Using settings path: {settingsPath}");
@@ -419,14 +420,15 @@ namespace WMSApp
         {
             try
             {
+                string xmlPath = Path.Combine(_settingsPath, "endpoints.xml");
                 SaveEndpointsToXml();
                 _isDirty = false;
-                MessageBox.Show("Endpoints saved successfully!", "Success",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show($"Endpoints saved successfully!\n\nFile: {xmlPath}\nCount: {_endpoints.Count} endpoints",
+                    "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error saving endpoints: {ex.Message}", "Error",
+                MessageBox.Show($"Error saving endpoints:\n\n{ex.Message}\n\nPath: {_settingsPath}", "Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }

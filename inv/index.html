@@ -1549,12 +1549,19 @@
                             if (data.requestId === requestId) {
                                 window.chrome.webview.removeEventListener('message', handler);
                                 if (data.success) {
-                                    resolve(data.data);
+                                    // Parse the nested JSON data if it's a string
+                                    let responseData = data.data;
+                                    if (typeof responseData === 'string') {
+                                        responseData = JSON.parse(responseData);
+                                    }
+                                    resolve(responseData);
                                 } else {
                                     reject(new Error(data.error || 'Request failed'));
                                 }
                             }
-                        } catch (e) {}
+                        } catch (e) {
+                            console.error('[INV] Error parsing response:', e);
+                        }
                     };
                     window.chrome.webview.addEventListener('message', handler);
 

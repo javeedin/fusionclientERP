@@ -2105,6 +2105,7 @@ namespace WMSApp
                     {
                         action = "restResponse",
                         requestId = requestId,
+                        success = true,
                         data = responseContent
                     };
 
@@ -2186,6 +2187,7 @@ namespace WMSApp
                     {
                         action = "restResponse",
                         requestId = requestId,
+                        success = true,
                         data = responseContent
                     };
 
@@ -2272,6 +2274,7 @@ namespace WMSApp
                     {
                         action = "restResponse",
                         requestId = requestId,
+                        success = true,
                         data = responseContent
                     };
 

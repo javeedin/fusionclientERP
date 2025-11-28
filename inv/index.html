@@ -257,6 +257,7 @@
             flex-direction: column;
             background: #ffffff;
             overflow: auto;
+            position: relative;
         }
 
         .content-area > #welcomeMessage {
@@ -463,10 +464,20 @@
 
         /* Main Tabs System */
         .main-tabs-container {
-            display: flex;
+            display: none;
             flex-direction: column;
             width: 100%;
-            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 10;
+            background: #fff;
+        }
+
+        .main-tabs-container.active {
+            display: flex;
         }
 
         .main-tabs-header {
@@ -1726,7 +1737,7 @@
             </div>
 
             <!-- Main Tabs Container -->
-            <div id="mainTabsContainer" class="main-tabs-container" style="display: none;">
+            <div id="mainTabsContainer" class="main-tabs-container">
                 <div class="main-tabs-header" id="mainTabsHeader">
                     <!-- Tabs will be added dynamically -->
                 </div>
@@ -2317,7 +2328,7 @@
 
             // Show tabs container, hide welcome message
             document.getElementById('welcomeMessage').style.display = 'none';
-            document.getElementById('mainTabsContainer').style.display = 'flex';
+            document.getElementById('mainTabsContainer').classList.add('active');
 
             // Render content into the panel
             renderTabContent(tabPanel, title, task);
@@ -2348,11 +2359,8 @@
             // Hide welcome message when switching to a tab
             document.getElementById('welcomeMessage').style.display = 'none';
 
-            // Show tab content area
-            const mainTabContent = document.getElementById('mainTabContent');
-            if (mainTabContent) {
-                mainTabContent.style.display = 'block';
-            }
+            // Show tabs container
+            document.getElementById('mainTabsContainer').classList.add('active');
 
             // Remove active from all tabs
             document.querySelectorAll('.main-tab').forEach(tab => tab.classList.remove('active'));
@@ -2392,24 +2400,21 @@
                 } else {
                     // No tabs left, show welcome message
                     activeMainTabId = null;
-                    document.getElementById('mainTabsContainer').style.display = 'none';
-                    document.getElementById('welcomeMessage').style.display = 'block';
+                    document.getElementById('mainTabsContainer').classList.remove('active');
+                    document.getElementById('welcomeMessage').style.display = 'flex';
                 }
             }
         }
 
         // Go to Home page - keep tabs but show welcome message
         function goToHome() {
-            // Deactivate all tabs (but don't remove them)
+            // Deactivate all tabs visually (but don't remove them)
             document.querySelectorAll('.main-tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.main-tab-panel').forEach(panel => panel.classList.remove('active'));
             activeMainTabId = null;
 
-            // Hide the tab content area but keep tabs header visible if there are tabs
-            const mainTabContent = document.getElementById('mainTabContent');
-            if (mainTabContent) {
-                mainTabContent.style.display = 'none';
-            }
+            // Hide the tabs container completely
+            document.getElementById('mainTabsContainer').classList.remove('active');
 
             // Show welcome message (use flex to match CSS)
             document.getElementById('welcomeMessage').style.display = 'flex';

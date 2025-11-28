@@ -981,6 +981,7 @@ namespace WMSApp
 
             // User is logged in, navigate to Inventory module
             System.Diagnostics.Debug.WriteLine("[DEBUG] User logged in, navigating to Inventory module");
+            System.Diagnostics.Debug.WriteLine($"[DEBUG] Username: {_loggedInUsername}, Instance: {_loggedInInstance}");
 
             string repoRoot = GetWebFilesBasePath();
             string indexPath = Path.GetFullPath(Path.Combine(repoRoot, "inv", "index.html"));
@@ -989,6 +990,9 @@ namespace WMSApp
             {
                 string fileUrl = "file:///" + indexPath.Replace("\\", "/");
                 Navigate(fileUrl);
+
+                // Send login info to the webview after navigation
+                _ = SendLoginInfoToInventoryAsync();
             }
             else
             {
@@ -999,6 +1003,28 @@ namespace WMSApp
                     "Module Not Found",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
+            }
+        }
+
+        private async Task SendLoginInfoToInventoryAsync()
+        {
+            // Wait for page to load
+            await Task.Delay(800);
+
+            var wv = GetCurrentWebView();
+            if (wv?.CoreWebView2 != null)
+            {
+                string script = $@"
+                    localStorage.setItem('wms_username', '{_loggedInUsername}');
+                    localStorage.setItem('wms_instance', '{_loggedInInstance}');
+                    if(document.getElementById('usernameDisplay'))
+                        document.getElementById('usernameDisplay').textContent = '{_loggedInUsername}';
+                    if(document.getElementById('instanceDisplay'))
+                        document.getElementById('instanceDisplay').textContent = '{_loggedInInstance}';
+                ";
+
+                await wv.CoreWebView2.ExecuteScriptAsync(script);
+                System.Diagnostics.Debug.WriteLine("[DEBUG] Sent login info to Inventory webview");
             }
         }
 

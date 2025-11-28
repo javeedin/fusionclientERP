@@ -527,24 +527,29 @@ namespace WMSApp
                             string integrationCode = endpoint.SelectSingleNode("IntegrationCode")?.InnerText ?? "";
                             string instanceName = endpoint.SelectSingleNode("InstanceName")?.InnerText ?? "";
                             string url = endpoint.SelectSingleNode("URL")?.InnerText ?? "";
+                            string endpointPath = endpoint.SelectSingleNode("Endpoint")?.InnerText ?? "";
 
-                            // Add APEX endpoints to instance URLs
+                            // Add APEX LOGIN endpoints to instance URLs (URL + Endpoint)
                             if (source.Equals("APEX", StringComparison.OrdinalIgnoreCase) &&
                                 integrationCode.Equals("LOGIN", StringComparison.OrdinalIgnoreCase))
                             {
                                 if (!instanceUrls.ContainsKey(instanceName))
                                 {
-                                    instanceUrls[instanceName] = url;
+                                    // Combine URL + Endpoint
+                                    string fullUrl = url.TrimEnd('/') + endpointPath;
+                                    instanceUrls[instanceName] = fullUrl;
+                                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Added endpoint: {instanceName} -> {fullUrl}");
                                 }
                             }
                         }
                     }
 
-                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Loaded {instanceUrls.Count} endpoints from settings");
+                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Loaded {instanceUrls.Count} LOGIN endpoints from settings");
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Settings file not found, using defaults");
+                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Settings file not found at: {settingsPath}");
+                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Using default endpoints");
                     // Use default endpoints
                     instanceUrls["PROD"] = "https://g09254cbbf8e7af-graysprod.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT";
                     instanceUrls["TEST"] = "https://g09254cbbf8e7af-graystest.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT";

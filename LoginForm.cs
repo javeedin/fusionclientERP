@@ -16,23 +16,24 @@ namespace WMSApp
         private ComboBox cboInstance;
         private ComboBox cboBusinessUnit;
         private ComboBox cboInventoryOrg;
+        private Label lblCompanyName;
         private Button btnLogin;
         private Button btnCancel;
         private Label lblError;
         private CheckBox chkRememberMe;
 
-        // Instance URLs
-        private readonly Dictionary<string, string> instanceUrls = new Dictionary<string, string>
-        {
-            { "PROD", "https://g09254cbbf8e7af-graysprod.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT" },
-            { "TEST", "https://g09254cbbf8e7af-graystest.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT" }
-        };
+        // Company Name (hardcoded)
+        private const string COMPANY_NAME = "Mitsumi";
+
+        // Instance URLs - will be loaded from settings
+        private Dictionary<string, string> instanceUrls = new Dictionary<string, string>();
 
         public string Username { get; private set; }
         public string Password { get; private set; }
         public string InstanceName { get; private set; }
         public string BusinessUnit { get; private set; }
         public string InventoryOrg { get; private set; }
+        public string CompanyName { get; private set; }
         public bool LoginSuccessful { get; private set; }
 
         public LoginForm()
@@ -48,38 +49,55 @@ namespace WMSApp
 
         private void InitializeComponent()
         {
-            this.Text = "WMS Login";
-            this.Size = new Size(600, 700);
+            this.Text = "Fusion Client Login";
+            this.Size = new Size(600, 750);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.BackColor = Color.FromArgb(245, 247, 250);
 
+            // Load endpoints from settings
+            LoadEndpointsFromSettings();
+
             // Logo/Title Panel
             Panel headerPanel = new Panel
             {
-                Height = 100,
+                Height = 120,
                 Dock = DockStyle.Top,
                 BackColor = Color.FromArgb(102, 126, 234) // #667eea
             };
 
             Label lblTitle = new Label
             {
-                Text = "🏭 WMS Login",
-                Font = new Font("Segoe UI", 24, FontStyle.Bold),
+                Text = "Fusion Client",
+                Font = new Font("Segoe UI", 28, FontStyle.Bold),
                 ForeColor = Color.White,
                 AutoSize = false,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Dock = DockStyle.Fill
+                Location = new Point(0, 10),
+                Size = new Size(600, 50)
             };
             headerPanel.Controls.Add(lblTitle);
+
+            // Company Name Label
+            lblCompanyName = new Label
+            {
+                Text = COMPANY_NAME,
+                Font = new Font("Segoe UI", 14, FontStyle.Regular),
+                ForeColor = Color.FromArgb(220, 220, 255),
+                AutoSize = false,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Location = new Point(0, 60),
+                Size = new Size(600, 30)
+            };
+            headerPanel.Controls.Add(lblCompanyName);
 
             // Main content panel
             Panel contentPanel = new Panel
             {
-                Location = new Point(40, 120),
-                Size = new Size(520, 420),
+                Location = new Point(40, 140),
+                Size = new Size(520, 450),
                 BackColor = Color.White,
                 Padding = new Padding(20)
             };
@@ -159,14 +177,14 @@ namespace WMSApp
             contentPanel.Controls.Add(cboInstance);
             yPosition += 65;
 
-            // Business Unit (disabled for now)
+            // Business Unit
             Label lblBusinessUnit = new Label
             {
-                Text = "Business Unit: (Coming Soon)",
+                Text = "Business Unit:",
                 Location = new Point(20, yPosition),
                 Size = new Size(480, 20),
                 Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                ForeColor = Color.FromArgb(150, 150, 150)
+                ForeColor = Color.FromArgb(60, 60, 60)
             };
             contentPanel.Controls.Add(lblBusinessUnit);
 
@@ -176,9 +194,9 @@ namespace WMSApp
                 Size = new Size(480, 30),
                 Font = new Font("Segoe UI", 10),
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Enabled = false
+                Enabled = true
             };
-            cboBusinessUnit.Items.Add("-- Not Implemented --");
+            cboBusinessUnit.Items.AddRange(new object[] { "Mitsumi BU 01", "Mitsumi BU 02", "Mitsumi BU 03" });
             cboBusinessUnit.SelectedIndex = 0;
             contentPanel.Controls.Add(cboBusinessUnit);
             yPosition += 65;
@@ -210,7 +228,7 @@ namespace WMSApp
             // Buttons Panel
             Panel buttonPanel = new Panel
             {
-                Location = new Point(40, 555),
+                Location = new Point(40, 605),
                 Size = new Size(520, 50),
                 BackColor = Color.Transparent
             };
@@ -485,6 +503,70 @@ namespace WMSApp
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[LOGIN] Error saving settings: {ex.Message}");
+            }
+        }
+
+        private void LoadEndpointsFromSettings()
+        {
+            try
+            {
+                // Settings file path: C:\fusionclient\ERP\settings\endpoints.xml
+                string settingsPath = @"C:\fusionclient\ERP\settings\endpoints.xml";
+
+                if (File.Exists(settingsPath))
+                {
+                    var doc = new System.Xml.XmlDocument();
+                    doc.Load(settingsPath);
+
+                    var endpoints = doc.SelectNodes("//Endpoint");
+                    if (endpoints != null)
+                    {
+                        foreach (System.Xml.XmlNode endpoint in endpoints)
+                        {
+                            string source = endpoint.SelectSingleNode("Source")?.InnerText ?? "";
+                            string integrationCode = endpoint.SelectSingleNode("IntegrationCode")?.InnerText ?? "";
+                            string instanceName = endpoint.SelectSingleNode("InstanceName")?.InnerText ?? "";
+                            string url = endpoint.SelectSingleNode("URL")?.InnerText ?? "";
+
+                            // Add APEX endpoints to instance URLs
+                            if (source.Equals("APEX", StringComparison.OrdinalIgnoreCase) &&
+                                integrationCode.Equals("LOGIN", StringComparison.OrdinalIgnoreCase))
+                            {
+                                if (!instanceUrls.ContainsKey(instanceName))
+                                {
+                                    instanceUrls[instanceName] = url;
+                                }
+                            }
+                        }
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Loaded {instanceUrls.Count} endpoints from settings");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Settings file not found, using defaults");
+                    // Use default endpoints
+                    instanceUrls["PROD"] = "https://g09254cbbf8e7af-graysprod.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT";
+                    instanceUrls["TEST"] = "https://g09254cbbf8e7af-graystest.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT";
+                }
+
+                // Update the instance dropdown
+                cboInstance.Items.Clear();
+                foreach (var instance in instanceUrls.Keys)
+                {
+                    cboInstance.Items.Add(instance);
+                }
+                if (cboInstance.Items.Count > 0)
+                {
+                    cboInstance.SelectedIndex = 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[LOGIN] Error loading endpoints: {ex.Message}");
+                // Fallback to defaults
+                instanceUrls["PROD"] = "https://g09254cbbf8e7af-graysprod.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT";
+                instanceUrls["TEST"] = "https://g09254cbbf8e7af-graystest.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT";
             }
         }
     }

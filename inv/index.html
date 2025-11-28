@@ -746,6 +746,346 @@
             overflow-y: auto;
         }
 
+        /* Collapsible Section Styles */
+        .collapsible-section {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .collapsible-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            cursor: pointer;
+            background: #f8f9fa;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .collapsible-header:hover {
+            background: #eef1f5;
+        }
+
+        .collapsible-header h3 {
+            margin: 0;
+            color: #667eea;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .collapsible-toggle {
+            font-size: 18px;
+            color: #667eea;
+            transition: transform 0.3s;
+        }
+
+        .collapsible-section.collapsed .collapsible-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .collapsible-content {
+            padding: 0 20px 20px 20px;
+            max-height: 500px;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+        }
+
+        .collapsible-section.collapsed .collapsible-content {
+            max-height: 0;
+            padding: 0 20px;
+            overflow: hidden;
+        }
+
+        /* Tab Styles */
+        .tab-container {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .tab-header {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            font-size: 13px;
+            font-weight: 500;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            border-bottom: 2px solid transparent;
+            position: relative;
+        }
+
+        .tab-btn:hover {
+            color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            background: #fff;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-btn .tab-close {
+            margin-left: 10px;
+            color: #999;
+            font-size: 16px;
+        }
+
+        .tab-btn .tab-close:hover {
+            color: #dc3545;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+            min-height: 400px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Chart Styles */
+        .chart-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .chart-card {
+            flex: 1;
+            min-width: 300px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .chart-card h4 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .chart-bar-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .chart-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-bar-label {
+            width: 120px;
+            font-size: 12px;
+            color: #666;
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chart-bar-track {
+            flex: 1;
+            height: 24px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .chart-bar-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            transition: width 0.5s ease;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 8px;
+            padding: 20px;
+            color: #fff;
+            text-align: center;
+        }
+
+        .stat-card.green {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+
+        .stat-card.orange {
+            background: linear-gradient(135deg, #fd7e14, #ffc107);
+        }
+
+        .stat-card.red {
+            background: linear-gradient(135deg, #dc3545, #e83e8c);
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Grouped Table Styles */
+        .grouped-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .group-header {
+            background: #f0f4ff;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .group-header:hover {
+            background: #e8edff;
+        }
+
+        .group-header td {
+            padding: 12px 10px;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .group-toggle {
+            display: inline-block;
+            width: 20px;
+            transition: transform 0.2s;
+        }
+
+        .group-header.collapsed .group-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .group-row {
+            background: #fff;
+        }
+
+        .group-row.hidden {
+            display: none;
+        }
+
+        .group-row td {
+            padding: 10px 10px 10px 35px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .group-row:hover {
+            background: #f9f9f9;
+        }
+
+        .group-qty {
+            background: #667eea;
+            color: #fff;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Tasks Panel on Main Page */
+        .tasks-panel-main {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .task-group-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+
+        .task-group-card:hover {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .task-group-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            padding: 15px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .task-group-items {
+            padding: 10px 0;
+        }
+
+        .task-item-main {
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .task-item-main:hover {
+            background: #f0f4ff;
+            color: #667eea;
+        }
+
+        .task-item-main .task-icon {
+            font-size: 16px;
+            width: 24px;
+            text-align: center;
+        }
+
         /* Close button for panels */
         .panel-close {
             position: absolute;
@@ -831,12 +1171,94 @@
     <!-- Main Content -->
     <div class="main-content">
         <!-- Content Area -->
-        <div class="content-area">
-            <div class="welcome-message" id="welcomeMessage">
-                <h2>Inventory Management</h2>
-                <p>Select a task from the floating panel on the right to get started.
-                   Use Tasks to access inventory operations, Search to find items,
-                   or Reports to view inventory analytics.</p>
+        <div class="content-area" style="align-items: flex-start; padding-top: 20px;">
+            <div id="welcomeMessage" style="width: 100%;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h2 style="color: #667eea; margin-bottom: 10px;">Inventory Management</h2>
+                    <p style="color: #666;">Select a task below or use the floating panel on the right</p>
+                </div>
+
+                <!-- Tasks grouped on main page -->
+                <div class="tasks-panel-main" id="mainTasksPanel">
+                    <!-- Inventory Tasks -->
+                    <div class="task-group-card">
+                        <div class="task-group-header">&#128230; Inventory</div>
+                        <div class="task-group-items">
+                            <div class="task-item-main" onclick="handleMenuItem('Manage Item Quantities')">
+                                <span class="task-icon">&#128230;</span> Manage Item Quantities
+                            </div>
+                            <div class="task-item-main" onclick="handleMenuItem('Create Miscellaneous Transaction')">
+                                <span class="task-icon">&#128221;</span> Create Miscellaneous Transaction
+                            </div>
+                            <div class="task-item-main" onclick="handleMenuItem('Create Subinventory Transfer')">
+                                <span class="task-icon">&#8644;</span> Create Subinventory Transfer
+                            </div>
+                            <div class="task-item-main" onclick="handleMenuItem('Manage Lots')">
+                                <span class="task-icon">&#127991;</span> Manage Lots
+                            </div>
+                            <div class="task-item-main" onclick="handleMenuItem('Manage Serial Numbers')">
+                                <span class="task-icon">&#128271;</span> Manage Serial Numbers
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Counts Tasks -->
+                    <div class="task-group-card">
+                        <div class="task-group-header">&#128202; Counts</div>
+                        <div class="task-group-items">
+                            <div class="task-item-main" onclick="handleMenuItem('Create Cycle Count')">
+                                <span class="task-icon">&#10133;</span> Create Cycle Count
+                            </div>
+                            <div class="task-item-main" onclick="handleMenuItem('Manage Cycle Counts')">
+                                <span class="task-icon">&#128203;</span> Manage Cycle Counts
+                            </div>
+                            <div class="task-item-main" onclick="handleMenuItem('Record Count Sequences')">
+                                <span class="task-icon">&#128221;</span> Record Count Sequences
+                            </div>
+                            <div class="task-item-main" onclick="handleMenuItem('Manage Physical Inventories')">
+                                <span class="task-icon">&#128230;</span> Manage Physical Inventories
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Shipments Tasks -->
+                    <div class="task-group-card">
+                        <div class="task-group-header">&#128666; Shipments</div>
+                        <div class="task-group-items">
+                            <div class="task-item-main" onclick="handleMenuItem('Manage Shipments')">
+                                <span class="task-icon">&#128666;</span> Manage Shipments
+                            </div>
+                            <div class="task-item-main" onclick="handleMenuItem('Manage Shipment Lines')">
+                                <span class="task-icon">&#128196;</span> Manage Shipment Lines
+                            </div>
+                            <div class="task-item-main" onclick="handleMenuItem('Create Pick Wave')">
+                                <span class="task-icon">&#127754;</span> Create Pick Wave
+                            </div>
+                            <div class="task-item-main" onclick="handleMenuItem('Confirm Pick Slips')">
+                                <span class="task-icon">&#9745;</span> Confirm Pick Slips
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Receipts Tasks -->
+                    <div class="task-group-card">
+                        <div class="task-group-header">&#128229; Receipts</div>
+                        <div class="task-group-items">
+                            <div class="task-item-main" onclick="handleMenuItem('Receive Expected Shipments')">
+                                <span class="task-icon">&#128230;</span> Receive Expected Shipments
+                            </div>
+                            <div class="task-item-main" onclick="handleMenuItem('Manage Inbound Shipments')">
+                                <span class="task-icon">&#128666;</span> Manage Inbound Shipments
+                            </div>
+                            <div class="task-item-main" onclick="handleMenuItem('Put Away Receipts')">
+                                <span class="task-icon">&#128229;</span> Put Away Receipts
+                            </div>
+                            <div class="task-item-main" onclick="handleMenuItem('Inspect Receipts')">
+                                <span class="task-icon">&#128269;</span> Inspect Receipts
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div id="contentDisplay" style="display: none; width: 100%; height: 100%;">
@@ -1318,8 +1740,14 @@
         }
 
         // Show Manage Item Quantities page
+        // Dynamic tabs for serial numbers
+        let serialTabs = [];
+        let activeTabId = 'tab-charts';
+
         function showManageItemQuantities(container) {
             const selectedOrgCode = localStorage.getItem('wms_org_code') || '';
+            serialTabs = []; // Reset serial tabs
+            activeTabId = 'tab-charts';
 
             container.innerHTML = `
                 <div style="padding: 20px; height: 100%; overflow-y: auto;">
@@ -1328,82 +1756,366 @@
                         Manage Item Quantities
                     </h2>
 
-                    <!-- Parameter Section -->
-                    <div class="param-section">
-                        <h3>Search Parameters</h3>
-                        <div class="param-row">
-                            <div class="param-group">
-                                <label>Organization Code *</label>
-                                <select id="paramOrgCode" onchange="onParamOrgChange()">
-                                    ${getOrgOptionsHtml(selectedOrgCode)}
-                                </select>
+                    <!-- Collapsible Parameter Section -->
+                    <div class="collapsible-section" id="searchSection">
+                        <div class="collapsible-header" onclick="toggleSearchSection()">
+                            <h3><span>&#128269;</span> Search Parameters</h3>
+                            <span class="collapsible-toggle">&#9660;</span>
+                        </div>
+                        <div class="collapsible-content">
+                            <div class="param-row">
+                                <div class="param-group">
+                                    <label>Organization Code *</label>
+                                    <select id="paramOrgCode" onchange="onParamOrgChange()">
+                                        ${getOrgOptionsHtml(selectedOrgCode)}
+                                    </select>
+                                </div>
+                                <div class="param-group">
+                                    <label>Subinventory</label>
+                                    <input type="text" id="paramSubInventory" placeholder="Enter subinventory code">
+                                </div>
+                                <div class="param-group">
+                                    <label>Item Code</label>
+                                    <input type="text" id="paramItemCode" placeholder="Enter item code">
+                                </div>
+                                <div class="param-group">
+                                    <label>Item Description</label>
+                                    <input type="text" id="paramItemDesc" placeholder="Enter item description">
+                                </div>
                             </div>
-                            <div class="param-group">
-                                <label>Subinventory</label>
-                                <input type="text" id="paramSubInventory" placeholder="Enter subinventory code">
-                            </div>
-                            <div class="param-group">
-                                <label>Item Code</label>
-                                <input type="text" id="paramItemCode" placeholder="Enter item code">
-                            </div>
-                            <div class="param-group">
-                                <label>Item Description</label>
-                                <input type="text" id="paramItemDesc" placeholder="Enter item description">
+                            <div class="param-buttons">
+                                <button class="btn-search" id="btnSearchOnHand" onclick="searchOnHandQuantities()">
+                                    <span>&#128269;</span> Search
+                                </button>
+                                <button class="btn-clear" onclick="clearOnHandParams()">Clear</button>
                             </div>
                         </div>
-                        <div class="param-buttons">
-                            <button class="btn-search" id="btnSearchOnHand" onclick="searchOnHandQuantities()">
-                                <span>&#128269;</span> Search
+                    </div>
+
+                    <!-- Tabbed Results Section -->
+                    <div class="tab-container">
+                        <div class="tab-header" id="tabHeader">
+                            <button class="tab-btn active" data-tab="tab-charts" onclick="switchTab('tab-charts')">
+                                &#128202; Charts
                             </button>
-                            <button class="btn-clear" onclick="clearOnHandParams()">Clear</button>
+                            <button class="tab-btn" data-tab="tab-byitem" onclick="switchTab('tab-byitem')">
+                                &#128230; By Item
+                            </button>
                         </div>
-                    </div>
 
-                    <!-- Results Grid -->
-                    <div class="grid-section">
-                        <div class="grid-header">
-                            <div class="grid-title">On-Hand Quantities</div>
-                            <div class="grid-search">
-                                <input type="text" id="gridSearchInput" placeholder="Filter results..." oninput="filterOnHandGrid()">
-                                <span class="record-count" id="recordCount">0 records</span>
+                        <!-- Tab 1: Charts -->
+                        <div class="tab-content active" id="tab-charts">
+                            <div class="stats-grid" id="statsGrid">
+                                <div class="stat-card">
+                                    <div class="stat-value" id="statTotalItems">0</div>
+                                    <div class="stat-label">Unique Items</div>
+                                </div>
+                                <div class="stat-card green">
+                                    <div class="stat-value" id="statTotalQty">0</div>
+                                    <div class="stat-label">Total Quantity</div>
+                                </div>
+                                <div class="stat-card orange">
+                                    <div class="stat-value" id="statSubInventories">0</div>
+                                    <div class="stat-label">Sub-Inventories</div>
+                                </div>
+                                <div class="stat-card red">
+                                    <div class="stat-value" id="statLots">0</div>
+                                    <div class="stat-label">Lot Numbers</div>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <div class="chart-card">
+                                    <h4>&#128200; Quantity by Item (Top 10)</h4>
+                                    <div class="chart-bar-container" id="chartByItem">
+                                        <div style="color: #888; text-align: center; padding: 20px;">Search to view chart data</div>
+                                    </div>
+                                </div>
+                                <div class="chart-card">
+                                    <h4>&#128202; Quantity by Subinventory</h4>
+                                    <div class="chart-bar-container" id="chartBySubinv">
+                                        <div style="color: #888; text-align: center; padding: 20px;">Search to view chart data</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="table-container">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Org</th>
-                                        <th>Subinventory</th>
-                                        <th>Item Number</th>
-                                        <th>Description</th>
-                                        <th>Lot Number</th>
-                                        <th>Quantity</th>
-                                        <th>Status</th>
-                                        <th>Expiration</th>
-                                        <th>Serial #</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="onHandTableBody">
-                                    <tr><td colspan="9" class="no-data">Enter search parameters and click Search</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Serial Numbers Modal -->
-                <div id="serialModal" class="modal-overlay" style="display: none;">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h3>Serial Numbers</h3>
-                            <button class="modal-close" onclick="closeSerialModal()">&times;</button>
-                        </div>
-                        <div class="modal-body" id="serialModalBody">
-                            Loading...
+                        <!-- Tab 2: By Item (Grouped) -->
+                        <div class="tab-content" id="tab-byitem">
+                            <div class="grid-header" style="margin-bottom: 10px; padding: 10px 0; border: none; background: none;">
+                                <div class="grid-title">Items Grouped View</div>
+                                <div class="grid-search">
+                                    <input type="text" id="gridSearchInput" placeholder="Filter results..." oninput="filterOnHandGrid()">
+                                    <span class="record-count" id="recordCount">0 records</span>
+                                </div>
+                            </div>
+                            <div class="table-container" style="max-height: calc(100vh - 450px);">
+                                <table class="grouped-table" id="groupedTable">
+                                    <thead style="background: #667eea; color: #fff;">
+                                        <tr>
+                                            <th style="padding: 12px 10px;">Item</th>
+                                            <th style="padding: 12px 10px;">Description</th>
+                                            <th style="padding: 12px 10px;">Subinventory</th>
+                                            <th style="padding: 12px 10px;">Lot</th>
+                                            <th style="padding: 12px 10px;">Qty</th>
+                                            <th style="padding: 12px 10px;">Status</th>
+                                            <th style="padding: 12px 10px;">Serial #</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="groupedTableBody">
+                                        <tr><td colspan="7" class="no-data">Enter search parameters and click Search</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
             `;
+        }
+
+        // Toggle collapsible search section
+        function toggleSearchSection() {
+            const section = document.getElementById('searchSection');
+            section.classList.toggle('collapsed');
+        }
+
+        // Switch between tabs
+        function switchTab(tabId) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.tab === tabId) btn.classList.add('active');
+            });
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+            activeTabId = tabId;
+        }
+
+        // Add serial tab when clicking serial number link
+        function openSerialTab(itemNumber, itemDesc, serialUrl) {
+            const tabId = 'tab-serial-' + itemNumber.replace(/[^a-zA-Z0-9]/g, '');
+
+            // Check if tab already exists
+            const existingTab = serialTabs.find(t => t.id === tabId);
+            if (existingTab) {
+                switchTab(tabId);
+                return;
+            }
+
+            // Add new tab
+            const truncatedDesc = itemDesc.length > 20 ? itemDesc.substring(0, 20) + '...' : itemDesc;
+            serialTabs.push({ id: tabId, itemNumber, itemDesc: truncatedDesc });
+
+            // Add tab button
+            const tabHeader = document.getElementById('tabHeader');
+            const tabBtn = document.createElement('button');
+            tabBtn.className = 'tab-btn';
+            tabBtn.dataset.tab = tabId;
+            tabBtn.innerHTML = `&#128271; ${truncatedDesc} <span class="tab-close" onclick="event.stopPropagation(); closeSerialTab('${tabId}')">&times;</span>`;
+            tabBtn.onclick = () => switchTab(tabId);
+            tabHeader.appendChild(tabBtn);
+
+            // Add tab content
+            const tabContainer = document.querySelector('.tab-container');
+            const tabContent = document.createElement('div');
+            tabContent.className = 'tab-content';
+            tabContent.id = tabId;
+            tabContent.innerHTML = `
+                <div style="padding: 10px 0;">
+                    <h4 style="margin-bottom: 15px; color: #333;">
+                        <span style="color: #667eea;">&#128271;</span> Serial Numbers for: ${itemNumber}
+                    </h4>
+                    <p style="color: #666; margin-bottom: 15px;">${itemDesc}</p>
+                    <div id="${tabId}-content" class="loading">Loading serial numbers...</div>
+                </div>
+            `;
+            tabContainer.appendChild(tabContent);
+
+            // Switch to new tab
+            switchTab(tabId);
+
+            // Load serial data
+            loadSerialData(tabId, serialUrl);
+        }
+
+        // Load serial number data for tab
+        async function loadSerialData(tabId, serialUrl) {
+            const contentDiv = document.getElementById(tabId + '-content');
+            try {
+                const response = await fetchWithBridge(serialUrl);
+                if (response && response.items && response.items.length > 0) {
+                    let html = `<table class="data-table">
+                        <thead><tr><th>Serial Number</th><th>Status</th><th>Lot Number</th></tr></thead>
+                        <tbody>`;
+                    response.items.forEach(item => {
+                        html += `<tr>
+                            <td>${item.SerialNumber || item.serialNumber || item.serial_number || '-'}</td>
+                            <td>${item.Status || item.status || '-'}</td>
+                            <td>${item.LotNumber || item.lotNumber || item.lot_number || '-'}</td>
+                        </tr>`;
+                    });
+                    html += '</tbody></table>';
+                    contentDiv.innerHTML = html;
+                } else {
+                    contentDiv.innerHTML = '<p style="text-align: center; color: #888; padding: 20px;">No serial numbers found</p>';
+                }
+            } catch (error) {
+                contentDiv.innerHTML = `<p style="text-align: center; color: #dc3545; padding: 20px;">Error loading serial numbers: ${error.message}</p>`;
+            }
+        }
+
+        // Close serial tab
+        function closeSerialTab(tabId) {
+            // Remove from array
+            serialTabs = serialTabs.filter(t => t.id !== tabId);
+
+            // Remove tab button
+            const tabBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+            if (tabBtn) tabBtn.remove();
+
+            // Remove tab content
+            const tabContent = document.getElementById(tabId);
+            if (tabContent) tabContent.remove();
+
+            // Switch to charts tab if current tab was closed
+            if (activeTabId === tabId) {
+                switchTab('tab-charts');
+            }
+        }
+
+        // Update charts with data
+        function updateCharts(data) {
+            if (!data || data.length === 0) return;
+
+            // Calculate stats
+            const uniqueItems = [...new Set(data.map(d => d.item_number))];
+            const totalQty = data.reduce((sum, d) => sum + (parseFloat(d.primaryquantity) || 0), 0);
+            const uniqueSubInv = [...new Set(data.map(d => d.sub_inventory_code))];
+            const uniqueLots = [...new Set(data.map(d => d.lotnumber).filter(l => l))];
+
+            // Update stat cards
+            document.getElementById('statTotalItems').textContent = uniqueItems.length;
+            document.getElementById('statTotalQty').textContent = totalQty.toLocaleString();
+            document.getElementById('statSubInventories').textContent = uniqueSubInv.length;
+            document.getElementById('statLots').textContent = uniqueLots.length;
+
+            // Quantity by Item chart (Top 10)
+            const qtyByItem = {};
+            data.forEach(d => {
+                const item = d.item_number || 'Unknown';
+                qtyByItem[item] = (qtyByItem[item] || 0) + (parseFloat(d.primaryquantity) || 0);
+            });
+            const sortedItems = Object.entries(qtyByItem).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            const maxQtyItem = sortedItems.length > 0 ? sortedItems[0][1] : 1;
+
+            let itemChartHtml = '';
+            sortedItems.forEach(([item, qty]) => {
+                const pct = (qty / maxQtyItem) * 100;
+                itemChartHtml += `
+                    <div class="chart-bar-row">
+                        <div class="chart-bar-label" title="${item}">${item}</div>
+                        <div class="chart-bar-track">
+                            <div class="chart-bar-fill" style="width: ${pct}%">${qty.toLocaleString()}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('chartByItem').innerHTML = itemChartHtml || '<div style="color: #888; text-align: center;">No data</div>';
+
+            // Quantity by Subinventory chart
+            const qtyBySubInv = {};
+            data.forEach(d => {
+                const subInv = d.sub_inventory_code || 'Unknown';
+                qtyBySubInv[subInv] = (qtyBySubInv[subInv] || 0) + (parseFloat(d.primaryquantity) || 0);
+            });
+            const sortedSubInv = Object.entries(qtyBySubInv).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            const maxQtySubInv = sortedSubInv.length > 0 ? sortedSubInv[0][1] : 1;
+
+            let subInvChartHtml = '';
+            sortedSubInv.forEach(([subInv, qty]) => {
+                const pct = (qty / maxQtySubInv) * 100;
+                subInvChartHtml += `
+                    <div class="chart-bar-row">
+                        <div class="chart-bar-label" title="${subInv}">${subInv}</div>
+                        <div class="chart-bar-track">
+                            <div class="chart-bar-fill" style="width: ${pct}%">${qty.toLocaleString()}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('chartBySubinv').innerHTML = subInvChartHtml || '<div style="color: #888; text-align: center;">No data</div>';
+        }
+
+        // Render grouped table (By Item view)
+        function renderGroupedTable(data) {
+            const tbody = document.getElementById('groupedTableBody');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-data">No data found</td></tr>';
+                return;
+            }
+
+            // Group by item
+            const grouped = {};
+            data.forEach(d => {
+                const key = d.item_number || 'Unknown';
+                if (!grouped[key]) {
+                    grouped[key] = {
+                        itemNumber: d.item_number,
+                        itemDesc: d.item_description,
+                        totalQty: 0,
+                        rows: []
+                    };
+                }
+                grouped[key].totalQty += parseFloat(d.primaryquantity) || 0;
+                grouped[key].rows.push(d);
+            });
+
+            let html = '';
+            Object.values(grouped).forEach((group, idx) => {
+                const groupId = 'group-' + idx;
+                html += `
+                    <tr class="group-header" onclick="toggleGroup('${groupId}')">
+                        <td colspan="4">
+                            <span class="group-toggle">&#9660;</span>
+                            <strong>${group.itemNumber}</strong> - ${group.itemDesc || ''}
+                        </td>
+                        <td><span class="group-qty">${group.totalQty.toLocaleString()}</span></td>
+                        <td colspan="2">${group.rows.length} record(s)</td>
+                    </tr>
+                `;
+                group.rows.forEach(row => {
+                    const serialUrl = row.serial_number_url || '';
+                    const serialLink = serialUrl
+                        ? `<button class="btn-icon serial" onclick="openSerialTab('${row.item_number}', '${(row.item_description || '').replace(/'/g, "\\'")}', '${serialUrl}')" title="View Serial Numbers">&#128271;</button>`
+                        : '-';
+                    html += `
+                        <tr class="group-row" data-group="${groupId}">
+                            <td></td>
+                            <td></td>
+                            <td>${row.sub_inventory_code || '-'}</td>
+                            <td>${row.lotnumber || '-'}</td>
+                            <td>${parseFloat(row.primaryquantity || 0).toLocaleString()}</td>
+                            <td>${row.status || '-'}</td>
+                            <td>${serialLink}</td>
+                        </tr>
+                    `;
+                });
+            });
+
+            tbody.innerHTML = html;
+            document.getElementById('recordCount').textContent = data.length + ' records';
+        }
+
+        // Toggle group expansion
+        function toggleGroup(groupId) {
+            const header = document.querySelector(`.group-header[onclick*="${groupId}"]`);
+            const rows = document.querySelectorAll(`.group-row[data-group="${groupId}"]`);
+
+            header.classList.toggle('collapsed');
+            rows.forEach(row => row.classList.toggle('hidden'));
         }
 
         // Get organization options HTML
@@ -1451,8 +2163,8 @@
             btn.disabled = true;
             btn.innerHTML = '<span>&#8987;</span> Searching...';
 
-            const tbody = document.getElementById('onHandTableBody');
-            tbody.innerHTML = '<tr><td colspan="9" class="loading">Loading data</td></tr>';
+            const tbody = document.getElementById('groupedTableBody');
+            tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading data</td></tr>';
 
             try {
                 // Build the endpoint URL
@@ -1475,16 +2187,23 @@
                 if (response && response.items) {
                     onHandData = response.items;
                     filteredOnHandData = [...onHandData];
-                    renderOnHandTable(filteredOnHandData);
+
+                    // Update charts (Tab 1)
+                    updateCharts(filteredOnHandData);
+
+                    // Update grouped table (Tab 2)
+                    renderGroupedTable(filteredOnHandData);
+
                     console.log('[INV] Loaded', onHandData.length, 'records');
                 } else {
                     onHandData = [];
                     filteredOnHandData = [];
-                    renderOnHandTable([]);
+                    updateCharts([]);
+                    renderGroupedTable([]);
                 }
             } catch (error) {
                 console.error('[INV] Error fetching on-hand data:', error);
-                tbody.innerHTML = `<tr><td colspan="9" class="no-data" style="color: #dc3545;">Error: ${error.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="no-data" style="color: #dc3545;">Error: ${error.message}</td></tr>`;
                 document.getElementById('recordCount').textContent = '0 records';
             } finally {
                 btn.disabled = false;

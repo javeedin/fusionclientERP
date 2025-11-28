@@ -1067,6 +1067,105 @@
             gap: 5px;
         }
 
+        /* Fullscreen/Fit to Page Mode */
+        .btn-fullscreen {
+            background: #28a745;
+            color: #fff;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: all 0.2s;
+        }
+
+        .btn-fullscreen:hover {
+            background: #218838;
+        }
+
+        .btn-fullscreen.exit {
+            background: #dc3545;
+        }
+
+        .btn-fullscreen.exit:hover {
+            background: #c82333;
+        }
+
+        .fullscreen-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #fff;
+            z-index: 2000;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .fullscreen-overlay.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .fullscreen-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 15px;
+        }
+
+        .fullscreen-header h3 {
+            color: #667eea;
+            font-size: 18px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .fullscreen-close {
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 5px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .fullscreen-close:hover {
+            background: #c82333;
+        }
+
+        .fullscreen-content {
+            flex: 1;
+            overflow: auto;
+        }
+
+        .fullscreen-content .tab-container {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .fullscreen-content .tab-content {
+            flex: 1;
+            overflow: auto;
+        }
+
+        .fullscreen-content .table-container {
+            max-height: calc(100vh - 200px) !important;
+        }
+
         /* Tasks Panel on Main Page */
         .tasks-panel-main {
             display: grid;
@@ -1832,7 +1931,7 @@
                     </div>
 
                     <!-- Tabbed Results Section -->
-                    <div class="tab-container">
+                    <div class="tab-container" id="mainTabContainer">
                         <div class="tab-header" id="tabHeader">
                             <button class="tab-btn active" data-tab="tab-charts" onclick="switchTab('tab-charts')">
                                 &#128202; Charts
@@ -1842,6 +1941,9 @@
                             </button>
                             <button class="tab-btn" data-tab="tab-bysubinv" onclick="switchTab('tab-bysubinv')">
                                 &#128451; By Subinventory
+                            </button>
+                            <button class="btn-fullscreen" onclick="toggleFullscreen()" title="Fit to Page" style="margin-left: auto;">
+                                &#9974; Fit to Page
                             </button>
                         </div>
 
@@ -1948,8 +2050,75 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Fullscreen Overlay -->
+                <div class="fullscreen-overlay" id="fullscreenOverlay">
+                    <div class="fullscreen-header">
+                        <h3>&#128230; Manage Item Quantities - Full View</h3>
+                        <button class="fullscreen-close" onclick="toggleFullscreen()">
+                            &#10005; Close Full View
+                        </button>
+                    </div>
+                    <div class="fullscreen-content" id="fullscreenContent">
+                        <!-- Tab container will be moved here -->
+                    </div>
+                </div>
             `;
         }
+
+        // Toggle fullscreen mode
+        let isFullscreen = false;
+        let originalTabParent = null;
+        let originalTabNextSibling = null;
+
+        function toggleFullscreen() {
+            const overlay = document.getElementById('fullscreenOverlay');
+            const tabContainer = document.getElementById('mainTabContainer');
+            const fullscreenContent = document.getElementById('fullscreenContent');
+
+            if (!isFullscreen) {
+                // Store original position
+                originalTabParent = tabContainer.parentNode;
+                originalTabNextSibling = tabContainer.nextSibling;
+
+                // Enter fullscreen
+                fullscreenContent.appendChild(tabContainer);
+                overlay.classList.add('active');
+                isFullscreen = true;
+
+                // Update button text
+                const btn = tabContainer.querySelector('.btn-fullscreen');
+                if (btn) {
+                    btn.innerHTML = '&#10005; Exit Full View';
+                    btn.classList.add('exit');
+                }
+            } else {
+                // Exit fullscreen - restore to original position
+                if (originalTabParent) {
+                    if (originalTabNextSibling) {
+                        originalTabParent.insertBefore(tabContainer, originalTabNextSibling);
+                    } else {
+                        originalTabParent.appendChild(tabContainer);
+                    }
+                }
+                overlay.classList.remove('active');
+                isFullscreen = false;
+
+                // Update button text
+                const btn = tabContainer.querySelector('.btn-fullscreen');
+                if (btn) {
+                    btn.innerHTML = '&#9974; Fit to Page';
+                    btn.classList.remove('exit');
+                }
+            }
+        }
+
+        // Close fullscreen on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && isFullscreen) {
+                toggleFullscreen();
+            }
+        });
 
         // Toggle collapsible search section
         function toggleSearchSection() {

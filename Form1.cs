@@ -1357,7 +1357,7 @@ namespace WMSApp
             }
         }
 
-        private async Task HandleGetEndpoint(WebView2 wv, JsonElement root, string requestId)
+        private Task HandleGetEndpoint(WebView2 wv, JsonElement root, string requestId)
         {
             try
             {
@@ -1376,7 +1376,7 @@ namespace WMSApp
                 };
 
                 string responseJson = System.Text.Json.JsonSerializer.Serialize(response);
-                await wv.CoreWebView2.PostWebMessageAsJsonAsync(responseJson);
+                wv.CoreWebView2.PostWebMessageAsString(responseJson);
 
                 System.Diagnostics.Debug.WriteLine($"[Endpoint] Returned: {endpoint}");
             }
@@ -1384,6 +1384,7 @@ namespace WMSApp
             {
                 System.Diagnostics.Debug.WriteLine($"[Endpoint] Error: {ex.Message}");
             }
+            return Task.CompletedTask;
         }
 
         private string GetEndpointFromSettings(string integrationCode, string instanceName)

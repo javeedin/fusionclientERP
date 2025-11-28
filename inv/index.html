@@ -1515,12 +1515,12 @@
                     window.chrome.webview.addEventListener('message', handler);
 
                     // Request endpoint from C#
-                    window.chrome.webview.postMessage(JSON.stringify({
+                    window.chrome.webview.postMessage({
                         action: 'getEndpoint',
                         requestId: requestId,
                         integrationCode: 'INVENTORY_ON_HAND',
                         instanceName: instanceName
-                    }));
+                    });
 
                     // Timeout after 3 seconds
                     setTimeout(() => {

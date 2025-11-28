@@ -1803,6 +1803,17 @@ namespace WMSApp
                         using (var doc = JsonDocument.Parse(messageJson))
                         {
                             var root = doc.RootElement;
+
+                            // Handle double-serialized messages (when JS uses JSON.stringify with postMessage)
+                            if (root.ValueKind == JsonValueKind.String)
+                            {
+                                string innerJson = root.GetString();
+                                using (var innerDoc = JsonDocument.Parse(innerJson))
+                                {
+                                    root = innerDoc.RootElement.Clone();
+                                }
+                            }
+
                             // Check both "action" and "type" properties for compatibility
                             string action = root.TryGetProperty("action", out var actionProp) ? actionProp.GetString() : "";
                             if (string.IsNullOrEmpty(action))

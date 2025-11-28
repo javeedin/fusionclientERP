@@ -1129,7 +1129,7 @@
                         master_organization_id: parseInt(masterOrgId) || 0
                     }
                 };
-                window.chrome.webview.postMessage(JSON.stringify(message));
+                window.chrome.webview.postMessage(message);
                 console.log('[INV] Sent organization change to C#:', message);
             }
         }
@@ -1558,11 +1558,11 @@
                     };
                     window.chrome.webview.addEventListener('message', handler);
 
-                    window.chrome.webview.postMessage(JSON.stringify({
+                    window.chrome.webview.postMessage({
                         action: 'executeGet',
                         requestId: requestId,
                         url: url
-                    }));
+                    });
 
                     // Timeout after 30 seconds
                     setTimeout(() => {
@@ -1708,7 +1708,7 @@
             localStorage.removeItem('wms_instance');
 
             if (window.chrome && window.chrome.webview) {
-                window.chrome.webview.postMessage(JSON.stringify({ type: 'logout' }));
+                window.chrome.webview.postMessage({ type: 'logout' });
             }
 
             alert('Logged out successfully');

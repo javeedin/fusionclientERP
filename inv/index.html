@@ -285,6 +285,177 @@
             line-height: 1.6;
         }
 
+        /* Home Analytics Dashboard */
+        .home-analytics {
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 20px;
+        }
+
+        .analytics-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .analytics-card {
+            flex: 1;
+            min-width: 150px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .analytics-icon {
+            font-size: 28px;
+            opacity: 0.8;
+        }
+
+        .analytics-info {
+            flex: 1;
+        }
+
+        .analytics-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .analytics-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .analytics-charts-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .analytics-chart-card {
+            flex: 1;
+            min-width: 250px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .analytics-chart-card h4 {
+            margin: 0 0 10px 0;
+            font-size: 13px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .mini-chart {
+            min-height: 120px;
+        }
+
+        .mini-chart-placeholder {
+            color: #999;
+            font-size: 12px;
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .mini-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .mini-bar-label {
+            width: 80px;
+            font-size: 11px;
+            color: #666;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mini-bar-track {
+            flex: 1;
+            height: 16px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .mini-bar-fill {
+            height: 100%;
+            background: #667eea;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 5px;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 600;
+            min-width: 20px;
+        }
+
+        /* Carousel Pagination for Tasks */
+        .carousel-container {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .carousel-pages {
+            display: flex;
+            transition: transform 0.3s ease;
+        }
+
+        .carousel-page {
+            min-width: 100%;
+            padding: 0 5px;
+        }
+
+        .carousel-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 15px;
+            padding: 10px 0;
+        }
+
+        .carousel-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ddd;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .carousel-dot:hover {
+            background: #bbb;
+        }
+
+        .carousel-dot.active {
+            background: #667eea;
+            transform: scale(1.2);
+        }
+
+        .task-category-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #667eea;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 10px;
+        }
+
         /* Main Tabs System */
         .main-tabs-container {
             display: flex;
@@ -1412,9 +1583,58 @@
         <!-- Content Area -->
         <div class="content-area">
             <div id="welcomeMessage">
-                <div style="text-align: center; margin-bottom: 30px;">
-                    <h2 style="color: #667eea; margin-bottom: 10px;">Inventory Management</h2>
-                    <p style="color: #666;">Select a task below or use the floating panel on the right</p>
+                <!-- Analytics Dashboard Section -->
+                <div class="home-analytics" id="homeAnalytics">
+                    <div class="analytics-row">
+                        <div class="analytics-card">
+                            <div class="analytics-icon">&#128230;</div>
+                            <div class="analytics-info">
+                                <div class="analytics-value" id="totalItemsCount">--</div>
+                                <div class="analytics-label">Total Items</div>
+                            </div>
+                        </div>
+                        <div class="analytics-card">
+                            <div class="analytics-icon">&#128451;</div>
+                            <div class="analytics-info">
+                                <div class="analytics-value" id="totalSubinvCount">--</div>
+                                <div class="analytics-label">Subinventories</div>
+                            </div>
+                        </div>
+                        <div class="analytics-card">
+                            <div class="analytics-icon">&#127991;</div>
+                            <div class="analytics-info">
+                                <div class="analytics-value" id="totalLotsCount">--</div>
+                                <div class="analytics-label">Total Lots</div>
+                            </div>
+                        </div>
+                        <div class="analytics-card">
+                            <div class="analytics-icon">&#128271;</div>
+                            <div class="analytics-info">
+                                <div class="analytics-value" id="totalSerialsCount">--</div>
+                                <div class="analytics-label">Serial Numbers</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="analytics-charts-row">
+                        <div class="analytics-chart-card">
+                            <h4>Inventory by Subinventory</h4>
+                            <div class="mini-chart" id="homeSubinvChart">
+                                <div class="mini-chart-placeholder">Loading data...</div>
+                            </div>
+                        </div>
+                        <div class="analytics-chart-card">
+                            <h4>Top Items by Quantity</h4>
+                            <div class="mini-chart" id="homeItemsChart">
+                                <div class="mini-chart-placeholder">Loading data...</div>
+                            </div>
+                        </div>
+                        <div class="analytics-chart-card">
+                            <h4>Recent Activity</h4>
+                            <div class="mini-chart" id="homeActivityChart">
+                                <div class="mini-chart-placeholder">No recent activity</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Tasks grouped on main page -->
@@ -1533,20 +1753,70 @@
         <button class="panel-close" onclick="closeTasks()">&times;</button>
         <h3>Tasks</h3>
 
-        <div class="dropdown-container">
-            <div class="dropdown-label">Show Tasks</div>
-            <select class="dropdown" id="taskDropdown" onchange="onTaskChange()">
-                <option value="">-- Select Task --</option>
-                <option value="inventory">Inventory</option>
-                <option value="counts">Counts</option>
-                <option value="shipments">Shipments</option>
-                <option value="picks">Picks</option>
-                <option value="receipts">Receipts</option>
-            </select>
-        </div>
-
-        <div class="menu-items" id="menuItems">
-            <!-- Menu items will be populated dynamically -->
+        <div class="carousel-container">
+            <div class="carousel-pages" id="taskCarouselPages">
+                <!-- Page 1: Inventory -->
+                <div class="carousel-page">
+                    <div class="task-category-title">Inventory</div>
+                    <div class="menu-items">
+                        <div class="menu-item" onclick="openMenuItem('inventory', 'Manage Item Quantities')"><span class="icon">&#128230;</span> Manage Item Quantities</div>
+                        <div class="menu-item" onclick="openMenuItem('inventory', 'Create Miscellaneous Transaction')"><span class="icon">&#128221;</span> Create Miscellaneous Transaction</div>
+                        <div class="menu-item" onclick="openMenuItem('inventory', 'Create Subinventory Transfer')"><span class="icon">&#8644;</span> Create Subinventory Transfer</div>
+                        <div class="menu-item" onclick="openMenuItem('inventory', 'Manage Lots')"><span class="icon">&#127991;</span> Manage Lots</div>
+                        <div class="menu-item" onclick="openMenuItem('inventory', 'Manage Serial Numbers')"><span class="icon">&#128271;</span> Manage Serial Numbers</div>
+                        <div class="menu-item" onclick="openMenuItem('inventory', 'Manage Transfer Orders')"><span class="icon">&#128195;</span> Manage Transfer Orders</div>
+                        <div class="menu-item" onclick="openMenuItem('inventory', 'Manage Pending Transactions')"><span class="icon">&#9203;</span> Manage Pending Transactions</div>
+                    </div>
+                </div>
+                <!-- Page 2: Counts -->
+                <div class="carousel-page">
+                    <div class="task-category-title">Counts</div>
+                    <div class="menu-items">
+                        <div class="menu-item" onclick="openMenuItem('counts', 'Create Cycle Count')"><span class="icon">&#10133;</span> Create Cycle Count</div>
+                        <div class="menu-item" onclick="openMenuItem('counts', 'Manage Cycle Counts')"><span class="icon">&#128203;</span> Manage Cycle Counts</div>
+                        <div class="menu-item" onclick="openMenuItem('counts', 'Record Count Sequences')"><span class="icon">&#128221;</span> Record Count Sequences</div>
+                        <div class="menu-item" onclick="openMenuItem('counts', 'Manage Physical Inventories')"><span class="icon">&#128230;</span> Manage Physical Inventories</div>
+                    </div>
+                </div>
+                <!-- Page 3: Shipments -->
+                <div class="carousel-page">
+                    <div class="task-category-title">Shipments</div>
+                    <div class="menu-items">
+                        <div class="menu-item" onclick="openMenuItem('shipments', 'Manage Shipments')"><span class="icon">&#128666;</span> Manage Shipments</div>
+                        <div class="menu-item" onclick="openMenuItem('shipments', 'Manage Shipment Lines')"><span class="icon">&#128196;</span> Manage Shipment Lines</div>
+                        <div class="menu-item" onclick="openMenuItem('shipments', 'Create Pick Wave')"><span class="icon">&#127754;</span> Create Pick Wave</div>
+                        <div class="menu-item" onclick="openMenuItem('shipments', 'Confirm Pick Slips')"><span class="icon">&#9745;</span> Confirm Pick Slips</div>
+                    </div>
+                </div>
+                <!-- Page 4: Receipts -->
+                <div class="carousel-page">
+                    <div class="task-category-title">Receipts</div>
+                    <div class="menu-items">
+                        <div class="menu-item" onclick="openMenuItem('receipts', 'Receive Expected Shipments')"><span class="icon">&#128230;</span> Receive Expected Shipments</div>
+                        <div class="menu-item" onclick="openMenuItem('receipts', 'Manage Inbound Shipments')"><span class="icon">&#128666;</span> Manage Inbound Shipments</div>
+                        <div class="menu-item" onclick="openMenuItem('receipts', 'Put Away Receipts')"><span class="icon">&#128229;</span> Put Away Receipts</div>
+                        <div class="menu-item" onclick="openMenuItem('receipts', 'Inspect Receipts')"><span class="icon">&#128269;</span> Inspect Receipts</div>
+                    </div>
+                </div>
+                <!-- Page 5: Picks & More -->
+                <div class="carousel-page">
+                    <div class="task-category-title">Picks & More</div>
+                    <div class="menu-items">
+                        <div class="menu-item" onclick="openMenuItem('picks', 'Manage Reservations and Picks')"><span class="icon">&#128203;</span> Manage Reservations and Picks</div>
+                        <div class="menu-item" onclick="openMenuItem('picks', 'Manage Movement Requests')"><span class="icon">&#128666;</span> Manage Movement Requests</div>
+                        <div class="menu-item" onclick="openMenuItem('inventory', 'Create Interorganization Transfer')"><span class="icon">&#127970;</span> Create Interorganization Transfer</div>
+                        <div class="menu-item" onclick="openMenuItem('inventory', 'Review Completed Transactions')"><span class="icon">&#9989;</span> Review Completed Transactions</div>
+                        <div class="menu-item" onclick="openMenuItem('inventory', 'Configure Subinventories')"><span class="icon">&#9881;</span> Configure Subinventories</div>
+                    </div>
+                </div>
+            </div>
+            <div class="carousel-dots" id="taskCarouselDots">
+                <div class="carousel-dot active" onclick="goToTaskPage(0)"></div>
+                <div class="carousel-dot" onclick="goToTaskPage(1)"></div>
+                <div class="carousel-dot" onclick="goToTaskPage(2)"></div>
+                <div class="carousel-dot" onclick="goToTaskPage(3)"></div>
+                <div class="carousel-dot" onclick="goToTaskPage(4)"></div>
+            </div>
         </div>
     </div>
 
@@ -1901,6 +2171,21 @@
             document.getElementById('btnTasks').classList.remove('active');
         }
 
+        // Carousel pagination for Tasks
+        let currentTaskPage = 0;
+        const totalTaskPages = 5;
+
+        function goToTaskPage(pageIndex) {
+            currentTaskPage = pageIndex;
+            const carousel = document.getElementById('taskCarouselPages');
+            carousel.style.transform = `translateX(-${pageIndex * 100}%)`;
+
+            // Update dots
+            document.querySelectorAll('.carousel-dot').forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === pageIndex);
+            });
+        }
+
         function closeSearch() {
             document.getElementById('searchPanel').classList.remove('active');
             document.getElementById('btnSearch').classList.remove('active');
@@ -2114,6 +2399,107 @@
 
             // Close any open panels
             closeAllPanels();
+
+            // Update home analytics with any existing data
+            updateHomeAnalytics();
+        }
+
+        // Update home analytics from retrieved data
+        function updateHomeAnalytics() {
+            // Update counts from onHandData
+            if (onHandData && onHandData.length > 0) {
+                // Count unique items
+                const uniqueItems = new Set(onHandData.map(d => d.item_number || d.ITEM_NUMBER)).size;
+                document.getElementById('totalItemsCount').textContent = uniqueItems.toLocaleString();
+
+                // Count unique subinventories
+                const uniqueSubinv = new Set(onHandData.map(d => d.sub_inventory_code || d.SUB_INVENTORY_CODE)).size;
+                document.getElementById('totalSubinvCount').textContent = uniqueSubinv.toLocaleString();
+
+                // Count lots (rows)
+                document.getElementById('totalLotsCount').textContent = onHandData.length.toLocaleString();
+
+                // Update subinventory chart
+                updateHomeSubinvChart(onHandData);
+
+                // Update items chart
+                updateHomeItemsChart(onHandData);
+            }
+
+            // Update serial count from serialNumberData
+            if (serialNumberData && serialNumberData.length > 0) {
+                document.getElementById('totalSerialsCount').textContent = serialNumberData.length.toLocaleString();
+            }
+        }
+
+        // Mini chart for subinventory distribution
+        function updateHomeSubinvChart(data) {
+            const container = document.getElementById('homeSubinvChart');
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="mini-chart-placeholder">No data available</div>';
+                return;
+            }
+
+            // Group by subinventory
+            const grouped = {};
+            data.forEach(d => {
+                const subinv = d.sub_inventory_code || d.SUB_INVENTORY_CODE || 'Unknown';
+                const qty = parseFloat(d.on_hand_quantity || d.ON_HAND_QUANTITY || 0);
+                grouped[subinv] = (grouped[subinv] || 0) + qty;
+            });
+
+            // Sort and take top 5
+            const sorted = Object.entries(grouped).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            const maxQty = sorted[0] ? sorted[0][1] : 1;
+
+            let html = '';
+            sorted.forEach(([subinv, qty]) => {
+                const pct = (qty / maxQty) * 100;
+                html += `
+                    <div class="mini-bar-row">
+                        <div class="mini-bar-label" title="${subinv}">${subinv}</div>
+                        <div class="mini-bar-track">
+                            <div class="mini-bar-fill" style="width: ${pct}%">${qty.toLocaleString()}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // Mini chart for top items
+        function updateHomeItemsChart(data) {
+            const container = document.getElementById('homeItemsChart');
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="mini-chart-placeholder">No data available</div>';
+                return;
+            }
+
+            // Group by item
+            const grouped = {};
+            data.forEach(d => {
+                const item = d.item_number || d.ITEM_NUMBER || 'Unknown';
+                const qty = parseFloat(d.on_hand_quantity || d.ON_HAND_QUANTITY || 0);
+                grouped[item] = (grouped[item] || 0) + qty;
+            });
+
+            // Sort and take top 5
+            const sorted = Object.entries(grouped).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            const maxQty = sorted[0] ? sorted[0][1] : 1;
+
+            let html = '';
+            sorted.forEach(([item, qty]) => {
+                const pct = (qty / maxQty) * 100;
+                html += `
+                    <div class="mini-bar-row">
+                        <div class="mini-bar-label" title="${item}">${item}</div>
+                        <div class="mini-bar-track">
+                            <div class="mini-bar-fill" style="width: ${pct}%; background: #28a745;">${qty.toLocaleString()}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
         }
 
         // Show Manage Item Quantities page
@@ -3665,6 +4051,7 @@
                     serialNumberData = response.items;
                     filteredSerialData = [...serialNumberData];
                     renderBySerialNumberTable(filteredSerialData);
+                    updateHomeAnalytics();
                     console.log('[INV] Loaded', serialNumberData.length, 'serial number records');
                 } else {
                     serialNumberData = [];
@@ -3766,6 +4153,9 @@
 
                     // Update grouped table - By Subinventory (Tab 3)
                     renderBySubinventoryTable(filteredOnHandData);
+
+                    // Update home analytics
+                    updateHomeAnalytics();
 
                     console.log('[INV] Loaded', onHandData.length, 'on-hand records');
                 } else {

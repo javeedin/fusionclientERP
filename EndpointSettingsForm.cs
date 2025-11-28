@@ -788,11 +788,11 @@ namespace WMSApp
                 return;
             }
 
-            // Update endpoint object
+            // Update endpoint object - preserve case as entered
             Endpoint.Sno = int.Parse(txtSno.Text);
             Endpoint.Source = cboSource.SelectedItem?.ToString() ?? "APEX";
-            Endpoint.IntegrationCode = txtIntegrationCode.Text.Trim().ToUpper();
-            Endpoint.InstanceName = cboInstanceName.Text.Trim().ToUpper();
+            Endpoint.IntegrationCode = txtIntegrationCode.Text.Trim();
+            Endpoint.InstanceName = cboInstanceName.Text.Trim();
             Endpoint.BaseUrl = txtBaseUrl.Text.Trim();
             Endpoint.Endpoint = txtEndpoint.Text.Trim();
             Endpoint.Comments = txtComments.Text.Trim();

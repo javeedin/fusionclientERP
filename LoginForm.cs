@@ -379,7 +379,8 @@ namespace WMSApp
                     throw new InvalidOperationException($"Invalid login URL format: '{baseUrl}'. Please check LOGIN endpoints in Settings.");
                 }
 
-                string loginUrl = $"{baseUrl}/login?username={Uri.EscapeDataString(username)}&password={Uri.EscapeDataString(password)}";
+                // Use URL+Path as-is, just append query parameters
+                string loginUrl = $"{baseUrl}?username={Uri.EscapeDataString(username)}&password={Uri.EscapeDataString(password)}";
 
                 System.Diagnostics.Debug.WriteLine($"[LOGIN] ========================================");
                 System.Diagnostics.Debug.WriteLine($"[LOGIN] Attempting login...");

@@ -22,13 +22,47 @@ namespace WMSApp
         private Button btnRefresh;
         private List<EndpointConfig> _endpoints;
         private bool _isDirty = false;
-
-        private static readonly string DefaultSettingsPath = @"C:\fusionclient\ERP\settings";
+        private string _settingsPath;
 
         public EndpointSettingsForm()
         {
+            _settingsPath = GetSettingsPath();
             InitializeComponent();
             LoadEndpoints();
+        }
+
+        /// <summary>
+        /// Gets the settings path - uses repo path in development, C:\fusionclient\ERP\settings in production
+        /// </summary>
+        private string GetSettingsPath()
+        {
+            // Check for development mode first (running from source)
+            string devPath = Path.GetFullPath(Path.Combine(Application.StartupPath, "..", "..", "..", "ERP", "settings"));
+            if (Directory.Exists(devPath))
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Using development path: {devPath}");
+                return devPath;
+            }
+
+            // Production path
+            string prodPath = @"C:\fusionclient\ERP\settings";
+
+            // Create directory if it doesn't exist
+            if (!Directory.Exists(prodPath))
+            {
+                try
+                {
+                    Directory.CreateDirectory(prodPath);
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Created production path: {prodPath}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Error creating path: {ex.Message}");
+                }
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Using production path: {prodPath}");
+            return prodPath;
         }
 
         private void InitializeComponent()
@@ -175,7 +209,7 @@ namespace WMSApp
             // Status label
             Label lblStatus = new Label
             {
-                Text = $"Settings Path: {DefaultSettingsPath}",
+                Text = $"Settings Path: {_settingsPath}",
                 AutoSize = true,
                 Location = new Point(15, 20),
                 ForeColor = Color.Gray,
@@ -219,7 +253,7 @@ namespace WMSApp
             {
                 // Clear cache to ensure fresh load
                 EndpointConfigReader.ClearCache();
-                _endpoints = EndpointConfigReader.LoadEndpoints(DefaultSettingsPath);
+                _endpoints = EndpointConfigReader.LoadEndpoints(_settingsPath);
 
                 dgvEndpoints.Rows.Clear();
                 foreach (var ep in _endpoints)
@@ -413,7 +447,7 @@ namespace WMSApp
 
         private void SaveEndpointsToXml()
         {
-            string xmlPath = Path.Combine(DefaultSettingsPath, "endpoints.xml");
+            string xmlPath = Path.Combine(_settingsPath, "endpoints.xml");
 
             // Ensure directory exists
             string directory = Path.GetDirectoryName(xmlPath);
@@ -461,7 +495,7 @@ namespace WMSApp
 
         private void SaveEndpointsToCsv()
         {
-            string csvPath = Path.Combine(DefaultSettingsPath, "endpoints.csv");
+            string csvPath = Path.Combine(_settingsPath, "endpoints.csv");
 
             var lines = new List<string>
             {

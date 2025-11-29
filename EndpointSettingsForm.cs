@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
 
@@ -637,6 +641,7 @@ namespace WMSApp
         private TextBox txtComments;
         private Button btnOk;
         private Button btnCancel;
+        private string _apexEndpointUrl;
 
         public EndpointConfig Endpoint { get; private set; }
 
@@ -653,8 +658,45 @@ namespace WMSApp
                 Comments = endpoint.Comments ?? ""
             };
 
+            // Load APEX endpoint URL from file
+            LoadApexEndpointUrl();
+
             InitializeComponent();
             PopulateFields();
+        }
+
+        /// <summary>
+        /// Loads the APEX endpoint URL from apexendpointurl.txt file
+        /// </summary>
+        private void LoadApexEndpointUrl()
+        {
+            try
+            {
+                string settingsPath = EndpointConfigReader.GetSettingsPath();
+                string apexUrlFilePath = Path.Combine(settingsPath, "apexendpointurl.txt");
+
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ========================================");
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Loading APEX URL from file:");
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Settings path: {settingsPath}");
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] File path: {apexUrlFilePath}");
+
+                if (File.Exists(apexUrlFilePath))
+                {
+                    _apexEndpointUrl = File.ReadAllText(apexUrlFilePath).Trim();
+                    System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Loaded APEX URL from file: {_apexEndpointUrl}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] WARNING: apexendpointurl.txt not found at: {apexUrlFilePath}");
+                    _apexEndpointUrl = "";
+                }
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ========================================");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ERROR loading APEX URL: {ex.Message}");
+                _apexEndpointUrl = "";
+            }
         }
 
         private void InitializeComponent()
@@ -843,9 +885,12 @@ namespace WMSApp
             System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] PopulateFields END - Fields populated");
         }
 
-        private void BtnOk_Click(object sender, EventArgs e)
+        private async void BtnOk_Click(object sender, EventArgs e)
         {
             System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] BtnOk_Click START");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ========================================");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] APEX URL from file: {_apexEndpointUrl}");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ========================================");
             System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] txtSno.Text = '{txtSno.Text}'");
             System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] cboSource.SelectedItem = '{cboSource.SelectedItem}'");
             System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] txtIntegrationCode.Text = '{txtIntegrationCode.Text}'");
@@ -894,7 +939,85 @@ namespace WMSApp
             System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   BaseUrl = '{Endpoint.BaseUrl}'");
             System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   Endpoint = '{Endpoint.Endpoint}'");
             System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   Comments = '{Endpoint.Comments}'");
+
+            // POST to APEX endpoint if URL is available
+            if (!string.IsNullOrWhiteSpace(_apexEndpointUrl))
+            {
+                await PostToApexEndpoint();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] WARNING: No APEX URL available, skipping POST");
+            }
+
             System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] BtnOk_Click END - DialogResult will be OK");
+        }
+
+        /// <summary>
+        /// Posts the endpoint data to the APEX /save endpoint
+        /// </summary>
+        private async Task PostToApexEndpoint()
+        {
+            try
+            {
+                // Build the save URL by appending /save to the base APEX URL
+                string saveUrl = _apexEndpointUrl.TrimEnd('/') + "/save";
+
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ========================================");
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] POSTing to APEX endpoint");
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Base APEX URL: {_apexEndpointUrl}");
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Save URL: {saveUrl}");
+
+                // Build the JSON payload
+                var payload = new
+                {
+                    sno = Endpoint.Sno,
+                    source = Endpoint.Source,
+                    integration_code = Endpoint.IntegrationCode,
+                    instance_name = Endpoint.InstanceName,
+                    base_url = Endpoint.BaseUrl,
+                    endpoint = Endpoint.Endpoint,
+                    comments = Endpoint.Comments
+                };
+
+                string jsonPayload = JsonSerializer.Serialize(payload);
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] JSON Payload: {jsonPayload}");
+
+                using (var client = new HttpClient())
+                {
+                    client.Timeout = TimeSpan.FromSeconds(30);
+
+                    var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+
+                    System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Sending POST request...");
+                    var response = await client.PostAsync(saveUrl, content);
+
+                    System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Response Status: {response.StatusCode}");
+                    System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Response Success: {response.IsSuccessStatusCode}");
+
+                    string responseBody = await response.Content.ReadAsStringAsync();
+                    System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Response Body: {responseBody}");
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] POST to APEX SUCCESS");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] POST to APEX FAILED: HTTP {response.StatusCode}");
+                        MessageBox.Show($"Warning: Failed to save to APEX endpoint.\n\nHTTP {response.StatusCode}\n{responseBody}",
+                            "APEX Save Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                }
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ========================================");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] POST to APEX EXCEPTION: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Stack: {ex.StackTrace}");
+                MessageBox.Show($"Warning: Error saving to APEX endpoint.\n\n{ex.Message}",
+                    "APEX Save Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
     }
 }

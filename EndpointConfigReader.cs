@@ -212,7 +212,7 @@ namespace WMSApp
         /// </summary>
         public static void SaveEndpoints(List<EndpointConfig> endpoints, string settingsPath = null)
         {
-            settingsPath = settingsPath ?? DefaultSettingsPath;
+            settingsPath = settingsPath ?? GetSettingsPath();
             string xmlPath = Path.Combine(settingsPath, "endpoints.xml");
 
             try

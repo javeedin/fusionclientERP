@@ -5694,10 +5694,12 @@ Click "Run Test" to execute the API call...
             }
 
             try {
-                console.log('[JS DEBUG] POSTing endpoint to APEX URL:', apexEndpointUrl);
+                // Append /save to the base endpoint URL for POST operations
+                const postUrl = apexEndpointUrl.endsWith('/') ? apexEndpointUrl + 'save' : apexEndpointUrl + '/save';
+                console.log('[JS DEBUG] POSTing endpoint to APEX URL:', postUrl);
                 console.log('[JS DEBUG] Request body:', JSON.stringify(endpointData));
 
-                const response = await fetch(apexEndpointUrl, {
+                const response = await fetch(postUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

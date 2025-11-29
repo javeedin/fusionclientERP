@@ -126,6 +126,115 @@ namespace WMSApp
             return endpoints.Select(e => e.IntegrationCode).Distinct().ToList();
         }
 
+        /// <summary>
+        /// Saves endpoints to the XML file
+        /// </summary>
+        public static void SaveEndpoints(List<EndpointConfig> endpoints, string settingsPath = null)
+        {
+            settingsPath = settingsPath ?? DefaultSettingsPath;
+            string xmlPath = Path.Combine(settingsPath, "endpoints.xml");
+
+            try
+            {
+                // Ensure directory exists
+                if (!Directory.Exists(settingsPath))
+                {
+                    Directory.CreateDirectory(settingsPath);
+                }
+
+                var settings = new XmlWriterSettings
+                {
+                    Indent = true,
+                    IndentChars = "  ",
+                    Encoding = System.Text.Encoding.UTF8
+                };
+
+                using (var writer = XmlWriter.Create(xmlPath, settings))
+                {
+                    writer.WriteStartDocument();
+                    writer.WriteStartElement("Endpoints");
+
+                    foreach (var ep in endpoints)
+                    {
+                        writer.WriteStartElement("Endpoint");
+                        writer.WriteElementString("Sno", ep.Sno.ToString());
+                        writer.WriteElementString("Source", ep.Source ?? "");
+                        writer.WriteElementString("IntegrationCode", ep.IntegrationCode ?? "");
+                        writer.WriteElementString("InstanceName", ep.InstanceName ?? "");
+                        writer.WriteElementString("URL", ep.BaseUrl ?? "");
+                        writer.WriteElementString("Path", ep.Endpoint ?? "");
+                        writer.WriteElementString("Comments", ep.Comments ?? "");
+                        writer.WriteEndElement();
+                    }
+
+                    writer.WriteEndElement();
+                    writer.WriteEndDocument();
+                }
+
+                // Also save CSV version
+                SaveEndpointsToCsv(endpoints, settingsPath);
+
+                // Clear cache so next load gets fresh data
+                ClearCache();
+
+                System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] Saved {endpoints.Count} endpoints to {xmlPath}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] Error saving endpoints: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Saves endpoints to CSV file
+        /// </summary>
+        private static void SaveEndpointsToCsv(List<EndpointConfig> endpoints, string settingsPath)
+        {
+            string csvPath = Path.Combine(settingsPath, "endpoints.csv");
+
+            var lines = new List<string>
+            {
+                "Sno,Source,IntegrationCode,InstanceName,URL,Endpoint,Comments"
+            };
+
+            foreach (var ep in endpoints)
+            {
+                string line = string.Join(",",
+                    ep.Sno,
+                    EscapeCsvField(ep.Source),
+                    EscapeCsvField(ep.IntegrationCode),
+                    EscapeCsvField(ep.InstanceName),
+                    EscapeCsvField(ep.BaseUrl),
+                    EscapeCsvField(ep.Endpoint),
+                    EscapeCsvField(ep.Comments)
+                );
+                lines.Add(line);
+            }
+
+            File.WriteAllLines(csvPath, lines);
+        }
+
+        private static string EscapeCsvField(string field)
+        {
+            if (string.IsNullOrEmpty(field))
+                return "";
+
+            if (field.Contains(",") || field.Contains("\"") || field.Contains("\n"))
+            {
+                return "\"" + field.Replace("\"", "\"\"") + "\"";
+            }
+            return field;
+        }
+
+        /// <summary>
+        /// Gets the settings path
+        /// </summary>
+        public static string GetSettingsPath()
+        {
+            return DefaultSettingsPath;
+        }
+
         private static List<EndpointConfig> LoadFromXml(string xmlPath)
         {
             var endpoints = new List<EndpointConfig>();

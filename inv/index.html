@@ -2661,7 +2661,7 @@
     <div class="settings-overlay" id="settingsOverlay" onclick="closeSettingsOnOverlay(event)">
         <div class="settings-modal" onclick="event.stopPropagation()">
             <div class="settings-header">
-                <h2>&#9881; Settings (localStorage: fusionclient_endpoints)</h2>
+                <h2>&#9881; Settings (C:\fusionclient\ERP\settings\endpoints.xml)</h2>
                 <button class="settings-close" onclick="closeSettings()">&times;</button>
             </div>
             <div class="settings-tabs">
@@ -5844,19 +5844,75 @@ Click "Run Test" to execute the API call...
         // ENDPOINT CRUD FUNCTIONS
         // =============================================
 
-        // Load endpoints from localStorage
+        // Global variable to store the settings path from C#
+        let endpointsSettingsPath = 'C:\\fusionclient\\ERP\\settings\\endpoints.xml';
+
+        // Load endpoints from C# (XML file)
         function loadEndpoints() {
-            const stored = localStorage.getItem('fusionclient_endpoints');
-            if (stored) {
-                try {
-                    endpointsData = JSON.parse(stored);
-                } catch (e) {
+            if (window.chrome && window.chrome.webview) {
+                const requestId = 'getAllEndpoints_' + Date.now();
+
+                // Set up one-time handler for response
+                const handler = function(event) {
+                    try {
+                        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                        if (data.requestId === requestId || data.action === 'getAllEndpointsResponse') {
+                            window.chrome.webview.removeEventListener('message', handler);
+                            if (data.success && data.endpoints) {
+                                endpointsData = data.endpoints;
+                                if (data.settingsPath) {
+                                    endpointsSettingsPath = data.settingsPath + '\\endpoints.xml';
+                                    updateSettingsHeader();
+                                }
+                                console.log('[JS] Loaded', endpointsData.length, 'endpoints from C#');
+                            } else {
+                                console.warn('[JS] Failed to load endpoints from C#, using defaults');
+                                endpointsData = getDefaultEndpoints();
+                            }
+                            renderEndpointsTable();
+                        }
+                    } catch (e) {
+                        console.error('[JS] Error parsing endpoints response:', e);
+                    }
+                };
+
+                window.chrome.webview.addEventListener('message', handler);
+                window.chrome.webview.postMessage({
+                    action: 'getAllEndpoints',
+                    requestId: requestId
+                });
+
+                // Timeout fallback
+                setTimeout(() => {
+                    window.chrome.webview.removeEventListener('message', handler);
+                    if (endpointsData.length === 0) {
+                        console.log('[JS] Timeout loading endpoints, using defaults');
+                        endpointsData = getDefaultEndpoints();
+                        renderEndpointsTable();
+                    }
+                }, 3000);
+            } else {
+                // Fallback for testing outside WebView - use localStorage
+                const stored = localStorage.getItem('fusionclient_endpoints');
+                if (stored) {
+                    try {
+                        endpointsData = JSON.parse(stored);
+                    } catch (e) {
+                        endpointsData = getDefaultEndpoints();
+                    }
+                } else {
                     endpointsData = getDefaultEndpoints();
                 }
-            } else {
-                endpointsData = getDefaultEndpoints();
+                renderEndpointsTable();
             }
-            renderEndpointsTable();
+        }
+
+        // Update settings header with path
+        function updateSettingsHeader() {
+            const headerEl = document.querySelector('.settings-header h2');
+            if (headerEl) {
+                headerEl.innerHTML = '&#9881; Settings (' + escapeHtml(endpointsSettingsPath) + ')';
+            }
         }
 
         // Get default endpoints matching XML structure
@@ -5871,15 +5927,43 @@ Click "Run Test" to execute the API call...
             ];
         }
 
-        // Save endpoints to localStorage
+        // Save endpoints to C# (XML file)
         function saveEndpointsToStorage() {
-            localStorage.setItem('fusionclient_endpoints', JSON.stringify(endpointsData));
-            // Also notify C# if webview is available
             if (window.chrome && window.chrome.webview) {
+                const requestId = 'saveAllEndpoints_' + Date.now();
+
+                // Set up one-time handler for response
+                const handler = function(event) {
+                    try {
+                        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                        if (data.requestId === requestId || data.action === 'saveAllEndpointsResponse') {
+                            window.chrome.webview.removeEventListener('message', handler);
+                            if (data.success) {
+                                console.log('[JS] Saved', data.count, 'endpoints to C#');
+                            } else {
+                                console.error('[JS] Failed to save endpoints:', data.error);
+                                alert('Failed to save endpoints: ' + (data.error || 'Unknown error'));
+                            }
+                        }
+                    } catch (e) {
+                        console.error('[JS] Error parsing save response:', e);
+                    }
+                };
+
+                window.chrome.webview.addEventListener('message', handler);
                 window.chrome.webview.postMessage({
-                    type: 'saveEndpoints',
+                    action: 'saveAllEndpoints',
+                    requestId: requestId,
                     endpoints: endpointsData
                 });
+
+                // Timeout - remove handler
+                setTimeout(() => {
+                    window.chrome.webview.removeEventListener('message', handler);
+                }, 5000);
+            } else {
+                // Fallback for testing outside WebView - use localStorage
+                localStorage.setItem('fusionclient_endpoints', JSON.stringify(endpointsData));
             }
         }
 

@@ -1435,6 +1435,137 @@ namespace WMSApp
             return null;
         }
 
+        /// <summary>
+        /// Handles getAllEndpoints request from webview - loads all endpoints from XML file
+        /// </summary>
+        private Task HandleGetAllEndpoints(WebView2 wv, string requestId)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[Endpoints] Getting all endpoints from XML");
+
+                // Clear cache to get fresh data
+                EndpointConfigReader.ClearCache();
+                var endpoints = EndpointConfigReader.LoadEndpoints();
+
+                // Convert to JSON-friendly format
+                var endpointsList = endpoints.Select(ep => new
+                {
+                    sno = ep.Sno,
+                    sourceInstance = $"{ep.Source}:{ep.InstanceName}",
+                    integrationCode = ep.IntegrationCode,
+                    url = ep.BaseUrl,
+                    path = ep.Endpoint,
+                    comments = ep.Comments,
+                    parameters = "",
+                    offset = 0,
+                    limit = 100
+                }).ToList();
+
+                var response = new
+                {
+                    requestId = requestId,
+                    action = "getAllEndpointsResponse",
+                    success = true,
+                    endpoints = endpointsList,
+                    settingsPath = EndpointConfigReader.GetSettingsPath()
+                };
+
+                string responseJson = System.Text.Json.JsonSerializer.Serialize(response);
+                wv.CoreWebView2.PostWebMessageAsString(responseJson);
+
+                System.Diagnostics.Debug.WriteLine($"[Endpoints] Returned {endpoints.Count} endpoints");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Endpoints] Error getting all endpoints: {ex.Message}");
+
+                var errorResponse = new
+                {
+                    requestId = requestId,
+                    action = "getAllEndpointsResponse",
+                    success = false,
+                    error = ex.Message
+                };
+                string errorJson = System.Text.Json.JsonSerializer.Serialize(errorResponse);
+                wv.CoreWebView2.PostWebMessageAsString(errorJson);
+            }
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Handles saveAllEndpoints request from webview - saves all endpoints to XML file
+        /// </summary>
+        private Task HandleSaveAllEndpoints(WebView2 wv, JsonElement root, string requestId)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[Endpoints] Saving all endpoints to XML");
+
+                if (!root.TryGetProperty("endpoints", out var endpointsArray))
+                {
+                    throw new Exception("No endpoints array in request");
+                }
+
+                var endpoints = new List<EndpointConfig>();
+                int snoCounter = 1;
+
+                foreach (var ep in endpointsArray.EnumerateArray())
+                {
+                    // Parse sourceInstance like "APEX:PROD" or "FUSION:TEST"
+                    string sourceInstance = ep.TryGetProperty("sourceInstance", out var siProp) ? siProp.GetString() : "APEX:PROD";
+                    string[] parts = sourceInstance.Split(':');
+                    string source = parts.Length > 0 ? parts[0] : "APEX";
+                    string instanceName = parts.Length > 1 ? parts[1] : "PROD";
+
+                    var endpoint = new EndpointConfig
+                    {
+                        Sno = ep.TryGetProperty("sno", out var snoProp) ? snoProp.GetInt32() : snoCounter++,
+                        Source = source,
+                        IntegrationCode = ep.TryGetProperty("integrationCode", out var codeProp) ? codeProp.GetString() : "",
+                        InstanceName = instanceName,
+                        BaseUrl = ep.TryGetProperty("url", out var urlProp) ? urlProp.GetString() : "",
+                        Endpoint = ep.TryGetProperty("path", out var pathProp) ? pathProp.GetString() : "",
+                        Comments = ep.TryGetProperty("comments", out var commentsProp) ? commentsProp.GetString() : ""
+                    };
+
+                    endpoints.Add(endpoint);
+                }
+
+                // Save to XML file
+                EndpointConfigReader.SaveEndpoints(endpoints);
+
+                var response = new
+                {
+                    requestId = requestId,
+                    action = "saveAllEndpointsResponse",
+                    success = true,
+                    count = endpoints.Count,
+                    settingsPath = EndpointConfigReader.GetSettingsPath()
+                };
+
+                string responseJson = System.Text.Json.JsonSerializer.Serialize(response);
+                wv.CoreWebView2.PostWebMessageAsString(responseJson);
+
+                System.Diagnostics.Debug.WriteLine($"[Endpoints] Saved {endpoints.Count} endpoints to XML");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Endpoints] Error saving endpoints: {ex.Message}");
+
+                var errorResponse = new
+                {
+                    requestId = requestId,
+                    action = "saveAllEndpointsResponse",
+                    success = false,
+                    error = ex.Message
+                };
+                string errorJson = System.Text.Json.JsonSerializer.Serialize(errorResponse);
+                wv.CoreWebView2.PostWebMessageAsString(errorJson);
+            }
+            return Task.CompletedTask;
+        }
+
         private async Task SendLoginInfoToInventoryAsync()
         {
             // Wait for page to load
@@ -1980,6 +2111,16 @@ namespace WMSApp
                                 // Get endpoint for integration code
                                 case "getEndpoint":
                                     await HandleGetEndpoint(wv, root, requestId);
+                                    break;
+
+                                // Get all endpoints from XML file
+                                case "getAllEndpoints":
+                                    await HandleGetAllEndpoints(wv, requestId);
+                                    break;
+
+                                // Save all endpoints to XML file
+                                case "saveAllEndpoints":
+                                    await HandleSaveAllEndpoints(wv, root, requestId);
                                     break;
 
                                 // MRA Interface Processing

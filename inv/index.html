@@ -5682,47 +5682,70 @@ Click "Run Test" to execute the API call...
             }
         }
 
-        // POST endpoint data to APEX
+        // POST endpoint data to APEX via C# handler (avoids CORS issues)
         async function postEndpointToApex(endpointData) {
             console.log('[JS DEBUG] postEndpointToApex called');
-            console.log('[JS DEBUG] apexEndpointUrl:', apexEndpointUrl);
             console.log('[JS DEBUG] endpointData to POST:', JSON.stringify(endpointData, null, 2));
 
-            if (!apexEndpointUrl) {
-                console.warn('[JS DEBUG] APEX endpoint URL not configured, skipping POST');
-                return { success: false, error: 'APEX endpoint URL not configured' };
-            }
+            // Use C# handler to avoid CORS issues
+            if (window.chrome && window.chrome.webview) {
+                return new Promise((resolve) => {
+                    const requestId = 'postApex_' + Date.now();
+                    console.log('[JS DEBUG] Sending postEndpointToApex to C# with requestId:', requestId);
 
-            try {
-                // Append /save to the base endpoint URL for POST operations
-                const postUrl = apexEndpointUrl.endsWith('/') ? apexEndpointUrl + 'save' : apexEndpointUrl + '/save';
-                console.log('[JS DEBUG] POSTing endpoint to APEX URL:', postUrl);
-                console.log('[JS DEBUG] Request body:', JSON.stringify(endpointData));
+                    const handler = (event) => {
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            if (data.requestId === requestId || data.action === 'postEndpointToApexResponse') {
+                                window.chrome.webview.removeEventListener('message', handler);
+                                console.log('[JS DEBUG] Received postEndpointToApex response from C#:', JSON.stringify(data));
+                                if (data.success) {
+                                    resolve({ success: true, data: data.data });
+                                } else {
+                                    resolve({ success: false, error: data.error });
+                                }
+                            }
+                        } catch (e) {
+                            console.error('[JS DEBUG] Error parsing postEndpointToApex response:', e);
+                        }
+                    };
 
-                const response = await fetch(postUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(endpointData)
+                    window.chrome.webview.addEventListener('message', handler);
+                    window.chrome.webview.postMessage({
+                        action: 'postEndpointToApex',
+                        requestId: requestId,
+                        endpointData: endpointData
+                    });
+
+                    // Timeout after 30 seconds
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        resolve({ success: false, error: 'Request timeout' });
+                    }, 30000);
                 });
-
-                console.log('[JS DEBUG] POST response status:', response.status);
-                console.log('[JS DEBUG] POST response ok:', response.ok);
-
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log('[JS DEBUG] APEX POST successful - response:', JSON.stringify(result));
-                    return { success: true, data: result };
-                } else {
-                    const errorText = await response.text();
-                    console.error('[JS DEBUG] APEX POST failed - status:', response.status, 'error:', errorText);
-                    return { success: false, error: `HTTP ${response.status}: ${errorText}` };
+            } else {
+                // Fallback for testing outside WebView - use direct fetch
+                console.warn('[JS DEBUG] WebView not available, using direct fetch (may fail due to CORS)');
+                if (!apexEndpointUrl) {
+                    return { success: false, error: 'APEX endpoint URL not configured' };
                 }
-            } catch (error) {
-                console.error('[JS DEBUG] APEX POST exception:', error.message);
-                console.error('[JS DEBUG] APEX POST error stack:', error.stack);
-                return { success: false, error: error.message };
+                try {
+                    const postUrl = apexEndpointUrl.endsWith('/') ? apexEndpointUrl + 'save' : apexEndpointUrl + '/save';
+                    const response = await fetch(postUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(endpointData)
+                    });
+                    if (response.ok) {
+                        const result = await response.json();
+                        return { success: true, data: result };
+                    } else {
+                        const errorText = await response.text();
+                        return { success: false, error: `HTTP ${response.status}: ${errorText}` };
+                    }
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
             }
         }
 

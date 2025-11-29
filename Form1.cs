@@ -1613,6 +1613,97 @@ namespace WMSApp
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Handles postEndpointToApex request from webview - POSTs endpoint data to APEX REST API
+        /// </summary>
+        private async Task HandlePostEndpointToApex(WebView2 wv, JsonElement root, string requestId)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] Posting endpoint to APEX");
+
+                // Get the endpoint data from the request
+                if (!root.TryGetProperty("endpointData", out var endpointData))
+                {
+                    throw new Exception("No endpointData in request");
+                }
+
+                // Get APEX endpoint URL from file
+                string settingsPath = EndpointConfigReader.GetSettingsPath();
+                string apexUrlFilePath = System.IO.Path.Combine(settingsPath, "apexendpointurl.txt");
+
+                if (!System.IO.File.Exists(apexUrlFilePath))
+                {
+                    throw new Exception("APEX endpoint URL file not found");
+                }
+
+                string baseUrl = System.IO.File.ReadAllText(apexUrlFilePath).Trim();
+                if (string.IsNullOrEmpty(baseUrl))
+                {
+                    throw new Exception("APEX endpoint URL is empty");
+                }
+
+                // Append /save to the base URL
+                string postUrl = baseUrl.EndsWith("/") ? baseUrl + "save" : baseUrl + "/save";
+                System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] POST URL: {postUrl}");
+
+                // Serialize the endpoint data
+                string jsonBody = endpointData.GetRawText();
+                System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] POST body: {jsonBody}");
+
+                using (var httpClient = new HttpClient())
+                {
+                    httpClient.Timeout = TimeSpan.FromSeconds(30);
+                    var content = new StringContent(jsonBody, System.Text.Encoding.UTF8, "application/json");
+
+                    var httpResponse = await httpClient.PostAsync(postUrl, content);
+                    string responseBody = await httpResponse.Content.ReadAsStringAsync();
+
+                    System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] Response status: {httpResponse.StatusCode}");
+                    System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] Response body: {responseBody}");
+
+                    if (httpResponse.IsSuccessStatusCode)
+                    {
+                        var response = new
+                        {
+                            requestId = requestId,
+                            action = "postEndpointToApexResponse",
+                            success = true,
+                            data = responseBody
+                        };
+                        string responseJson = System.Text.Json.JsonSerializer.Serialize(response);
+                        wv.CoreWebView2.PostWebMessageAsString(responseJson);
+                    }
+                    else
+                    {
+                        var response = new
+                        {
+                            requestId = requestId,
+                            action = "postEndpointToApexResponse",
+                            success = false,
+                            error = $"HTTP {(int)httpResponse.StatusCode}: {responseBody}"
+                        };
+                        string responseJson = System.Text.Json.JsonSerializer.Serialize(response);
+                        wv.CoreWebView2.PostWebMessageAsString(responseJson);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] Error posting to APEX: {ex.Message}");
+
+                var errorResponse = new
+                {
+                    requestId = requestId,
+                    action = "postEndpointToApexResponse",
+                    success = false,
+                    error = ex.Message
+                };
+                string errorJson = System.Text.Json.JsonSerializer.Serialize(errorResponse);
+                wv.CoreWebView2.PostWebMessageAsString(errorJson);
+            }
+        }
+
         private async Task SendLoginInfoToInventoryAsync()
         {
             // Wait for page to load
@@ -2173,6 +2264,11 @@ namespace WMSApp
                                 // Get APEX endpoint URL from file
                                 case "getApexEndpointUrl":
                                     await HandleGetApexEndpointUrl(wv, requestId);
+                                    break;
+
+                                // POST endpoint to APEX REST API
+                                case "postEndpointToApex":
+                                    await HandlePostEndpointToApex(wv, root, requestId);
                                     break;
 
                                 // MRA Interface Processing

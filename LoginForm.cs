@@ -538,11 +538,10 @@ namespace WMSApp
 
                 System.Diagnostics.Debug.WriteLine($"[LOGIN] Loaded {instanceUrls.Count} LOGIN endpoints from EndpointConfigReader");
 
-                // If no LOGIN endpoints found, show error - user must configure endpoints
+                // If no LOGIN endpoints found, log warning (error will show when user tries to login)
                 if (instanceUrls.Count == 0)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[LOGIN] No LOGIN endpoints found. Please configure LOGIN endpoints in Settings.");
-                    ShowError("No LOGIN endpoints configured. Please add LOGIN endpoints in Settings.");
+                    System.Diagnostics.Debug.WriteLine($"[LOGIN] WARNING: No LOGIN endpoints found. Please configure LOGIN endpoints in Settings.");
                 }
 
                 // Update the instance dropdown (only if cboInstance exists)
@@ -562,7 +561,7 @@ namespace WMSApp
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[LOGIN] Error loading endpoints: {ex.Message}");
-                ShowError($"Error loading endpoints: {ex.Message}");
+                // Don't call ShowError here - lblError may not be initialized yet
             }
         }
     }

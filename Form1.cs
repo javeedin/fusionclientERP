@@ -1562,6 +1562,57 @@ namespace WMSApp
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Handles getApexEndpointUrl request from webview - reads URL from apexendpointurl.txt
+        /// </summary>
+        private Task HandleGetApexEndpointUrl(WebView2 wv, string requestId)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] Getting APEX endpoint URL from file");
+
+                string settingsPath = EndpointConfigReader.GetSettingsPath();
+                string apexUrlFilePath = System.IO.Path.Combine(settingsPath, "apexendpointurl.txt");
+
+                string url = "";
+                if (System.IO.File.Exists(apexUrlFilePath))
+                {
+                    url = System.IO.File.ReadAllText(apexUrlFilePath).Trim();
+                    System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] Loaded URL: {url}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] File not found: {apexUrlFilePath}");
+                }
+
+                var response = new
+                {
+                    requestId = requestId,
+                    action = "getApexEndpointUrlResponse",
+                    success = !string.IsNullOrEmpty(url),
+                    url = url
+                };
+
+                string responseJson = System.Text.Json.JsonSerializer.Serialize(response);
+                wv.CoreWebView2.PostWebMessageAsString(responseJson);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] Error getting APEX endpoint URL: {ex.Message}");
+
+                var errorResponse = new
+                {
+                    requestId = requestId,
+                    action = "getApexEndpointUrlResponse",
+                    success = false,
+                    error = ex.Message
+                };
+                string errorJson = System.Text.Json.JsonSerializer.Serialize(errorResponse);
+                wv.CoreWebView2.PostWebMessageAsString(errorJson);
+            }
+            return Task.CompletedTask;
+        }
+
         private async Task SendLoginInfoToInventoryAsync()
         {
             // Wait for page to load
@@ -2117,6 +2168,11 @@ namespace WMSApp
                                 // Save all endpoints to XML file
                                 case "saveAllEndpoints":
                                     await HandleSaveAllEndpoints(wv, root, requestId);
+                                    break;
+
+                                // Get APEX endpoint URL from file
+                                case "getApexEndpointUrl":
+                                    await HandleGetApexEndpointUrl(wv, requestId);
                                     break;
 
                                 // MRA Interface Processing

@@ -5641,11 +5641,85 @@ Click "Run Test" to execute the API call...
         let endpointsData = [];
         let selectedEndpointIndex = -1;
 
+        // APEX Endpoint URL for POST operations
+        let apexEndpointUrl = '';
+
+        // Load APEX endpoint URL from file
+        function loadApexEndpointUrl() {
+            if (window.chrome && window.chrome.webview) {
+                const requestId = 'getApexEndpointUrl_' + Date.now();
+
+                const handler = function(event) {
+                    try {
+                        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                        if (data.requestId === requestId || data.action === 'getApexEndpointUrlResponse') {
+                            window.chrome.webview.removeEventListener('message', handler);
+                            if (data.success && data.url) {
+                                apexEndpointUrl = data.url.trim();
+                                console.log('[JS] Loaded APEX endpoint URL:', apexEndpointUrl);
+                            } else {
+                                console.warn('[JS] Failed to load APEX endpoint URL from file');
+                            }
+                        }
+                    } catch (e) {
+                        console.error('[JS] Error parsing APEX endpoint URL response:', e);
+                    }
+                };
+
+                window.chrome.webview.addEventListener('message', handler);
+                window.chrome.webview.postMessage({
+                    action: 'getApexEndpointUrl',
+                    requestId: requestId
+                });
+
+                setTimeout(() => {
+                    window.chrome.webview.removeEventListener('message', handler);
+                }, 3000);
+            } else {
+                // Fallback for testing - use hardcoded URL
+                apexEndpointUrl = 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com/ords/test/FUSIONCLIENTERP/endpoints';
+                console.log('[JS] Using fallback APEX endpoint URL:', apexEndpointUrl);
+            }
+        }
+
+        // POST endpoint data to APEX
+        async function postEndpointToApex(endpointData) {
+            if (!apexEndpointUrl) {
+                console.warn('[JS] APEX endpoint URL not configured, skipping POST');
+                return { success: false, error: 'APEX endpoint URL not configured' };
+            }
+
+            try {
+                console.log('[JS] POSTing endpoint to APEX:', apexEndpointUrl);
+                const response = await fetch(apexEndpointUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(endpointData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('[JS] APEX POST successful:', result);
+                    return { success: true, data: result };
+                } else {
+                    const errorText = await response.text();
+                    console.error('[JS] APEX POST failed:', response.status, errorText);
+                    return { success: false, error: `HTTP ${response.status}: ${errorText}` };
+                }
+            } catch (error) {
+                console.error('[JS] APEX POST error:', error);
+                return { success: false, error: error.message };
+            }
+        }
+
         // Open Settings modal
         function openSettings() {
             document.getElementById('settingsOverlay').classList.add('active');
             loadInstances();
             loadEndpoints();
+            loadApexEndpointUrl();
         }
 
         // Close Settings modal
@@ -6232,7 +6306,7 @@ Click "Run Test" to execute the API call...
         }
 
         // Save endpoint
-        function saveEndpoint() {
+        async function saveEndpoint() {
             const sno = parseInt(document.getElementById('endpointSno').value) || getNextSno();
             const sourceInstance = document.getElementById('endpointSourceInstance').value;
             const integrationCode = document.getElementById('endpointIntegrationCode').value.trim();
@@ -6285,9 +6359,19 @@ Click "Run Test" to execute the API call...
                 endpointsData[index] = endpointObj;
             }
 
+            // Save locally first
             saveEndpointsToStorage();
             renderEndpointsTable();
             closeEndpointForm();
+
+            // POST to APEX endpoint
+            const apexResult = await postEndpointToApex(endpointObj);
+            if (apexResult.success) {
+                console.log('[JS] Endpoint saved to APEX successfully');
+            } else {
+                console.warn('[JS] Failed to save endpoint to APEX:', apexResult.error);
+                // Don't show alert - local save was successful
+            }
         }
 
         // Edit selected endpoint

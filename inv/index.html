@@ -2697,12 +2697,13 @@
                         </div>
                     </div>
                     <div style="overflow-x: auto;">
-                        <table class="instance-table" style="min-width: 1000px;">
+                        <table class="instance-table" style="min-width: 1100px;">
                             <thead>
                                 <tr>
                                     <th style="width: 30px;"></th>
                                     <th style="width: 50px;">S.No</th>
-                                    <th style="width: 120px;">Source</th>
+                                    <th style="width: 80px;">Source</th>
+                                    <th style="width: 100px;">Instance</th>
                                     <th>Integration Code</th>
                                     <th>URL</th>
                                     <th>Path</th>
@@ -6066,13 +6067,22 @@ Click "Run Test" to execute the API call...
                 const message = endpointSearchFilter
                     ? 'No endpoints match your search criteria.'
                     : 'No endpoints configured. Click "New" to add one.';
-                tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 30px; color: #888;">${message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 30px; color: #888;">${message}</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = filteredEndpoints.map(({ endpoint, originalIndex }) => {
-                // Source column shows "Source-Instance" format
-                const sourceDisplay = endpoint.sourceInstance || `${endpoint.source || ''}-${endpoint.instanceName || ''}`;
+                // Split sourceInstance into Source and Instance Name
+                const sourceInstance = endpoint.sourceInstance || `${endpoint.source || ''}-${endpoint.instanceName || ''}`;
+                let sourceType = '';
+                let instanceName = '';
+                const firstHyphen = sourceInstance.indexOf('-');
+                if (firstHyphen > 0) {
+                    sourceType = sourceInstance.substring(0, firstHyphen);
+                    instanceName = sourceInstance.substring(firstHyphen + 1);
+                } else {
+                    sourceType = sourceInstance;
+                }
                 // Parameters count
                 const paramCount = (endpoint.parameters && endpoint.parameters.length) || 0;
                 const paramBadge = paramCount > 0 ? `<span style="background: #667eea; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px;">${paramCount}</span>` : '<span style="color: #999;">0</span>';
@@ -6080,7 +6090,8 @@ Click "Run Test" to execute the API call...
                 <tr onclick="selectEndpoint(${originalIndex})" class="${originalIndex === selectedEndpointIndex ? 'selected' : ''}">
                     <td><input type="radio" name="endpointSelect" ${originalIndex === selectedEndpointIndex ? 'checked' : ''} onclick="event.stopPropagation(); selectEndpoint(${originalIndex})"></td>
                     <td>${endpoint.sno || originalIndex + 1}</td>
-                    <td>${escapeHtml(sourceDisplay)}</td>
+                    <td>${escapeHtml(sourceType)}</td>
+                    <td>${escapeHtml(instanceName)}</td>
                     <td>${escapeHtml(endpoint.integrationCode)}</td>
                     <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(endpoint.url)}">${escapeHtml(endpoint.url)}</td>
                     <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(endpoint.path)}">${escapeHtml(endpoint.path)}</td>

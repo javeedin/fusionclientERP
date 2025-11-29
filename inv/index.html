@@ -2667,6 +2667,7 @@
             <div class="settings-tabs">
                 <button class="settings-tab active" onclick="switchSettingsTab('endpoints')">Endpoints</button>
                 <button class="settings-tab" onclick="switchSettingsTab('instances')">Instance Details</button>
+                <button class="settings-tab" onclick="switchSettingsTab('endpointsStorage')">EndPoints Storage Details</button>
             </div>
             <div class="settings-content">
                 <!-- Endpoints Panel -->
@@ -2748,6 +2749,29 @@
                             <!-- Instance rows will be populated here -->
                         </tbody>
                     </table>
+                </div>
+
+                <!-- EndPoints Storage Details Panel -->
+                <div class="settings-panel" id="settingsEndpointsStoragePanel">
+                    <div class="instance-toolbar">
+                        <button onclick="refreshEndpointsStorage()">
+                            <span>&#8635;</span> Refresh
+                        </button>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table class="instance-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">S.No</th>
+                                    <th style="width: 150px;">Instance</th>
+                                    <th>Full URL</th>
+                                </tr>
+                            </thead>
+                            <tbody id="endpointsStorageTableBody">
+                                <!-- EndPoints Storage rows will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -5652,7 +5676,40 @@ Click "Run Test" to execute the API call...
                 document.getElementById('settingsEndpointsPanel').classList.add('active');
             } else if (tabName === 'instances') {
                 document.getElementById('settingsInstancesPanel').classList.add('active');
+            } else if (tabName === 'endpointsStorage') {
+                document.getElementById('settingsEndpointsStoragePanel').classList.add('active');
+                renderEndpointsStorageTable();
             }
+        }
+
+        // Render EndPoints Storage Details table
+        function renderEndpointsStorageTable() {
+            const tbody = document.getElementById('endpointsStorageTableBody');
+            if (!tbody) return;
+
+            if (endpointsData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 30px; color: #888;">No endpoints configured.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = endpointsData.map((endpoint, index) => {
+                const instance = endpoint.sourceInstance || `${endpoint.source || ''}-${endpoint.instanceName || ''}`;
+                const fullUrl = (endpoint.url || '') + (endpoint.path || '');
+                return `
+                <tr>
+                    <td>${endpoint.sno || index + 1}</td>
+                    <td>${escapeHtml(instance)}</td>
+                    <td style="word-break: break-all;">${escapeHtml(fullUrl)}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // Refresh EndPoints Storage Details
+        function refreshEndpointsStorage() {
+            loadEndpoints();
+            setTimeout(() => {
+                renderEndpointsStorageTable();
+            }, 500);
         }
 
         // Load instances from localStorage

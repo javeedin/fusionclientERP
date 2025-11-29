@@ -5684,13 +5684,19 @@ Click "Run Test" to execute the API call...
 
         // POST endpoint data to APEX
         async function postEndpointToApex(endpointData) {
+            console.log('[JS DEBUG] postEndpointToApex called');
+            console.log('[JS DEBUG] apexEndpointUrl:', apexEndpointUrl);
+            console.log('[JS DEBUG] endpointData to POST:', JSON.stringify(endpointData, null, 2));
+
             if (!apexEndpointUrl) {
-                console.warn('[JS] APEX endpoint URL not configured, skipping POST');
+                console.warn('[JS DEBUG] APEX endpoint URL not configured, skipping POST');
                 return { success: false, error: 'APEX endpoint URL not configured' };
             }
 
             try {
-                console.log('[JS] POSTing endpoint to APEX:', apexEndpointUrl);
+                console.log('[JS DEBUG] POSTing endpoint to APEX URL:', apexEndpointUrl);
+                console.log('[JS DEBUG] Request body:', JSON.stringify(endpointData));
+
                 const response = await fetch(apexEndpointUrl, {
                     method: 'POST',
                     headers: {
@@ -5699,17 +5705,21 @@ Click "Run Test" to execute the API call...
                     body: JSON.stringify(endpointData)
                 });
 
+                console.log('[JS DEBUG] POST response status:', response.status);
+                console.log('[JS DEBUG] POST response ok:', response.ok);
+
                 if (response.ok) {
                     const result = await response.json();
-                    console.log('[JS] APEX POST successful:', result);
+                    console.log('[JS DEBUG] APEX POST successful - response:', JSON.stringify(result));
                     return { success: true, data: result };
                 } else {
                     const errorText = await response.text();
-                    console.error('[JS] APEX POST failed:', response.status, errorText);
+                    console.error('[JS DEBUG] APEX POST failed - status:', response.status, 'error:', errorText);
                     return { success: false, error: `HTTP ${response.status}: ${errorText}` };
                 }
             } catch (error) {
-                console.error('[JS] APEX POST error:', error);
+                console.error('[JS DEBUG] APEX POST exception:', error.message);
+                console.error('[JS DEBUG] APEX POST error stack:', error.stack);
                 return { success: false, error: error.message };
             }
         }
@@ -5981,30 +5991,38 @@ Click "Run Test" to execute the API call...
 
         // Load endpoints from C# (XML file)
         function loadEndpoints() {
+            console.log('[JS DEBUG] loadEndpoints called');
             if (window.chrome && window.chrome.webview) {
                 const requestId = 'getAllEndpoints_' + Date.now();
+                console.log('[JS DEBUG] Requesting endpoints from C# with requestId:', requestId);
 
                 // Set up one-time handler for response
                 const handler = function(event) {
                     try {
                         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                        console.log('[JS DEBUG] Received message from C#:', JSON.stringify(data, null, 2));
                         if (data.requestId === requestId || data.action === 'getAllEndpointsResponse') {
                             window.chrome.webview.removeEventListener('message', handler);
                             if (data.success && data.endpoints) {
                                 endpointsData = data.endpoints;
+                                console.log('[JS DEBUG] Loaded endpoints from C#:');
+                                endpointsData.forEach((ep, idx) => {
+                                    console.log('[JS DEBUG]   Endpoint[' + idx + ']:', JSON.stringify(ep));
+                                });
                                 if (data.settingsPath) {
                                     endpointsSettingsPath = data.settingsPath + '\\endpoints.xml';
                                     updateSettingsHeader();
                                 }
-                                console.log('[JS] Loaded', endpointsData.length, 'endpoints from C#');
+                                console.log('[JS DEBUG] Loaded', endpointsData.length, 'endpoints from C#');
                             } else {
-                                console.warn('[JS] Failed to load endpoints from C#, using defaults');
+                                console.warn('[JS DEBUG] Failed to load endpoints from C#, using defaults');
+                                console.warn('[JS DEBUG] Response data:', JSON.stringify(data));
                                 endpointsData = getDefaultEndpoints();
                             }
                             renderEndpointsTable();
                         }
                     } catch (e) {
-                        console.error('[JS] Error parsing endpoints response:', e);
+                        console.error('[JS DEBUG] Error parsing endpoints response:', e);
                     }
                 };
 
@@ -6215,18 +6233,25 @@ Click "Run Test" to execute the API call...
 
         // Populate source dropdown in endpoint form from instances
         function populateEndpointSourceDropdown() {
+            console.log('[JS DEBUG] populateEndpointSourceDropdown called');
+            console.log('[JS DEBUG] instancesData:', JSON.stringify(instancesData));
             const select = document.getElementById('endpointSourceInstance');
-            if (!select) return;
+            if (!select) {
+                console.log('[JS DEBUG] endpointSourceInstance select not found!');
+                return;
+            }
 
             select.innerHTML = '<option value="">-- Select Instance --</option>';
-            instancesData.forEach((instance) => {
+            instancesData.forEach((instance, idx) => {
                 const optionValue = `${instance.source}-${instance.name}`;
+                console.log('[JS DEBUG] Adding dropdown option[' + idx + ']:', optionValue);
                 const option = document.createElement('option');
                 option.value = optionValue;
                 option.textContent = optionValue;
                 option.dataset.url = instance.url;
                 select.appendChild(option);
             });
+            console.log('[JS DEBUG] Total dropdown options:', select.options.length);
         }
 
         // Handle source instance change - auto-fill URL
@@ -6244,6 +6269,8 @@ Click "Run Test" to execute the API call...
 
         // Show endpoint form (new or edit)
         function showEndpointForm(mode, index = null) {
+            console.log('[JS DEBUG] showEndpointForm called - mode:', mode, 'index:', index);
+
             const overlay = document.getElementById('endpointFormOverlay');
             const title = document.getElementById('endpointFormTitle');
 
@@ -6269,10 +6296,27 @@ Click "Run Test" to execute the API call...
             } else if (mode === 'edit' && index !== null) {
                 title.textContent = 'Edit Endpoint';
                 const endpoint = endpointsData[index];
+                console.log('[JS DEBUG] Editing endpoint - RAW DATA:', JSON.stringify(endpoint, null, 2));
+                console.log('[JS DEBUG] endpoint.sourceInstance:', endpoint.sourceInstance);
+                console.log('[JS DEBUG] endpoint.source:', endpoint.source);
+                console.log('[JS DEBUG] endpoint.instanceName:', endpoint.instanceName);
+
                 document.getElementById('endpointSno').value = endpoint.sno || index + 1;
-                // Set source instance dropdown
-                const sourceInstance = endpoint.sourceInstance || `${endpoint.source || ''}-${endpoint.instanceName || ''}`;
+
+                // Set source instance dropdown - use sourceInstance directly without concatenation
+                const sourceInstance = endpoint.sourceInstance || '';
+                console.log('[JS DEBUG] sourceInstance value to set in dropdown:', sourceInstance);
+
+                // Log available dropdown options
+                const dropdown = document.getElementById('endpointSourceInstance');
+                console.log('[JS DEBUG] Dropdown options available:');
+                for (let i = 0; i < dropdown.options.length; i++) {
+                    console.log('[JS DEBUG]   Option', i, ':', dropdown.options[i].value);
+                }
+
                 document.getElementById('endpointSourceInstance').value = sourceInstance;
+                console.log('[JS DEBUG] Dropdown value after setting:', document.getElementById('endpointSourceInstance').value);
+
                 document.getElementById('endpointIntegrationCode').value = endpoint.integrationCode || '';
                 document.getElementById('endpointURL').value = endpoint.url || '';
                 document.getElementById('endpointPath').value = endpoint.path || '';
@@ -6307,6 +6351,8 @@ Click "Run Test" to execute the API call...
 
         // Save endpoint
         async function saveEndpoint() {
+            console.log('[JS DEBUG] saveEndpoint called');
+
             const sno = parseInt(document.getElementById('endpointSno').value) || getNextSno();
             const sourceInstance = document.getElementById('endpointSourceInstance').value;
             const integrationCode = document.getElementById('endpointIntegrationCode').value.trim();
@@ -6314,23 +6360,37 @@ Click "Run Test" to execute the API call...
             const path = document.getElementById('endpointPath').value.trim();
             const comments = document.getElementById('endpointComments').value.trim();
 
+            console.log('[JS DEBUG] Form values:');
+            console.log('[JS DEBUG]   sno:', sno);
+            console.log('[JS DEBUG]   sourceInstance:', sourceInstance);
+            console.log('[JS DEBUG]   integrationCode:', integrationCode);
+            console.log('[JS DEBUG]   url:', url);
+            console.log('[JS DEBUG]   path:', path);
+            console.log('[JS DEBUG]   comments:', comments);
+
             // Get parameters
             const parameters = getParametersFromForm();
+            console.log('[JS DEBUG]   parameters:', JSON.stringify(parameters));
 
             // Get pagination fields
             const offset = document.getElementById('endpointOffset').value ? parseInt(document.getElementById('endpointOffset').value) : null;
             const limit = document.getElementById('endpointLimit').value ? parseInt(document.getElementById('endpointLimit').value) : null;
+            console.log('[JS DEBUG]   offset:', offset);
+            console.log('[JS DEBUG]   limit:', limit);
 
             // Validation
             if (!sourceInstance || !integrationCode || !url || !path) {
+                console.log('[JS DEBUG] Validation failed - missing required fields');
                 alert('Please fill in all required fields (Source Instance, Integration Code, URL, Path).');
                 return;
             }
 
             const mode = document.getElementById('endpointFormMode').value;
             const indexStr = document.getElementById('endpointFormIndex').value;
+            console.log('[JS DEBUG]   mode:', mode, 'indexStr:', indexStr);
 
             const endpointObj = { sno, sourceInstance, integrationCode, url, path, comments, parameters, offset, limit };
+            console.log('[JS DEBUG] endpointObj to save:', JSON.stringify(endpointObj, null, 2));
 
             // Uniqueness check: SourceInstance + IntegrationCode combination must be unique
             const isDuplicate = (ep) => {
@@ -6348,6 +6408,7 @@ Click "Run Test" to execute the API call...
                 }
                 endpointsData.push(endpointObj);
                 selectedEndpointIndex = endpointsData.length - 1;
+                console.log('[JS DEBUG] Added new endpoint at index:', selectedEndpointIndex);
             } else if (mode === 'edit' && indexStr !== '') {
                 const index = parseInt(indexStr);
                 // Check for duplicate combination (excluding current)
@@ -6356,16 +6417,20 @@ Click "Run Test" to execute the API call...
                     alert('An endpoint with this Source-Instance + Integration Code combination already exists.');
                     return;
                 }
+                console.log('[JS DEBUG] Updating endpoint at index:', index);
                 endpointsData[index] = endpointObj;
             }
 
             // Save locally first
+            console.log('[JS DEBUG] Calling saveEndpointsToStorage...');
             saveEndpointsToStorage();
             renderEndpointsTable();
             closeEndpointForm();
 
             // POST to APEX endpoint
+            console.log('[JS DEBUG] Calling postEndpointToApex...');
             const apexResult = await postEndpointToApex(endpointObj);
+            console.log('[JS DEBUG] postEndpointToApex result:', JSON.stringify(apexResult));
             if (apexResult.success) {
                 console.log('[JS] Endpoint saved to APEX successfully');
             } else {

@@ -635,10 +635,10 @@ namespace WMSApp
             navSettingsButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(90, 98, 104);
             navSettingsButton.Click += (s, e) =>
             {
-                var settingsForm = new EndpointSettingsForm();
+                var settingsForm = new SettingsForm();
                 settingsForm.ShowDialog();
             };
-            moduleToolTip.SetToolTip(navSettingsButton, "Endpoint Settings");
+            moduleToolTip.SetToolTip(navSettingsButton, "Settings");
             leftPosition += 85;
 
             // Inventory Button - Opens inventory module (requires login)
@@ -1042,7 +1042,7 @@ namespace WMSApp
             settingsButton.FlatAppearance.BorderColor = Color.LightGray;
             settingsButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(220, 220, 220);
             settingsButton.Click += SettingsButton_Click;
-            moduleToolTip.SetToolTip(settingsButton, "Endpoint Settings");
+            moduleToolTip.SetToolTip(settingsButton, "Settings");
 
             // Add controls to navigation panel
             navPanel.Controls.Add(backButton);
@@ -1089,7 +1089,7 @@ namespace WMSApp
 
         private void SettingsButton_Click(object sender, EventArgs e)
         {
-            var settingsForm = new EndpointSettingsForm();
+            var settingsForm = new SettingsForm();
             settingsForm.ShowDialog();
         }
 

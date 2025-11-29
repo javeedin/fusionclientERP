@@ -70,7 +70,7 @@ namespace WMSApp
 
         private void InitializeComponent()
         {
-            this.Text = "Endpoint Settings - FusionClientERP";
+            this.Text = $"Endpoint Settings ({_settingsPath})";
             this.Size = new Size(1100, 600);
             this.StartPosition = FormStartPosition.CenterParent;
             this.MinimumSize = new Size(900, 500);
@@ -86,11 +86,11 @@ namespace WMSApp
 
             Label lblTitle = new Label
             {
-                Text = "Endpoint Configuration",
-                Font = new Font("Segoe UI", 18, FontStyle.Bold),
+                Text = $"Endpoint Settings ({_settingsPath})",
+                Font = new Font("Segoe UI", 16, FontStyle.Bold),
                 ForeColor = Color.White,
                 AutoSize = true,
-                Location = new Point(20, 15)
+                Location = new Point(20, 18)
             };
             headerPanel.Controls.Add(lblTitle);
 
@@ -209,17 +209,7 @@ namespace WMSApp
             btnCancel.Anchor = AnchorStyles.Right | AnchorStyles.Top;
             btnCancel.Click += BtnCancel_Click;
 
-            // Status label
-            Label lblStatus = new Label
-            {
-                Text = $"Settings Path: {_settingsPath}",
-                AutoSize = true,
-                Location = new Point(15, 20),
-                ForeColor = Color.Gray,
-                Font = new Font("Segoe UI", 9)
-            };
-
-            footerPanel.Controls.AddRange(new Control[] { lblStatus, btnSave, btnCancel });
+            footerPanel.Controls.AddRange(new Control[] { btnSave, btnCancel });
 
             // Add all panels to form
             this.Controls.Add(contentPanel);

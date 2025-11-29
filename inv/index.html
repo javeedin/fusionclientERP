@@ -2892,7 +2892,10 @@
                         </div>
                         <div style="flex: 1;">
                             <small style="color: #666;">Credentials:</small>
-                            <div id="testCredentialsStatus" style="font-weight: 500;">-</div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div id="testCredentialsStatus" style="font-weight: 500;">-</div>
+                                <button id="btnChangeCredentials" onclick="changeTestCredentials()" style="padding: 3px 8px; font-size: 11px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; display: none;" title="Change Credentials">Change</button>
+                            </div>
                         </div>
                     </div>
                     <label>Full URL <small style="color: #666;">(updates automatically)</small></label>
@@ -6256,6 +6259,7 @@ Click "Run Test" to execute the API call...
         // =============================================
 
         let currentTestEndpoint = null;
+        let currentTestInstanceIndex = -1;
 
         // Test selected endpoint
         function testSelectedEndpoint() {
@@ -6288,16 +6292,20 @@ Click "Run Test" to execute the API call...
 
             // Show credentials status
             const credStatusEl = document.getElementById('testCredentialsStatus');
+            const btnChangeCredentials = document.getElementById('btnChangeCredentials');
             let credStatus = { text: 'No Instance Found', color: '#dc3545' };
+            currentTestInstanceIndex = -1;
 
             if (endpoint.sourceInstance) {
                 const firstHyphen = endpoint.sourceInstance.indexOf('-');
                 if (firstHyphen > 0) {
                     const source = endpoint.sourceInstance.substring(0, firstHyphen);
                     const instanceName = endpoint.sourceInstance.substring(firstHyphen + 1);
-                    const instance = instancesData.find(i => i.source === source && i.name === instanceName);
+                    const instanceIndex = instancesData.findIndex(i => i.source === source && i.name === instanceName);
+                    const instance = instanceIndex >= 0 ? instancesData[instanceIndex] : null;
 
                     if (instance) {
+                        currentTestInstanceIndex = instanceIndex;
                         if (instance.noAuth) {
                             credStatus = { text: 'No Auth (Public)', color: '#6c757d' };
                         } else if (instance.username && instance.password) {
@@ -6310,6 +6318,7 @@ Click "Run Test" to execute the API call...
             }
             credStatusEl.textContent = credStatus.text;
             credStatusEl.style.color = credStatus.color;
+            btnChangeCredentials.style.display = currentTestInstanceIndex >= 0 ? 'inline-block' : 'none';
 
             // Display editable parameters
             const params = endpoint.parameters || [];
@@ -6426,6 +6435,18 @@ Click "Run Test" to execute the API call...
             if (event.target.id === 'testDialogOverlay') {
                 closeTestDialog();
             }
+        }
+
+        // Change credentials - open instance form for editing
+        function changeTestCredentials() {
+            if (currentTestInstanceIndex < 0) {
+                alert('No instance found for this endpoint.');
+                return;
+            }
+            // Close test dialog and open instance form for editing
+            closeTestDialog();
+            selectedInstanceIndex = currentTestInstanceIndex;
+            showInstanceForm('edit', currentTestInstanceIndex);
         }
 
         // Run endpoint test via C# backend

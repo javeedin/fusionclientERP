@@ -2154,6 +2154,15 @@ namespace WMSApp
                     bool noAuth = root.TryGetProperty("noAuth", out var noAuthProp) && noAuthProp.GetBoolean();
                     string integrationCode = root.TryGetProperty("integrationCode", out var icProp) ? icProp.GetString() : "";
 
+                    // DEBUG: Log all received values
+                    System.Diagnostics.Debug.WriteLine($"[C# DEBUG] ========== TEST ENDPOINT REQUEST ==========");
+                    System.Diagnostics.Debug.WriteLine($"[C# DEBUG] Raw messageJson: {messageJson}");
+                    System.Diagnostics.Debug.WriteLine($"[C# DEBUG] Parsed URL: {url}");
+                    System.Diagnostics.Debug.WriteLine($"[C# DEBUG] Parsed username: '{username}' (length: {username?.Length ?? 0})");
+                    System.Diagnostics.Debug.WriteLine($"[C# DEBUG] Parsed password: '{(string.IsNullOrEmpty(password) ? "(empty)" : "***")}' (length: {password?.Length ?? 0})");
+                    System.Diagnostics.Debug.WriteLine($"[C# DEBUG] Parsed noAuth: {noAuth}");
+                    System.Diagnostics.Debug.WriteLine($"[C# DEBUG] Parsed integrationCode: {integrationCode}");
+
                     System.Diagnostics.Debug.WriteLine($"[C#] Testing endpoint: {url}");
                     System.Diagnostics.Debug.WriteLine($"[C#] Integration Code: {integrationCode}, NoAuth: {noAuth}");
 
@@ -2164,13 +2173,21 @@ namespace WMSApp
                         var request = new HttpRequestMessage(HttpMethod.Get, url);
 
                         // Add Basic Authentication header if credentials are provided
-                        if (!noAuth && !string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
+                        bool hasUsername = !string.IsNullOrEmpty(username);
+                        bool hasPassword = !string.IsNullOrEmpty(password);
+                        System.Diagnostics.Debug.WriteLine($"[C# DEBUG] Auth check: noAuth={noAuth}, hasUsername={hasUsername}, hasPassword={hasPassword}");
+
+                        if (!noAuth && hasUsername && hasPassword)
                         {
                             string credentials = Convert.ToBase64String(
                                 System.Text.Encoding.ASCII.GetBytes($"{username}:{password}")
                             );
                             request.Headers.Add("Authorization", $"Basic {credentials}");
-                            System.Diagnostics.Debug.WriteLine($"[C#] Added Basic Auth for user: {username}");
+                            System.Diagnostics.Debug.WriteLine($"[C# DEBUG] Added Basic Auth header for user: {username}");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[C# DEBUG] NOT adding auth header - noAuth:{noAuth}, hasUser:{hasUsername}, hasPass:{hasPassword}");
                         }
 
                         var response = await httpClient.SendAsync(request);

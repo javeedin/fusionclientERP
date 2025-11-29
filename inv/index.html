@@ -5658,13 +5658,20 @@ Click "Run Test" to execute the API call...
         // Load instances from localStorage
         function loadInstances() {
             const stored = localStorage.getItem('fusionclient_instances');
+            console.log('[JS DEBUG] loadInstances called, raw stored:', stored ? stored.substring(0, 500) : 'null');
             if (stored) {
                 try {
                     instancesData = JSON.parse(stored);
+                    console.log('[JS DEBUG] Loaded instances count:', instancesData.length);
+                    instancesData.forEach((inst, idx) => {
+                        console.log(`[JS DEBUG] Instance[${idx}]: source=${inst.source}, name=${inst.name}, hasUsername=${!!inst.username}, hasPassword=${!!inst.password}, noAuth=${inst.noAuth}`);
+                    });
                 } catch (e) {
+                    console.log('[JS DEBUG] Error parsing instances:', e);
                     instancesData = [];
                 }
             } else {
+                console.log('[JS DEBUG] No stored instances found');
                 instancesData = [];
             }
             renderInstancesTable();
@@ -6472,34 +6479,58 @@ Click "Run Test" to execute the API call...
             let password = '';
             let noAuth = false;
 
+            console.log('[JS DEBUG] runEndpointTest called');
+            console.log('[JS DEBUG] currentTestEndpoint:', JSON.stringify(currentTestEndpoint, null, 2));
+            console.log('[JS DEBUG] sourceInstance:', sourceInstance);
+            console.log('[JS DEBUG] instancesData count:', instancesData.length);
+            console.log('[JS DEBUG] instancesData:', JSON.stringify(instancesData, null, 2));
+
             if (sourceInstance) {
                 // Split on first hyphen only (instance name might contain hyphens)
                 const firstHyphen = sourceInstance.indexOf('-');
+                console.log('[JS DEBUG] firstHyphen index:', firstHyphen);
                 if (firstHyphen > 0) {
                     const source = sourceInstance.substring(0, firstHyphen);
                     const instanceName = sourceInstance.substring(firstHyphen + 1);
+                    console.log('[JS DEBUG] Parsed source:', source, 'instanceName:', instanceName);
+
                     const instance = instancesData.find(i => i.source === source && i.name === instanceName);
+                    console.log('[JS DEBUG] Found instance:', instance ? JSON.stringify(instance, null, 2) : 'null');
 
                     if (instance) {
                         noAuth = instance.noAuth || false;
+                        console.log('[JS DEBUG] noAuth:', noAuth);
+                        console.log('[JS DEBUG] instance.username:', instance.username ? '(set)' : '(empty)');
+                        console.log('[JS DEBUG] instance.password:', instance.password ? '(set)' : '(empty)');
                         if (!noAuth && instance.username && instance.password) {
                             username = instance.username;
                             password = instance.password;
+                            console.log('[JS DEBUG] Using credentials from instance');
+                        } else {
+                            console.log('[JS DEBUG] NOT using credentials - noAuth:', noAuth, 'hasUsername:', !!instance.username, 'hasPassword:', !!instance.password);
                         }
+                    } else {
+                        console.log('[JS DEBUG] No matching instance found for source:', source, 'name:', instanceName);
                     }
                 }
+            } else {
+                console.log('[JS DEBUG] No sourceInstance on endpoint');
             }
+
+            console.log('[JS DEBUG] Final credentials - username:', username ? '(set)' : '(empty)', 'password:', password ? '(set)' : '(empty)', 'noAuth:', noAuth);
 
             // Send to C# backend for testing
             if (window.chrome && window.chrome.webview) {
-                window.chrome.webview.postMessage({
+                const message = {
                     type: 'testEndpoint',
                     url: fullUrl,
                     username: username,
                     password: password,
                     noAuth: noAuth,
                     integrationCode: currentTestEndpoint.integrationCode
-                });
+                };
+                console.log('[JS DEBUG] Sending to C# backend:', JSON.stringify({...message, password: message.password ? '***' : '(empty)'}, null, 2));
+                window.chrome.webview.postMessage(message);
             } else {
                 // Fallback: try direct fetch (may fail due to CORS)
                 runEndpointTestFallback(fullUrl, username, password, noAuth);

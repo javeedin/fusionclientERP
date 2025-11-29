@@ -523,10 +523,10 @@ namespace WMSApp
                 // Use EndpointConfigReader to get LOGIN endpoints by IntegrationCode
                 var loginEndpoints = EndpointConfigReader.GetByIntegrationCode("LOGIN");
 
-                // Filter to APEX source only for login
+                // Filter to APEX source only for login (supports "APEX", "APEX-PROD", "APEX-TEST", etc.)
                 foreach (var endpoint in loginEndpoints)
                 {
-                    if (endpoint.Source.Equals("APEX", StringComparison.OrdinalIgnoreCase))
+                    if (endpoint.Source != null && endpoint.Source.StartsWith("APEX", StringComparison.OrdinalIgnoreCase))
                     {
                         if (!instanceUrls.ContainsKey(endpoint.InstanceName) && !string.IsNullOrWhiteSpace(endpoint.FullUrl))
                         {

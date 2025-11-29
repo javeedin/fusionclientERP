@@ -27,8 +27,80 @@ namespace WMSApp
     /// </summary>
     public static class EndpointConfigReader
     {
-        private static readonly string DefaultSettingsPath = @"C:\fusionclient\ERP\settings";
         private static List<EndpointConfig> _cachedEndpoints = null;
+        private static string _resolvedSettingsPath = null;
+
+        /// <summary>
+        /// Gets the list of possible settings paths to search
+        /// </summary>
+        private static List<string> GetPossibleSettingsPaths()
+        {
+            var paths = new List<string>();
+
+            // 1. Standard deployment path
+            paths.Add(@"C:\fusionclient\ERP\settings");
+
+            // 2. Relative to application directory
+            string appDir = AppDomain.CurrentDomain.BaseDirectory;
+            paths.Add(Path.Combine(appDir, "ERP", "settings"));
+            paths.Add(Path.Combine(appDir, "settings"));
+
+            // 3. Parent directory (for development)
+            string parentDir = Directory.GetParent(appDir)?.FullName;
+            if (!string.IsNullOrEmpty(parentDir))
+            {
+                paths.Add(Path.Combine(parentDir, "ERP", "settings"));
+            }
+
+            // 4. Two levels up (for bin/Debug/net scenarios)
+            string grandParentDir = Directory.GetParent(parentDir ?? appDir)?.FullName;
+            if (!string.IsNullOrEmpty(grandParentDir))
+            {
+                paths.Add(Path.Combine(grandParentDir, "ERP", "settings"));
+
+                // Go even further up for bin/Debug/net8.0-windows scenarios
+                string greatGrandParentDir = Directory.GetParent(grandParentDir)?.FullName;
+                if (!string.IsNullOrEmpty(greatGrandParentDir))
+                {
+                    paths.Add(Path.Combine(greatGrandParentDir, "ERP", "settings"));
+
+                    string ggGrandParentDir = Directory.GetParent(greatGrandParentDir)?.FullName;
+                    if (!string.IsNullOrEmpty(ggGrandParentDir))
+                    {
+                        paths.Add(Path.Combine(ggGrandParentDir, "ERP", "settings"));
+                    }
+                }
+            }
+
+            return paths;
+        }
+
+        /// <summary>
+        /// Finds the settings path that contains the endpoints file
+        /// </summary>
+        private static string FindSettingsPath()
+        {
+            if (_resolvedSettingsPath != null)
+                return _resolvedSettingsPath;
+
+            foreach (var path in GetPossibleSettingsPaths())
+            {
+                string xmlPath = Path.Combine(path, "endpoints.xml");
+                string csvPath = Path.Combine(path, "endpoints.csv");
+
+                System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] Checking path: {path}");
+
+                if (File.Exists(xmlPath) || File.Exists(csvPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] Found settings at: {path}");
+                    _resolvedSettingsPath = path;
+                    return path;
+                }
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] No settings file found in any location");
+            return null;
+        }
 
         /// <summary>
         /// Loads all endpoints from the settings file
@@ -38,7 +110,15 @@ namespace WMSApp
             if (_cachedEndpoints != null)
                 return _cachedEndpoints;
 
-            settingsPath = settingsPath ?? DefaultSettingsPath;
+            // Find the settings path if not provided
+            settingsPath = settingsPath ?? FindSettingsPath();
+
+            if (string.IsNullOrEmpty(settingsPath))
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] No settings path found");
+                _cachedEndpoints = new List<EndpointConfig>();
+                return _cachedEndpoints;
+            }
 
             // Try XML first, then CSV
             string xmlPath = Path.Combine(settingsPath, "endpoints.xml");
@@ -67,6 +147,7 @@ namespace WMSApp
         public static void ClearCache()
         {
             _cachedEndpoints = null;
+            _resolvedSettingsPath = null;
         }
 
         /// <summary>
@@ -232,7 +313,7 @@ namespace WMSApp
         /// </summary>
         public static string GetSettingsPath()
         {
-            return DefaultSettingsPath;
+            return FindSettingsPath() ?? @"C:\fusionclient\ERP\settings";
         }
 
         private static List<EndpointConfig> LoadFromXml(string xmlPath)

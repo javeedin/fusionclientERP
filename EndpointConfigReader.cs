@@ -45,31 +45,16 @@ namespace WMSApp
             paths.Add(Path.Combine(appDir, "ERP", "settings"));
             paths.Add(Path.Combine(appDir, "settings"));
 
-            // 3. Parent directory (for development)
-            string parentDir = Directory.GetParent(appDir)?.FullName;
-            if (!string.IsNullOrEmpty(parentDir))
+            // 3. Walk up directory tree to find ERP/settings (handles bin/Debug/net8.0-windows etc.)
+            string currentDir = appDir;
+            for (int i = 0; i < 6; i++)  // Go up to 6 levels
             {
+                string parentDir = Directory.GetParent(currentDir)?.FullName;
+                if (string.IsNullOrEmpty(parentDir))
+                    break;
+
                 paths.Add(Path.Combine(parentDir, "ERP", "settings"));
-            }
-
-            // 4. Two levels up (for bin/Debug/net scenarios)
-            string grandParentDir = Directory.GetParent(parentDir ?? appDir)?.FullName;
-            if (!string.IsNullOrEmpty(grandParentDir))
-            {
-                paths.Add(Path.Combine(grandParentDir, "ERP", "settings"));
-
-                // Go even further up for bin/Debug/net8.0-windows scenarios
-                string greatGrandParentDir = Directory.GetParent(grandParentDir)?.FullName;
-                if (!string.IsNullOrEmpty(greatGrandParentDir))
-                {
-                    paths.Add(Path.Combine(greatGrandParentDir, "ERP", "settings"));
-
-                    string ggGrandParentDir = Directory.GetParent(greatGrandParentDir)?.FullName;
-                    if (!string.IsNullOrEmpty(ggGrandParentDir))
-                    {
-                        paths.Add(Path.Combine(ggGrandParentDir, "ERP", "settings"));
-                    }
-                }
+                currentDir = parentDir;
             }
 
             return paths;
@@ -83,22 +68,27 @@ namespace WMSApp
             if (_resolvedSettingsPath != null)
                 return _resolvedSettingsPath;
 
+            string appDir = AppDomain.CurrentDomain.BaseDirectory;
+            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] App BaseDirectory: {appDir}");
+
             foreach (var path in GetPossibleSettingsPaths())
             {
                 string xmlPath = Path.Combine(path, "endpoints.xml");
                 string csvPath = Path.Combine(path, "endpoints.csv");
 
-                System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] Checking path: {path}");
+                bool xmlExists = File.Exists(xmlPath);
+                bool csvExists = File.Exists(csvPath);
+                System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] Checking: {path} (xml={xmlExists}, csv={csvExists})");
 
-                if (File.Exists(xmlPath) || File.Exists(csvPath))
+                if (xmlExists || csvExists)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] Found settings at: {path}");
+                    System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] FOUND settings at: {path}");
                     _resolvedSettingsPath = path;
                     return path;
                 }
             }
 
-            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] No settings file found in any location");
+            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] ERROR: No settings file found in any location!");
             return null;
         }
 

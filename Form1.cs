@@ -2193,11 +2193,14 @@ namespace WMSApp
 
                         if (!noAuth && hasUsername && hasPassword)
                         {
+                            string rawCredentials = $"{username}:{password}";
                             string credentials = Convert.ToBase64String(
-                                System.Text.Encoding.ASCII.GetBytes($"{username}:{password}")
+                                System.Text.Encoding.ASCII.GetBytes(rawCredentials)
                             );
                             request.Headers.Add("Authorization", $"Basic {credentials}");
                             System.Diagnostics.Debug.WriteLine($"[C# DEBUG] Added Basic Auth header for user: {username}");
+                            System.Diagnostics.Debug.WriteLine($"[C# DEBUG] Raw credentials format: '{username}:***' (total length: {rawCredentials.Length})");
+                            System.Diagnostics.Debug.WriteLine($"[C# DEBUG] Base64 credentials (first 10 chars): {credentials.Substring(0, Math.Min(10, credentials.Length))}...");
                         }
                         else
                         {
@@ -2210,6 +2213,17 @@ namespace WMSApp
                         stopwatch.Stop();
 
                         System.Diagnostics.Debug.WriteLine($"[C#] Test completed. Status: {response.StatusCode}, Duration: {stopwatch.ElapsedMilliseconds}ms");
+
+                        // Log response body for debugging auth failures
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[C# DEBUG] Response Headers:");
+                            foreach (var header in response.Headers)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[C# DEBUG]   {header.Key}: {string.Join(", ", header.Value)}");
+                            }
+                            System.Diagnostics.Debug.WriteLine($"[C# DEBUG] Response Body (first 500 chars): {(responseContent.Length > 500 ? responseContent.Substring(0, 500) : responseContent)}");
+                        }
 
                         // Send result back to JavaScript
                         var resultMessage = new

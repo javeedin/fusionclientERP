@@ -293,9 +293,12 @@ namespace WMSApp
 
         private void RefreshGrid()
         {
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] RefreshGrid START - _endpoints.Count = {_endpoints.Count}");
             dgvEndpoints.Rows.Clear();
+            int rowNum = 0;
             foreach (var ep in _endpoints)
             {
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] RefreshGrid adding row {rowNum}: Sno={ep.Sno}, Source='{ep.Source}', IntegrationCode='{ep.IntegrationCode}', Instance='{ep.InstanceName}'");
                 dgvEndpoints.Rows.Add(
                     ep.Sno,
                     ep.Source,
@@ -305,21 +308,35 @@ namespace WMSApp
                     ep.Endpoint,
                     ep.Comments
                 );
+                rowNum++;
             }
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] RefreshGrid END - dgvEndpoints.Rows.Count = {dgvEndpoints.Rows.Count}");
         }
 
         private void BtnAdd_Click(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] BtnAdd_Click START");
             // Get next Sno
             int nextSno = _endpoints.Count > 0 ? _endpoints.Max(ep => ep.Sno) + 1 : 1;
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] BtnAdd_Click - nextSno = {nextSno}");
 
             var editForm = new EndpointEditForm(new EndpointConfig { Sno = nextSno });
-            if (editForm.ShowDialog() == DialogResult.OK)
+            var dialogResult = editForm.ShowDialog();
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] BtnAdd_Click - Dialog returned: {dialogResult}");
+
+            if (dialogResult == DialogResult.OK)
             {
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] BtnAdd_Click - Adding endpoint to list:");
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings]   Sno = {editForm.Endpoint.Sno}");
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings]   Source = '{editForm.Endpoint.Source}'");
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings]   IntegrationCode = '{editForm.Endpoint.IntegrationCode}'");
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings]   BaseUrl = '{editForm.Endpoint.BaseUrl}'");
                 _endpoints.Add(editForm.Endpoint);
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] BtnAdd_Click - _endpoints.Count is now {_endpoints.Count}");
                 RefreshGrid();
                 _isDirty = true;
             }
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] BtnAdd_Click END");
         }
 
         private void BtnEdit_Click(object sender, EventArgs e)
@@ -337,25 +354,62 @@ namespace WMSApp
 
         private void EditSelectedRow()
         {
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] EditSelectedRow START");
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] dgvEndpoints.SelectedRows.Count = {dgvEndpoints.SelectedRows.Count}");
+
             if (dgvEndpoints.SelectedRows.Count == 0)
             {
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] No row selected, showing message");
                 MessageBox.Show("Please select a row to edit.", "No Selection",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
             int rowIndex = dgvEndpoints.SelectedRows[0].Index;
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Selected rowIndex = {rowIndex}, _endpoints.Count = {_endpoints.Count}");
+
             if (rowIndex >= 0 && rowIndex < _endpoints.Count)
             {
                 var endpoint = _endpoints[rowIndex];
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Opening EndpointEditForm for endpoint:");
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings]   Sno = {endpoint.Sno}");
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings]   Source = '{endpoint.Source}'");
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings]   IntegrationCode = '{endpoint.IntegrationCode}'");
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings]   InstanceName = '{endpoint.InstanceName}'");
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings]   BaseUrl = '{endpoint.BaseUrl}'");
+
                 var editForm = new EndpointEditForm(endpoint);
-                if (editForm.ShowDialog() == DialogResult.OK)
+                var dialogResult = editForm.ShowDialog();
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Dialog returned: {dialogResult}");
+
+                if (dialogResult == DialogResult.OK)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings] DialogResult.OK - updating _endpoints[{rowIndex}]");
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings] editForm.Endpoint values:");
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings]   Sno = {editForm.Endpoint.Sno}");
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings]   Source = '{editForm.Endpoint.Source}'");
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings]   IntegrationCode = '{editForm.Endpoint.IntegrationCode}'");
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings]   InstanceName = '{editForm.Endpoint.InstanceName}'");
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings]   BaseUrl = '{editForm.Endpoint.BaseUrl}'");
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings]   Endpoint = '{editForm.Endpoint.Endpoint}'");
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings]   Comments = '{editForm.Endpoint.Comments}'");
+
                     _endpoints[rowIndex] = editForm.Endpoint;
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings] _endpoints[{rowIndex}] updated, calling RefreshGrid");
                     RefreshGrid();
                     _isDirty = true;
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings] _isDirty set to true");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Dialog was cancelled or closed (DialogResult = {dialogResult})");
                 }
             }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] rowIndex {rowIndex} is out of bounds for _endpoints.Count {_endpoints.Count}");
+            }
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] EditSelectedRow END");
         }
 
         private void BtnDelete_Click(object sender, EventArgs e)
@@ -408,19 +462,28 @@ namespace WMSApp
 
         private void BtnSave_Click(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] BtnSave_Click START (Save Changes button)");
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] _endpoints.Count = {_endpoints.Count}");
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] _isDirty = {_isDirty}");
+
             try
             {
                 string xmlPath = Path.Combine(_settingsPath, "endpoints.xml");
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Calling SaveEndpointsToXml, path = {xmlPath}");
                 SaveEndpointsToXml();
                 _isDirty = false;
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Save completed successfully");
                 MessageBox.Show($"Endpoints saved successfully!\n\nFile: {xmlPath}\nCount: {_endpoints.Count} endpoints",
                     "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Save FAILED: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Stack trace: {ex.StackTrace}");
                 MessageBox.Show($"Error saving endpoints:\n\n{ex.Message}\n\nPath: {_settingsPath}", "Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] BtnSave_Click END");
         }
 
         private void BtnCancel_Click(object sender, EventArgs e)
@@ -461,7 +524,9 @@ namespace WMSApp
         private void SaveEndpointsToXml()
         {
             string xmlPath = Path.Combine(_settingsPath, "endpoints.xml");
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] SaveEndpointsToXml START");
             System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Saving to: {xmlPath}");
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Number of endpoints to save: {_endpoints.Count}");
 
             // Ensure directory exists
             string directory = Path.GetDirectoryName(xmlPath);
@@ -469,6 +534,10 @@ namespace WMSApp
             {
                 Directory.CreateDirectory(directory);
                 System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Created directory: {directory}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Directory exists: {directory}");
             }
 
             var settings = new XmlWriterSettings
@@ -483,8 +552,10 @@ namespace WMSApp
                 writer.WriteStartDocument();
                 writer.WriteStartElement("Endpoints");
 
+                int writeCount = 0;
                 foreach (var ep in _endpoints)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Writing endpoint #{writeCount}: Sno={ep.Sno}, Source='{ep.Source}', IntegrationCode='{ep.IntegrationCode}', Instance='{ep.InstanceName}', URL='{ep.BaseUrl}'");
                     writer.WriteStartElement("Endpoint");
                     writer.WriteElementString("Sno", ep.Sno.ToString());
                     writer.WriteElementString("Source", ep.Source ?? "");
@@ -494,19 +565,23 @@ namespace WMSApp
                     writer.WriteElementString("Path", ep.Endpoint ?? "");  // Use Path instead of Endpoint to avoid XML confusion
                     writer.WriteElementString("Comments", ep.Comments ?? "");
                     writer.WriteEndElement();
+                    writeCount++;
                 }
 
                 writer.WriteEndElement();
                 writer.WriteEndDocument();
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettings] XML write completed, wrote {writeCount} endpoints");
             }
 
             // Also save CSV version
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Calling SaveEndpointsToCsv...");
             SaveEndpointsToCsv();
 
             // Clear cache so next load gets fresh data
             EndpointConfigReader.ClearCache();
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Cache cleared");
 
-            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] Saved {_endpoints.Count} endpoints to {xmlPath}");
+            System.Diagnostics.Debug.WriteLine($"[EndpointSettings] SaveEndpointsToXml END - Saved {_endpoints.Count} endpoints to {xmlPath}");
         }
 
         private void SaveEndpointsToCsv()
@@ -748,6 +823,15 @@ namespace WMSApp
 
         private void PopulateFields()
         {
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] PopulateFields START");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Endpoint.Sno = {Endpoint.Sno}");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Endpoint.Source = '{Endpoint.Source}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Endpoint.IntegrationCode = '{Endpoint.IntegrationCode}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Endpoint.InstanceName = '{Endpoint.InstanceName}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Endpoint.BaseUrl = '{Endpoint.BaseUrl}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Endpoint.Endpoint = '{Endpoint.Endpoint}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Endpoint.Comments = '{Endpoint.Comments}'");
+
             txtSno.Text = Endpoint.Sno.ToString();
             cboSource.SelectedItem = Endpoint.Source ?? "APEX";
             txtIntegrationCode.Text = Endpoint.IntegrationCode ?? "";
@@ -755,13 +839,25 @@ namespace WMSApp
             txtBaseUrl.Text = Endpoint.BaseUrl ?? "";
             txtEndpoint.Text = Endpoint.Endpoint ?? "";
             txtComments.Text = Endpoint.Comments ?? "";
+
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] PopulateFields END - Fields populated");
         }
 
         private void BtnOk_Click(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] BtnOk_Click START");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] txtSno.Text = '{txtSno.Text}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] cboSource.SelectedItem = '{cboSource.SelectedItem}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] txtIntegrationCode.Text = '{txtIntegrationCode.Text}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] cboInstanceName.Text = '{cboInstanceName.Text}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] txtBaseUrl.Text = '{txtBaseUrl.Text}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] txtEndpoint.Text = '{txtEndpoint.Text}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] txtComments.Text = '{txtComments.Text}'");
+
             // Validate required fields
             if (string.IsNullOrWhiteSpace(txtIntegrationCode.Text))
             {
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Validation FAILED: IntegrationCode is empty");
                 MessageBox.Show("Integration Code is required.", "Validation Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtIntegrationCode.Focus();
@@ -771,12 +867,15 @@ namespace WMSApp
 
             if (string.IsNullOrWhiteSpace(txtBaseUrl.Text))
             {
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Validation FAILED: BaseUrl is empty");
                 MessageBox.Show("Base URL is required.", "Validation Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtBaseUrl.Focus();
                 this.DialogResult = DialogResult.None;
                 return;
             }
+
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Validation PASSED, updating Endpoint object...");
 
             // Update endpoint object - preserve case as entered
             Endpoint.Sno = int.Parse(txtSno.Text);
@@ -786,6 +885,16 @@ namespace WMSApp
             Endpoint.BaseUrl = txtBaseUrl.Text.Trim();
             Endpoint.Endpoint = txtEndpoint.Text.Trim();
             Endpoint.Comments = txtComments.Text.Trim();
+
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Endpoint object updated:");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   Sno = {Endpoint.Sno}");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   Source = '{Endpoint.Source}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   IntegrationCode = '{Endpoint.IntegrationCode}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   InstanceName = '{Endpoint.InstanceName}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   BaseUrl = '{Endpoint.BaseUrl}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   Endpoint = '{Endpoint.Endpoint}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   Comments = '{Endpoint.Comments}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] BtnOk_Click END - DialogResult will be OK");
         }
     }
 }

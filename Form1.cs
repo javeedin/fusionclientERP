@@ -356,17 +356,13 @@ namespace WMSApp
                 System.Diagnostics.Debug.WriteLine($"[VALIDATE LOGIN] Username: {username}");
                 System.Diagnostics.Debug.WriteLine($"[VALIDATE LOGIN] Instance: {instanceName}");
 
-                // Instance URLs
-                var instanceUrls = new Dictionary<string, string>
+                // Get LOGIN endpoint URL from EndpointConfigReader using IntegrationCode
+                string baseUrl = EndpointConfigReader.GetEndpointUrl("APEX", "LOGIN", instanceName);
+                if (string.IsNullOrEmpty(baseUrl))
                 {
-                    { "PROD", "https://g09254cbbf8e7af-graysprod.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT" },
-                    { "TEST", "https://g09254cbbf8e7af-graystest.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT" }
-                };
-
-                if (!instanceUrls.TryGetValue(instanceName, out string baseUrl))
-                {
-                    baseUrl = instanceUrls["PROD"];
+                    throw new Exception($"LOGIN endpoint not configured for instance '{instanceName}'. Please add LOGIN endpoint in Settings.");
                 }
+                System.Diagnostics.Debug.WriteLine($"[VALIDATE LOGIN] BaseUrl from IntegrationCode: {baseUrl}");
 
                 // Call the login endpoint with credentials
                 string encodedUsername = Uri.EscapeDataString(username);
@@ -5017,13 +5013,12 @@ namespace WMSApp
 
                     System.Diagnostics.Debug.WriteLine($"[PICKERS VIEW] Loading data for date: {fromDate}, instance: {instance}");
 
-                    var instanceUrls = new Dictionary<string, string>
+                    // Get LOGIN endpoint URL from EndpointConfigReader using IntegrationCode (WAREHOUSEMANAGEMENT)
+                    string baseUrl = EndpointConfigReader.GetEndpointUrl("APEX", "LOGIN", instance);
+                    if (string.IsNullOrEmpty(baseUrl))
                     {
-                        { "PROD", "https://g09254cbbf8e7af-graysprod.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT" },
-                        { "TEST", "https://g09254cbbf8e7af-graystest.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT" }
-                    };
-
-                    string baseUrl = instanceUrls.ContainsKey(instance) ? instanceUrls[instance] : instanceUrls["PROD"];
+                        throw new Exception($"LOGIN endpoint not configured for instance '{instance}'. Please add LOGIN endpoint in Settings.");
+                    }
                     string apiUrl = $"{baseUrl}/trip/getpickersview?fromDate={fromDate}&instance={instance}";
 
                     System.Diagnostics.Debug.WriteLine($"[PICKERS VIEW] API URL: {apiUrl}");

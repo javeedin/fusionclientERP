@@ -520,65 +520,29 @@ namespace WMSApp
         {
             try
             {
-                // Settings file path: C:\fusionclient\ERP\settings\endpoints.xml
-                string settingsPath = @"C:\fusionclient\ERP\settings\endpoints.xml";
+                // Use EndpointConfigReader to get LOGIN endpoints by IntegrationCode
+                var loginEndpoints = EndpointConfigReader.GetByIntegrationCode("LOGIN");
 
-                if (File.Exists(settingsPath))
+                // Filter to APEX source only for login
+                foreach (var endpoint in loginEndpoints)
                 {
-                    var doc = new System.Xml.XmlDocument();
-                    doc.Load(settingsPath);
-
-                    // Use specific XPath to only select direct Endpoint children
-                    var endpoints = doc.SelectNodes("/Endpoints/Endpoint");
-                    if (endpoints != null)
+                    if (endpoint.Source.Equals("APEX", StringComparison.OrdinalIgnoreCase))
                     {
-                        foreach (System.Xml.XmlNode endpoint in endpoints)
+                        if (!instanceUrls.ContainsKey(endpoint.InstanceName) && !string.IsNullOrWhiteSpace(endpoint.FullUrl))
                         {
-                            string source = endpoint.SelectSingleNode("Source")?.InnerText ?? "";
-                            string integrationCode = endpoint.SelectSingleNode("IntegrationCode")?.InnerText ?? "";
-                            string instanceName = endpoint.SelectSingleNode("InstanceName")?.InnerText ?? "";
-                            string url = endpoint.SelectSingleNode("URL")?.InnerText ?? "";
-                            // Support both Path and Endpoint element names for backwards compatibility
-                            string endpointPath = endpoint.SelectSingleNode("Path")?.InnerText
-                                ?? endpoint.SelectSingleNode("Endpoint")?.InnerText
-                                ?? "";
-
-                            // Skip invalid entries (must have integration code)
-                            if (string.IsNullOrWhiteSpace(integrationCode))
-                                continue;
-
-                            // Add APEX LOGIN endpoints to instance URLs (URL + Endpoint)
-                            if (source.Equals("APEX", StringComparison.OrdinalIgnoreCase) &&
-                                integrationCode.Equals("LOGIN", StringComparison.OrdinalIgnoreCase))
-                            {
-                                if (!instanceUrls.ContainsKey(instanceName) && !string.IsNullOrWhiteSpace(url))
-                                {
-                                    // Combine URL + Endpoint
-                                    string fullUrl = url.TrimEnd('/') + endpointPath;
-                                    instanceUrls[instanceName] = fullUrl;
-                                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Added endpoint: {instanceName} -> {fullUrl}");
-                                }
-                            }
+                            instanceUrls[endpoint.InstanceName] = endpoint.FullUrl;
+                            System.Diagnostics.Debug.WriteLine($"[LOGIN] Added endpoint: {endpoint.InstanceName} -> {endpoint.FullUrl}");
                         }
                     }
-
-                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Loaded {instanceUrls.Count} LOGIN endpoints from settings");
-
-                    // If no LOGIN endpoints found in the file, use defaults
-                    if (instanceUrls.Count == 0)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[LOGIN] No LOGIN endpoints found in settings file, using defaults");
-                        instanceUrls["PROD"] = "https://g09254cbbf8e7af-graysprod.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT";
-                        instanceUrls["TEST"] = "https://g09254cbbf8e7af-graystest.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT";
-                    }
                 }
-                else
+
+                System.Diagnostics.Debug.WriteLine($"[LOGIN] Loaded {instanceUrls.Count} LOGIN endpoints from EndpointConfigReader");
+
+                // If no LOGIN endpoints found, show error - user must configure endpoints
+                if (instanceUrls.Count == 0)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Settings file not found at: {settingsPath}");
-                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Using default endpoints");
-                    // Use default endpoints
-                    instanceUrls["PROD"] = "https://g09254cbbf8e7af-graysprod.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT";
-                    instanceUrls["TEST"] = "https://g09254cbbf8e7af-graystest.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT";
+                    System.Diagnostics.Debug.WriteLine($"[LOGIN] No LOGIN endpoints found. Please configure LOGIN endpoints in Settings.");
+                    ShowError("No LOGIN endpoints configured. Please add LOGIN endpoints in Settings.");
                 }
 
                 // Update the instance dropdown (only if cboInstance exists)
@@ -598,21 +562,7 @@ namespace WMSApp
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[LOGIN] Error loading endpoints: {ex.Message}");
-                // Fallback to defaults
-                instanceUrls["PROD"] = "https://g09254cbbf8e7af-graysprod.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT";
-                instanceUrls["TEST"] = "https://g09254cbbf8e7af-graystest.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT";
-
-                // Populate dropdown with defaults if cboInstance exists
-                if (cboInstance != null)
-                {
-                    cboInstance.Items.Clear();
-                    cboInstance.Items.Add("PROD");
-                    cboInstance.Items.Add("TEST");
-                    if (cboInstance.Items.Count > 0)
-                    {
-                        cboInstance.SelectedIndex = 0;
-                    }
-                }
+                ShowError($"Error loading endpoints: {ex.Message}");
             }
         }
     }

@@ -368,6 +368,307 @@
             cursor: pointer;
         }
 
+        /* Parameters Section */
+        .parameters-section {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            background: #fafafa;
+        }
+
+        .parameters-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .parameters-section-header h4 {
+            margin: 0;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .param-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+        .param-row input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+
+        .param-row .btn-remove-param {
+            background: #f8d7da;
+            color: #dc3545;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .param-row .btn-remove-param:hover {
+            background: #dc3545;
+            color: #fff;
+        }
+
+        .btn-add-param {
+            background: #d4edda;
+            color: #155724;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-add-param:hover {
+            background: #28a745;
+            color: #fff;
+        }
+
+        .pagination-fields {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #ddd;
+        }
+
+        .pagination-fields .form-group {
+            flex: 1;
+            margin: 0;
+        }
+
+        .pagination-fields label {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .pagination-fields input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 13px;
+            width: 100%;
+        }
+
+        /* Test Dialog */
+        .test-dialog-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1200;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .test-dialog-overlay.active {
+            display: flex;
+        }
+
+        .test-dialog {
+            background: #fff;
+            border-radius: 10px;
+            width: 95%;
+            max-width: 900px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .test-dialog-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background: #f8f9fa;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .test-dialog-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .test-dialog-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .test-url-section {
+            margin-bottom: 20px;
+        }
+
+        .test-url-section label {
+            font-weight: 600;
+            font-size: 13px;
+            color: #333;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .test-url-display {
+            background: #f1f3f4;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .test-params-list {
+            margin-bottom: 20px;
+        }
+
+        .test-params-list table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .test-params-list th,
+        .test-params-list td {
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            text-align: left;
+        }
+
+        .test-params-list th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .test-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn-test {
+            background: #28a745;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-test:hover {
+            background: #218838;
+        }
+
+        .btn-test:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .test-results-section {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .test-results-header {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            font-weight: 600;
+            font-size: 13px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .test-status {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .test-status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .test-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .test-status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .test-results-body {
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+
+        .test-dialog-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* Export buttons */
+        .instance-toolbar .btn-export {
+            background: #6c757d;
+            color: #fff;
+            border-color: #6c757d;
+        }
+
+        .instance-toolbar .btn-export:hover {
+            background: #5a6268;
+        }
+
+        .instance-toolbar .btn-test-toolbar {
+            background: #28a745;
+            color: #fff;
+            border-color: #28a745;
+        }
+
+        .instance-toolbar .btn-test-toolbar:hover {
+            background: #218838;
+        }
+
         /* Instance Form Modal */
         .instance-form-overlay {
             display: none;
@@ -2383,9 +2684,18 @@
                         <button onclick="refreshEndpoints()">
                             <span>&#8635;</span> Refresh
                         </button>
+                        <button class="btn-test-toolbar" onclick="testSelectedEndpoint()">
+                            <span>&#9654;</span> Test
+                        </button>
+                        <button class="btn-export" onclick="exportEndpointsJSON()">
+                            <span>&#128190;</span> Export JSON
+                        </button>
+                        <button class="btn-export" onclick="exportEndpointsCSV()">
+                            <span>&#128196;</span> Export CSV
+                        </button>
                     </div>
                     <div style="overflow-x: auto;">
-                        <table class="instance-table" style="min-width: 900px;">
+                        <table class="instance-table" style="min-width: 1000px;">
                             <thead>
                                 <tr>
                                     <th style="width: 30px;"></th>
@@ -2394,6 +2704,7 @@
                                     <th>Integration Code</th>
                                     <th>URL</th>
                                     <th>Path</th>
+                                    <th style="width: 70px;">Params</th>
                                     <th>Comments</th>
                                 </tr>
                             </thead>
@@ -2488,27 +2799,29 @@
 
     <!-- Endpoint Form Modal -->
     <div class="instance-form-overlay" id="endpointFormOverlay" onclick="closeEndpointFormOnOverlay(event)">
-        <div class="instance-form-modal" onclick="event.stopPropagation()">
+        <div class="instance-form-modal" style="max-width: 800px;" onclick="event.stopPropagation()">
             <div class="instance-form-header">
                 <h3 id="endpointFormTitle">New Endpoint</h3>
                 <button class="settings-close" onclick="closeEndpointForm()">&times;</button>
             </div>
-            <div class="instance-form-body">
+            <div class="instance-form-body" style="max-height: 70vh; overflow-y: auto;">
                 <input type="hidden" id="endpointFormMode" value="new">
                 <input type="hidden" id="endpointFormIndex" value="">
-                <div class="form-group">
-                    <label for="endpointSno">S.No</label>
-                    <input type="number" id="endpointSno" placeholder="Auto-generated" readonly style="background: #f5f5f5;">
-                </div>
-                <div class="form-group">
-                    <label for="endpointSourceInstance">Source (Instance) *</label>
-                    <select id="endpointSourceInstance" onchange="onEndpointSourceInstanceChange()">
-                        <option value="">-- Select Instance --</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="endpointIntegrationCode">Integration Code *</label>
-                    <input type="text" id="endpointIntegrationCode" placeholder="e.g., INVENTORY_ON_HAND">
+                <div style="display: flex; gap: 15px;">
+                    <div class="form-group" style="flex: 0 0 80px;">
+                        <label for="endpointSno">S.No</label>
+                        <input type="number" id="endpointSno" placeholder="Auto" readonly style="background: #f5f5f5;">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="endpointSourceInstance">Source (Instance) *</label>
+                        <select id="endpointSourceInstance" onchange="onEndpointSourceInstanceChange()">
+                            <option value="">-- Select Instance --</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="endpointIntegrationCode">Integration Code *</label>
+                        <input type="text" id="endpointIntegrationCode" placeholder="e.g., INVENTORY_ON_HAND">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="endpointURL">URL (auto-filled from instance)</label>
@@ -2522,10 +2835,85 @@
                     <label for="endpointComments">Comments</label>
                     <input type="text" id="endpointComments" placeholder="Optional comments">
                 </div>
+
+                <!-- Parameters Section -->
+                <div class="parameters-section">
+                    <div class="parameters-section-header">
+                        <h4>Parameters <span style="font-weight: normal; color: #666;">(Fusion: q=p1=v1;p2=v2 | APEX: ?p1=v1&amp;p2=v2)</span></h4>
+                        <button type="button" class="btn-add-param" onclick="addParameterRow()">
+                            <span>&#10133;</span> Add Parameter
+                        </button>
+                    </div>
+                    <div id="parametersContainer">
+                        <!-- Parameter rows will be added here dynamically -->
+                    </div>
+
+                    <!-- Pagination fields for Fusion -->
+                    <div class="pagination-fields" id="paginationFields">
+                        <div class="form-group">
+                            <label for="endpointOffset">Offset (Fusion pagination)</label>
+                            <input type="number" id="endpointOffset" placeholder="e.g., 0" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="endpointLimit">Limit (Fusion pagination)</label>
+                            <input type="number" id="endpointLimit" placeholder="e.g., 100" min="1">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-actions">
                     <button class="btn-cancel" onclick="closeEndpointForm()">Cancel</button>
                     <button class="btn-save" onclick="saveEndpoint()">Save</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Endpoint Dialog -->
+    <div class="test-dialog-overlay" id="testDialogOverlay" onclick="closeTestDialogOnOverlay(event)">
+        <div class="test-dialog" onclick="event.stopPropagation()">
+            <div class="test-dialog-header">
+                <h3>Test Endpoint</h3>
+                <button class="settings-close" onclick="closeTestDialog()">&times;</button>
+            </div>
+            <div class="test-dialog-body">
+                <div class="test-url-section">
+                    <label>Full URL</label>
+                    <div class="test-url-display" id="testFullUrl">-</div>
+                </div>
+
+                <div class="test-params-list" id="testParamsSection">
+                    <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 8px;">Parameters</label>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody id="testParamsBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="test-actions">
+                    <button class="btn-test" id="btnRunTest" onclick="runEndpointTest()">
+                        <span>&#9654;</span> Run Test
+                    </button>
+                </div>
+
+                <div class="test-results-section">
+                    <div class="test-results-header">
+                        <span>Response</span>
+                        <span class="test-status pending" id="testStatusBadge">Waiting</span>
+                    </div>
+                    <div class="test-results-body" id="testResultsBody">
+Click "Run Test" to execute the API call...
+                    </div>
+                </div>
+            </div>
+            <div class="test-dialog-footer">
+                <button class="btn-cancel" onclick="closeTestDialog()">Close</button>
             </div>
         </div>
     </div>
@@ -5460,13 +5848,16 @@
             if (!tbody) return;
 
             if (endpointsData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px; color: #888;">No endpoints configured. Click "New" to add one.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 30px; color: #888;">No endpoints configured. Click "New" to add one.</td></tr>';
                 return;
             }
 
             tbody.innerHTML = endpointsData.map((endpoint, index) => {
                 // Source column shows "Source-Instance" format
                 const sourceDisplay = endpoint.sourceInstance || `${endpoint.source || ''}-${endpoint.instanceName || ''}`;
+                // Parameters count
+                const paramCount = (endpoint.parameters && endpoint.parameters.length) || 0;
+                const paramBadge = paramCount > 0 ? `<span style="background: #667eea; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px;">${paramCount}</span>` : '<span style="color: #999;">0</span>';
                 return `
                 <tr onclick="selectEndpoint(${index})" class="${index === selectedEndpointIndex ? 'selected' : ''}">
                     <td><input type="radio" name="endpointSelect" ${index === selectedEndpointIndex ? 'checked' : ''} onclick="event.stopPropagation(); selectEndpoint(${index})"></td>
@@ -5475,6 +5866,7 @@
                     <td>${escapeHtml(endpoint.integrationCode)}</td>
                     <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(endpoint.url)}">${escapeHtml(endpoint.url)}</td>
                     <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(endpoint.path)}">${escapeHtml(endpoint.path)}</td>
+                    <td style="text-align: center;">${paramBadge}</td>
                     <td>${escapeHtml(endpoint.comments || '')}</td>
                 </tr>
             `}).join('');
@@ -5533,6 +5925,9 @@
             document.getElementById('endpointFormMode').value = mode;
             document.getElementById('endpointFormIndex').value = index !== null ? index : '';
 
+            // Clear parameters container
+            document.getElementById('parametersContainer').innerHTML = '';
+
             if (mode === 'new') {
                 title.textContent = 'New Endpoint';
                 document.getElementById('endpointSno').value = getNextSno();
@@ -5541,6 +5936,8 @@
                 document.getElementById('endpointURL').value = '';
                 document.getElementById('endpointPath').value = '';
                 document.getElementById('endpointComments').value = '';
+                document.getElementById('endpointOffset').value = '';
+                document.getElementById('endpointLimit').value = '';
             } else if (mode === 'edit' && index !== null) {
                 title.textContent = 'Edit Endpoint';
                 const endpoint = endpointsData[index];
@@ -5552,6 +5949,17 @@
                 document.getElementById('endpointURL').value = endpoint.url || '';
                 document.getElementById('endpointPath').value = endpoint.path || '';
                 document.getElementById('endpointComments').value = endpoint.comments || '';
+
+                // Load pagination fields
+                document.getElementById('endpointOffset').value = endpoint.offset || '';
+                document.getElementById('endpointLimit').value = endpoint.limit || '';
+
+                // Load existing parameters
+                if (endpoint.parameters && endpoint.parameters.length > 0) {
+                    endpoint.parameters.forEach(param => {
+                        addParameterRow(param.name, param.value);
+                    });
+                }
             }
 
             overlay.classList.add('active');
@@ -5578,6 +5986,13 @@
             const path = document.getElementById('endpointPath').value.trim();
             const comments = document.getElementById('endpointComments').value.trim();
 
+            // Get parameters
+            const parameters = getParametersFromForm();
+
+            // Get pagination fields
+            const offset = document.getElementById('endpointOffset').value ? parseInt(document.getElementById('endpointOffset').value) : null;
+            const limit = document.getElementById('endpointLimit').value ? parseInt(document.getElementById('endpointLimit').value) : null;
+
             // Validation
             if (!sourceInstance || !integrationCode || !url || !path) {
                 alert('Please fill in all required fields (Source Instance, Integration Code, URL, Path).');
@@ -5587,7 +6002,7 @@
             const mode = document.getElementById('endpointFormMode').value;
             const indexStr = document.getElementById('endpointFormIndex').value;
 
-            const endpointObj = { sno, sourceInstance, integrationCode, url, path, comments };
+            const endpointObj = { sno, sourceInstance, integrationCode, url, path, comments, parameters, offset, limit };
 
             // Uniqueness check: SourceInstance + IntegrationCode combination must be unique
             const isDuplicate = (ep) => {
@@ -5657,6 +6072,319 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // =============================================
+        // PARAMETER FUNCTIONS
+        // =============================================
+
+        // Add parameter row to form
+        function addParameterRow(name = '', value = '') {
+            const container = document.getElementById('parametersContainer');
+            const rowId = 'paramRow_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+            const row = document.createElement('div');
+            row.className = 'param-row';
+            row.id = rowId;
+            row.innerHTML = `
+                <input type="text" class="param-name" placeholder="Parameter name" value="${escapeHtml(name)}">
+                <input type="text" class="param-value" placeholder="Parameter value" value="${escapeHtml(value)}">
+                <button type="button" class="btn-remove-param" onclick="removeParameterRow('${rowId}')">&times;</button>
+            `;
+            container.appendChild(row);
+        }
+
+        // Remove parameter row
+        function removeParameterRow(rowId) {
+            const row = document.getElementById(rowId);
+            if (row) {
+                row.remove();
+            }
+        }
+
+        // Get parameters from form
+        function getParametersFromForm() {
+            const container = document.getElementById('parametersContainer');
+            const rows = container.querySelectorAll('.param-row');
+            const parameters = [];
+
+            rows.forEach(row => {
+                const nameInput = row.querySelector('.param-name');
+                const valueInput = row.querySelector('.param-value');
+                const name = nameInput ? nameInput.value.trim() : '';
+                const value = valueInput ? valueInput.value.trim() : '';
+
+                if (name) {
+                    parameters.push({ name, value });
+                }
+            });
+
+            return parameters;
+        }
+
+        // Build full URL with parameters based on source type
+        function buildFullUrl(endpoint) {
+            let fullUrl = endpoint.url + endpoint.path;
+            const sourceType = endpoint.sourceInstance ? endpoint.sourceInstance.split('-')[0] : '';
+            const params = endpoint.parameters || [];
+
+            if (sourceType.toUpperCase() === 'FUSION') {
+                // Fusion format: q=param1=value1;param2=value2
+                let queryParts = [];
+
+                if (params.length > 0) {
+                    const qParams = params.map(p => `${encodeURIComponent(p.name)}=${encodeURIComponent(p.value)}`).join(';');
+                    queryParts.push('q=' + qParams);
+                }
+
+                // Add pagination for Fusion
+                if (endpoint.offset !== null && endpoint.offset !== undefined) {
+                    queryParts.push('offset=' + endpoint.offset);
+                }
+                if (endpoint.limit !== null && endpoint.limit !== undefined) {
+                    queryParts.push('limit=' + endpoint.limit);
+                }
+
+                if (queryParts.length > 0) {
+                    fullUrl += '?' + queryParts.join('&');
+                }
+            } else {
+                // APEX format: ?param1=value1&param2=value2
+                if (params.length > 0) {
+                    const queryString = params.map(p => `${encodeURIComponent(p.name)}=${encodeURIComponent(p.value)}`).join('&');
+                    fullUrl += '?' + queryString;
+                }
+            }
+
+            return fullUrl;
+        }
+
+        // =============================================
+        // TEST ENDPOINT FUNCTIONS
+        // =============================================
+
+        let currentTestEndpoint = null;
+
+        // Test selected endpoint
+        function testSelectedEndpoint() {
+            if (selectedEndpointIndex < 0 || selectedEndpointIndex >= endpointsData.length) {
+                alert('Please select an endpoint to test.');
+                return;
+            }
+
+            const endpoint = endpointsData[selectedEndpointIndex];
+            currentTestEndpoint = endpoint;
+            showTestDialog(endpoint);
+        }
+
+        // Show test dialog
+        function showTestDialog(endpoint) {
+            const overlay = document.getElementById('testDialogOverlay');
+            const fullUrlDisplay = document.getElementById('testFullUrl');
+            const paramsBody = document.getElementById('testParamsBody');
+            const paramsSection = document.getElementById('testParamsSection');
+            const resultsBody = document.getElementById('testResultsBody');
+            const statusBadge = document.getElementById('testStatusBadge');
+
+            // Build and display full URL
+            const fullUrl = buildFullUrl(endpoint);
+            fullUrlDisplay.textContent = fullUrl;
+
+            // Display parameters
+            const params = endpoint.parameters || [];
+            if (params.length > 0) {
+                paramsSection.style.display = 'block';
+                paramsBody.innerHTML = params.map(p => `
+                    <tr>
+                        <td>${escapeHtml(p.name)}</td>
+                        <td>${escapeHtml(p.value)}</td>
+                    </tr>
+                `).join('');
+
+                // Add pagination info for Fusion
+                const sourceType = endpoint.sourceInstance ? endpoint.sourceInstance.split('-')[0] : '';
+                if (sourceType.toUpperCase() === 'FUSION') {
+                    if (endpoint.offset !== null && endpoint.offset !== undefined) {
+                        paramsBody.innerHTML += `<tr><td style="color: #667eea;">offset (pagination)</td><td>${endpoint.offset}</td></tr>`;
+                    }
+                    if (endpoint.limit !== null && endpoint.limit !== undefined) {
+                        paramsBody.innerHTML += `<tr><td style="color: #667eea;">limit (pagination)</td><td>${endpoint.limit}</td></tr>`;
+                    }
+                }
+            } else {
+                paramsSection.style.display = 'none';
+            }
+
+            // Reset results
+            resultsBody.textContent = 'Click "Run Test" to execute the API call...';
+            statusBadge.className = 'test-status pending';
+            statusBadge.textContent = 'Waiting';
+
+            overlay.classList.add('active');
+        }
+
+        // Close test dialog
+        function closeTestDialog() {
+            document.getElementById('testDialogOverlay').classList.remove('active');
+            currentTestEndpoint = null;
+        }
+
+        // Close test dialog on overlay click
+        function closeTestDialogOnOverlay(event) {
+            if (event.target.id === 'testDialogOverlay') {
+                closeTestDialog();
+            }
+        }
+
+        // Run endpoint test
+        async function runEndpointTest() {
+            if (!currentTestEndpoint) return;
+
+            const btnRunTest = document.getElementById('btnRunTest');
+            const resultsBody = document.getElementById('testResultsBody');
+            const statusBadge = document.getElementById('testStatusBadge');
+
+            // Disable button during test
+            btnRunTest.disabled = true;
+            btnRunTest.innerHTML = '<span>&#8987;</span> Testing...';
+            statusBadge.className = 'test-status pending';
+            statusBadge.textContent = 'Running...';
+            resultsBody.textContent = 'Executing API call...';
+
+            const fullUrl = buildFullUrl(currentTestEndpoint);
+            const startTime = Date.now();
+
+            try {
+                // Find instance to get auth credentials
+                const sourceInstance = currentTestEndpoint.sourceInstance;
+                let authHeaders = {};
+
+                if (sourceInstance) {
+                    const [source, instanceName] = sourceInstance.split('-');
+                    const instance = instancesData.find(i => i.source === source && i.name === instanceName);
+
+                    if (instance && !instance.noAuth && instance.username && instance.password) {
+                        const credentials = btoa(instance.username + ':' + instance.password);
+                        authHeaders['Authorization'] = 'Basic ' + credentials;
+                    }
+                }
+
+                const response = await fetch(fullUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...authHeaders
+                    }
+                });
+
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+
+                if (response.ok) {
+                    const contentType = response.headers.get('content-type');
+                    let data;
+
+                    if (contentType && contentType.includes('application/json')) {
+                        data = await response.json();
+                        resultsBody.textContent = `Status: ${response.status} ${response.statusText}\nDuration: ${duration}ms\n\n${JSON.stringify(data, null, 2)}`;
+                    } else {
+                        data = await response.text();
+                        resultsBody.textContent = `Status: ${response.status} ${response.statusText}\nDuration: ${duration}ms\n\n${data}`;
+                    }
+
+                    statusBadge.className = 'test-status success';
+                    statusBadge.textContent = `${response.status} OK`;
+                } else {
+                    const errorText = await response.text();
+                    resultsBody.textContent = `Status: ${response.status} ${response.statusText}\nDuration: ${duration}ms\n\n${errorText}`;
+                    statusBadge.className = 'test-status error';
+                    statusBadge.textContent = `${response.status} Error`;
+                }
+            } catch (error) {
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                resultsBody.textContent = `Error: ${error.message}\nDuration: ${duration}ms\n\nThis might be due to CORS restrictions. Try testing from the backend.`;
+                statusBadge.className = 'test-status error';
+                statusBadge.textContent = 'Failed';
+            }
+
+            // Re-enable button
+            btnRunTest.disabled = false;
+            btnRunTest.innerHTML = '<span>&#9654;</span> Run Test';
+        }
+
+        // =============================================
+        // EXPORT FUNCTIONS
+        // =============================================
+
+        // Export endpoints to JSON
+        function exportEndpointsJSON() {
+            const dataStr = JSON.stringify(endpointsData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'endpoints.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            // Also save via C# if available
+            if (window.chrome && window.chrome.webview) {
+                window.chrome.webview.postMessage({
+                    type: 'exportEndpointsJSON',
+                    data: dataStr
+                });
+            }
+        }
+
+        // Export endpoints to CSV
+        function exportEndpointsCSV() {
+            // CSV header
+            const headers = ['S.No', 'Source', 'Integration Code', 'URL', 'Path', 'Parameters', 'Offset', 'Limit', 'Comments'];
+            const csvRows = [headers.join(',')];
+
+            // CSV rows
+            endpointsData.forEach(endpoint => {
+                const sourceDisplay = endpoint.sourceInstance || `${endpoint.source || ''}-${endpoint.instanceName || ''}`;
+                const params = endpoint.parameters || [];
+                const paramsStr = params.map(p => `${p.name}=${p.value}`).join(';');
+
+                const row = [
+                    endpoint.sno || '',
+                    `"${sourceDisplay}"`,
+                    `"${endpoint.integrationCode || ''}"`,
+                    `"${endpoint.url || ''}"`,
+                    `"${endpoint.path || ''}"`,
+                    `"${paramsStr}"`,
+                    endpoint.offset || '',
+                    endpoint.limit || '',
+                    `"${(endpoint.comments || '').replace(/"/g, '""')}"`
+                ];
+                csvRows.push(row.join(','));
+            });
+
+            const csvContent = csvRows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'endpoints.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            // Also save via C# if available
+            if (window.chrome && window.chrome.webview) {
+                window.chrome.webview.postMessage({
+                    type: 'exportEndpointsCSV',
+                    data: csvContent
+                });
+            }
         }
 
         // Logout

@@ -1808,6 +1808,8 @@ namespace WMSApp
                             if (root.ValueKind == JsonValueKind.String)
                             {
                                 string innerJson = root.GetString();
+                                messageJson = innerJson; // FIX: Update messageJson to use the inner JSON
+                                System.Diagnostics.Debug.WriteLine($"[C# DEBUG] Double-serialized message detected, using inner JSON");
                                 using (var innerDoc = JsonDocument.Parse(innerJson))
                                 {
                                     root = innerDoc.RootElement.Clone();
@@ -2148,6 +2150,18 @@ namespace WMSApp
                 using (var doc = JsonDocument.Parse(messageJson))
                 {
                     var root = doc.RootElement;
+
+                    // Handle double-serialized messages (safeguard)
+                    if (root.ValueKind == JsonValueKind.String)
+                    {
+                        string innerJson = root.GetString();
+                        System.Diagnostics.Debug.WriteLine($"[C# DEBUG] HandleTestEndpoint: Detected double-serialized, parsing inner JSON");
+                        using (var innerDoc = JsonDocument.Parse(innerJson))
+                        {
+                            root = innerDoc.RootElement.Clone();
+                        }
+                    }
+
                     string url = root.TryGetProperty("url", out var urlProp) ? urlProp.GetString() : "";
                     string username = root.TryGetProperty("username", out var userProp) ? userProp.GetString() : "";
                     string password = root.TryGetProperty("password", out var passProp) ? passProp.GetString() : "";

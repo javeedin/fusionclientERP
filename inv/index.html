@@ -2675,17 +2675,11 @@
                         <button class="btn-primary" onclick="showEndpointForm('new')">
                             <span>&#10133;</span> New
                         </button>
-                        <button onclick="editSelectedEndpoint()">
-                            <span>&#9998;</span> Edit
-                        </button>
                         <button class="btn-danger" onclick="deleteSelectedEndpoint()">
                             <span>&#128465;</span> Delete
                         </button>
                         <button onclick="refreshEndpoints()">
                             <span>&#8635;</span> Refresh
-                        </button>
-                        <button class="btn-test-toolbar" onclick="testSelectedEndpoint()">
-                            <span>&#9654;</span> Test
                         </button>
                         <button class="btn-export" onclick="exportEndpointsJSON()">
                             <span>&#128190;</span> Export JSON
@@ -2693,6 +2687,13 @@
                         <button class="btn-export" onclick="exportEndpointsCSV()">
                             <span>&#128196;</span> Export CSV
                         </button>
+                        <div style="flex: 1;"></div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #666;">&#128269;</span>
+                            <input type="text" id="endpointSearchInput" placeholder="Search endpoints..."
+                                   style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; width: 200px;"
+                                   oninput="filterEndpoints()">
+                        </div>
                     </div>
                     <div style="overflow-x: auto;">
                         <table class="instance-table" style="min-width: 1000px;">
@@ -2706,6 +2707,7 @@
                                     <th>Path</th>
                                     <th style="width: 70px;">Params</th>
                                     <th>Comments</th>
+                                    <th style="width: 90px;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="endpointsTableBody">
@@ -2887,6 +2889,10 @@
                         <div style="flex: 1;">
                             <small style="color: #666;">Integration Code:</small>
                             <div id="testIntegrationCode" style="font-weight: 500;">-</div>
+                        </div>
+                        <div style="flex: 1;">
+                            <small style="color: #666;">Credentials:</small>
+                            <div id="testCredentialsStatus" style="font-weight: 500;">-</div>
                         </div>
                     </div>
                     <label>Full URL <small style="color: #666;">(updates automatically)</small></label>
@@ -5868,33 +5874,94 @@ Click "Run Test" to execute the API call...
         }
 
         // Render endpoints table with all columns
+        // Search filter text
+        let endpointSearchFilter = '';
+
+        // Filter endpoints by search text
+        function filterEndpoints() {
+            const searchInput = document.getElementById('endpointSearchInput');
+            endpointSearchFilter = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            renderEndpointsTable();
+        }
+
+        // Get filtered endpoints based on search
+        function getFilteredEndpoints() {
+            if (!endpointSearchFilter) {
+                return endpointsData.map((ep, idx) => ({ endpoint: ep, originalIndex: idx }));
+            }
+
+            return endpointsData
+                .map((ep, idx) => ({ endpoint: ep, originalIndex: idx }))
+                .filter(({ endpoint }) => {
+                    const sourceDisplay = endpoint.sourceInstance || `${endpoint.source || ''}-${endpoint.instanceName || ''}`;
+                    const searchableText = [
+                        sourceDisplay,
+                        endpoint.integrationCode,
+                        endpoint.url,
+                        endpoint.path,
+                        endpoint.comments
+                    ].join(' ').toLowerCase();
+                    return searchableText.includes(endpointSearchFilter);
+                });
+        }
+
         function renderEndpointsTable() {
             const tbody = document.getElementById('endpointsTableBody');
             if (!tbody) return;
 
-            if (endpointsData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 30px; color: #888;">No endpoints configured. Click "New" to add one.</td></tr>';
+            const filteredEndpoints = getFilteredEndpoints();
+
+            if (filteredEndpoints.length === 0) {
+                const message = endpointSearchFilter
+                    ? 'No endpoints match your search criteria.'
+                    : 'No endpoints configured. Click "New" to add one.';
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 30px; color: #888;">${message}</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = endpointsData.map((endpoint, index) => {
+            tbody.innerHTML = filteredEndpoints.map(({ endpoint, originalIndex }) => {
                 // Source column shows "Source-Instance" format
                 const sourceDisplay = endpoint.sourceInstance || `${endpoint.source || ''}-${endpoint.instanceName || ''}`;
                 // Parameters count
                 const paramCount = (endpoint.parameters && endpoint.parameters.length) || 0;
                 const paramBadge = paramCount > 0 ? `<span style="background: #667eea; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px;">${paramCount}</span>` : '<span style="color: #999;">0</span>';
                 return `
-                <tr onclick="selectEndpoint(${index})" class="${index === selectedEndpointIndex ? 'selected' : ''}">
-                    <td><input type="radio" name="endpointSelect" ${index === selectedEndpointIndex ? 'checked' : ''} onclick="event.stopPropagation(); selectEndpoint(${index})"></td>
-                    <td>${endpoint.sno || index + 1}</td>
+                <tr onclick="selectEndpoint(${originalIndex})" class="${originalIndex === selectedEndpointIndex ? 'selected' : ''}">
+                    <td><input type="radio" name="endpointSelect" ${originalIndex === selectedEndpointIndex ? 'checked' : ''} onclick="event.stopPropagation(); selectEndpoint(${originalIndex})"></td>
+                    <td>${endpoint.sno || originalIndex + 1}</td>
                     <td>${escapeHtml(sourceDisplay)}</td>
                     <td>${escapeHtml(endpoint.integrationCode)}</td>
                     <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(endpoint.url)}">${escapeHtml(endpoint.url)}</td>
                     <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(endpoint.path)}">${escapeHtml(endpoint.path)}</td>
                     <td style="text-align: center;">${paramBadge}</td>
                     <td>${escapeHtml(endpoint.comments || '')}</td>
+                    <td style="text-align: center;">
+                        <button onclick="event.stopPropagation(); testEndpointRow(${originalIndex})"
+                                title="Test Endpoint"
+                                style="background: #28a745; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-right: 4px;">
+                            &#9654;
+                        </button>
+                        <button onclick="event.stopPropagation(); editEndpointRow(${originalIndex})"
+                                title="Edit Endpoint"
+                                style="background: #667eea; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">
+                            &#9998;
+                        </button>
+                    </td>
                 </tr>
             `}).join('');
+        }
+
+        // Test endpoint from row action
+        function testEndpointRow(index) {
+            const endpoint = endpointsData[index];
+            if (!endpoint) return;
+            currentTestEndpoint = endpoint;
+            showTestDialog(endpoint);
+        }
+
+        // Edit endpoint from row action
+        function editEndpointRow(index) {
+            showEndpointForm('edit', index);
         }
 
         // Select an endpoint row
@@ -6219,6 +6286,31 @@ Click "Run Test" to execute the API call...
             const sourceType = endpoint.sourceInstance ? endpoint.sourceInstance.split('-')[0] : '';
             const isFusion = sourceType.toUpperCase() === 'FUSION';
 
+            // Show credentials status
+            const credStatusEl = document.getElementById('testCredentialsStatus');
+            let credStatus = { text: 'No Instance Found', color: '#dc3545' };
+
+            if (endpoint.sourceInstance) {
+                const firstHyphen = endpoint.sourceInstance.indexOf('-');
+                if (firstHyphen > 0) {
+                    const source = endpoint.sourceInstance.substring(0, firstHyphen);
+                    const instanceName = endpoint.sourceInstance.substring(firstHyphen + 1);
+                    const instance = instancesData.find(i => i.source === source && i.name === instanceName);
+
+                    if (instance) {
+                        if (instance.noAuth) {
+                            credStatus = { text: 'No Auth (Public)', color: '#6c757d' };
+                        } else if (instance.username && instance.password) {
+                            credStatus = { text: instance.username + ' (from Instance)', color: '#28a745' };
+                        } else {
+                            credStatus = { text: 'Credentials Missing', color: '#dc3545' };
+                        }
+                    }
+                }
+            }
+            credStatusEl.textContent = credStatus.text;
+            credStatusEl.style.color = credStatus.color;
+
             // Display editable parameters
             const params = endpoint.parameters || [];
             if (params.length > 0) {
@@ -6360,14 +6452,19 @@ Click "Run Test" to execute the API call...
             let noAuth = false;
 
             if (sourceInstance) {
-                const [source, instanceName] = sourceInstance.split('-');
-                const instance = instancesData.find(i => i.source === source && i.name === instanceName);
+                // Split on first hyphen only (instance name might contain hyphens)
+                const firstHyphen = sourceInstance.indexOf('-');
+                if (firstHyphen > 0) {
+                    const source = sourceInstance.substring(0, firstHyphen);
+                    const instanceName = sourceInstance.substring(firstHyphen + 1);
+                    const instance = instancesData.find(i => i.source === source && i.name === instanceName);
 
-                if (instance) {
-                    noAuth = instance.noAuth || false;
-                    if (!noAuth) {
-                        username = instance.username || '';
-                        password = instance.password || '';
+                    if (instance) {
+                        noAuth = instance.noAuth || false;
+                        if (!noAuth && instance.username && instance.password) {
+                            username = instance.username;
+                            password = instance.password;
+                        }
                     }
                 }
             }

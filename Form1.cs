@@ -2018,6 +2018,11 @@ namespace WMSApp
                                     await HandleTestSmtpConnection(wv, messageJson, requestId);
                                     break;
 
+                                // Endpoint Testing
+                                case "testEndpoint":
+                                    await HandleTestEndpoint(wv, messageJson, requestId);
+                                    break;
+
                                 default:
                                     System.Diagnostics.Debug.WriteLine($"[C#] Unknown action: {action}");
                                     break;
@@ -2129,6 +2134,117 @@ namespace WMSApp
 
                 string errorJson = JsonSerializer.Serialize(errorMessage);
                 wv.CoreWebView2.PostWebMessageAsJson(errorJson);
+            }
+        }
+
+        // ========== TEST ENDPOINT HANDLER ==========
+
+        private async Task HandleTestEndpoint(WebView2 wv, string messageJson, string requestId)
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+            try
+            {
+                using (var doc = JsonDocument.Parse(messageJson))
+                {
+                    var root = doc.RootElement;
+                    string url = root.TryGetProperty("url", out var urlProp) ? urlProp.GetString() : "";
+                    string username = root.TryGetProperty("username", out var userProp) ? userProp.GetString() : "";
+                    string password = root.TryGetProperty("password", out var passProp) ? passProp.GetString() : "";
+                    bool noAuth = root.TryGetProperty("noAuth", out var noAuthProp) && noAuthProp.GetBoolean();
+                    string integrationCode = root.TryGetProperty("integrationCode", out var icProp) ? icProp.GetString() : "";
+
+                    System.Diagnostics.Debug.WriteLine($"[C#] Testing endpoint: {url}");
+                    System.Diagnostics.Debug.WriteLine($"[C#] Integration Code: {integrationCode}, NoAuth: {noAuth}");
+
+                    using (var httpClient = new HttpClient())
+                    {
+                        httpClient.Timeout = TimeSpan.FromSeconds(30);
+
+                        var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+                        // Add Basic Authentication header if credentials are provided
+                        if (!noAuth && !string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
+                        {
+                            string credentials = Convert.ToBase64String(
+                                System.Text.Encoding.ASCII.GetBytes($"{username}:{password}")
+                            );
+                            request.Headers.Add("Authorization", $"Basic {credentials}");
+                            System.Diagnostics.Debug.WriteLine($"[C#] Added Basic Auth for user: {username}");
+                        }
+
+                        var response = await httpClient.SendAsync(request);
+                        string responseContent = await response.Content.ReadAsStringAsync();
+
+                        stopwatch.Stop();
+
+                        System.Diagnostics.Debug.WriteLine($"[C#] Test completed. Status: {response.StatusCode}, Duration: {stopwatch.ElapsedMilliseconds}ms");
+
+                        // Send result back to JavaScript
+                        var resultMessage = new
+                        {
+                            action = "testEndpointResult",
+                            requestId = requestId,
+                            success = response.IsSuccessStatusCode,
+                            statusCode = (int)response.StatusCode,
+                            statusText = response.ReasonPhrase,
+                            duration = stopwatch.ElapsedMilliseconds,
+                            data = responseContent,
+                            error = response.IsSuccessStatusCode ? null : $"HTTP {response.StatusCode}: {response.ReasonPhrase}"
+                        };
+
+                        string resultJson = JsonSerializer.Serialize(resultMessage);
+                        wv.CoreWebView2.PostWebMessageAsJson(resultJson);
+
+                        // Also call handleTestResult in JavaScript
+                        string jsCall = $"if(typeof handleTestResult === 'function') handleTestResult({resultJson});";
+                        await wv.CoreWebView2.ExecuteScriptAsync(jsCall);
+                    }
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                stopwatch.Stop();
+                var errorMessage = new
+                {
+                    action = "testEndpointResult",
+                    requestId = requestId,
+                    success = false,
+                    statusCode = 0,
+                    statusText = "Timeout",
+                    duration = stopwatch.ElapsedMilliseconds,
+                    data = "",
+                    error = "Request timed out after 30 seconds"
+                };
+
+                string errorJson = JsonSerializer.Serialize(errorMessage);
+                wv.CoreWebView2.PostWebMessageAsJson(errorJson);
+
+                string jsCall = $"if(typeof handleTestResult === 'function') handleTestResult({errorJson});";
+                await wv.CoreWebView2.ExecuteScriptAsync(jsCall);
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                System.Diagnostics.Debug.WriteLine($"[C# ERROR] Test endpoint failed: {ex.Message}");
+
+                var errorMessage = new
+                {
+                    action = "testEndpointResult",
+                    requestId = requestId,
+                    success = false,
+                    statusCode = 0,
+                    statusText = "Error",
+                    duration = stopwatch.ElapsedMilliseconds,
+                    data = "",
+                    error = ex.Message
+                };
+
+                string errorJson = JsonSerializer.Serialize(errorMessage);
+                wv.CoreWebView2.PostWebMessageAsJson(errorJson);
+
+                string jsCall = $"if(typeof handleTestResult === 'function') handleTestResult({errorJson});";
+                await wv.CoreWebView2.ExecuteScriptAsync(jsCall);
             }
         }
 

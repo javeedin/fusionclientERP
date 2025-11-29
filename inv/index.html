@@ -2878,22 +2878,47 @@
             </div>
             <div class="test-dialog-body">
                 <div class="test-url-section">
-                    <label>Full URL</label>
+                    <label>Endpoint Info</label>
+                    <div style="display: flex; gap: 15px; margin-bottom: 10px;">
+                        <div style="flex: 1;">
+                            <small style="color: #666;">Source Instance:</small>
+                            <div id="testSourceInstance" style="font-weight: 500;">-</div>
+                        </div>
+                        <div style="flex: 1;">
+                            <small style="color: #666;">Integration Code:</small>
+                            <div id="testIntegrationCode" style="font-weight: 500;">-</div>
+                        </div>
+                    </div>
+                    <label>Full URL <small style="color: #666;">(updates automatically)</small></label>
                     <div class="test-url-display" id="testFullUrl">-</div>
                 </div>
 
                 <div class="test-params-list" id="testParamsSection">
-                    <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 8px;">Parameters</label>
+                    <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 8px;">Parameters <small style="font-weight: normal; color: #666;">(editable - modify values to test)</small></label>
                     <table>
                         <thead>
                             <tr>
-                                <th>Name</th>
+                                <th style="width: 40%;">Name</th>
                                 <th>Value</th>
                             </tr>
                         </thead>
                         <tbody id="testParamsBody">
                         </tbody>
                     </table>
+                </div>
+
+                <div class="test-params-list" id="testPaginationSection" style="margin-top: 15px;">
+                    <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 8px;">Pagination <small style="font-weight: normal; color: #667eea;">(Fusion only)</small></label>
+                    <div style="display: flex; gap: 15px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 12px; color: #666;">Offset</label>
+                            <input type="number" id="testOffset" placeholder="e.g., 0" min="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;" onchange="updateTestUrl()">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 12px; color: #666;">Limit</label>
+                            <input type="number" id="testLimit" placeholder="e.g., 100" min="1" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;" onchange="updateTestUrl()">
+                        </div>
+                    </div>
                 </div>
 
                 <div class="test-actions">
@@ -6180,40 +6205,46 @@ Click "Run Test" to execute the API call...
         // Show test dialog
         function showTestDialog(endpoint) {
             const overlay = document.getElementById('testDialogOverlay');
-            const fullUrlDisplay = document.getElementById('testFullUrl');
             const paramsBody = document.getElementById('testParamsBody');
             const paramsSection = document.getElementById('testParamsSection');
+            const paginationSection = document.getElementById('testPaginationSection');
             const resultsBody = document.getElementById('testResultsBody');
             const statusBadge = document.getElementById('testStatusBadge');
 
-            // Build and display full URL
-            const fullUrl = buildFullUrl(endpoint);
-            fullUrlDisplay.textContent = fullUrl;
+            // Show endpoint info
+            document.getElementById('testSourceInstance').textContent = endpoint.sourceInstance || '-';
+            document.getElementById('testIntegrationCode').textContent = endpoint.integrationCode || '-';
 
-            // Display parameters
+            // Determine source type
+            const sourceType = endpoint.sourceInstance ? endpoint.sourceInstance.split('-')[0] : '';
+            const isFusion = sourceType.toUpperCase() === 'FUSION';
+
+            // Display editable parameters
             const params = endpoint.parameters || [];
             if (params.length > 0) {
                 paramsSection.style.display = 'block';
-                paramsBody.innerHTML = params.map(p => `
+                paramsBody.innerHTML = params.map((p, idx) => `
                     <tr>
-                        <td>${escapeHtml(p.name)}</td>
-                        <td>${escapeHtml(p.value)}</td>
+                        <td><strong>${escapeHtml(p.name)}</strong></td>
+                        <td><input type="text" class="test-param-value" data-param-name="${escapeHtml(p.name)}" data-param-idx="${idx}" value="${escapeHtml(p.value)}" style="width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px;" onchange="updateTestUrl()"></td>
                     </tr>
                 `).join('');
-
-                // Add pagination info for Fusion
-                const sourceType = endpoint.sourceInstance ? endpoint.sourceInstance.split('-')[0] : '';
-                if (sourceType.toUpperCase() === 'FUSION') {
-                    if (endpoint.offset !== null && endpoint.offset !== undefined) {
-                        paramsBody.innerHTML += `<tr><td style="color: #667eea;">offset (pagination)</td><td>${endpoint.offset}</td></tr>`;
-                    }
-                    if (endpoint.limit !== null && endpoint.limit !== undefined) {
-                        paramsBody.innerHTML += `<tr><td style="color: #667eea;">limit (pagination)</td><td>${endpoint.limit}</td></tr>`;
-                    }
-                }
             } else {
                 paramsSection.style.display = 'none';
+                paramsBody.innerHTML = '';
             }
+
+            // Show pagination for Fusion only
+            if (isFusion) {
+                paginationSection.style.display = 'block';
+                document.getElementById('testOffset').value = endpoint.offset || '';
+                document.getElementById('testLimit').value = endpoint.limit || '';
+            } else {
+                paginationSection.style.display = 'none';
+            }
+
+            // Build and display full URL
+            updateTestUrl();
 
             // Reset results
             resultsBody.textContent = 'Click "Run Test" to execute the API call...';
@@ -6221,6 +6252,75 @@ Click "Run Test" to execute the API call...
             statusBadge.textContent = 'Waiting';
 
             overlay.classList.add('active');
+        }
+
+        // Update test URL based on editable parameters
+        function updateTestUrl() {
+            if (!currentTestEndpoint) return;
+
+            const fullUrlDisplay = document.getElementById('testFullUrl');
+            const sourceType = currentTestEndpoint.sourceInstance ? currentTestEndpoint.sourceInstance.split('-')[0] : '';
+            const isFusion = sourceType.toUpperCase() === 'FUSION';
+
+            // Get current parameter values from inputs
+            const paramInputs = document.querySelectorAll('.test-param-value');
+            const params = [];
+            paramInputs.forEach(input => {
+                params.push({
+                    name: input.dataset.paramName,
+                    value: input.value
+                });
+            });
+
+            // Get pagination values
+            const offset = document.getElementById('testOffset').value;
+            const limit = document.getElementById('testLimit').value;
+
+            // Build URL
+            let fullUrl = currentTestEndpoint.url + currentTestEndpoint.path;
+
+            if (isFusion) {
+                // Fusion format: q=param1=value1;param2=value2&offset=X&limit=Y
+                let queryParts = [];
+
+                if (params.length > 0) {
+                    const qParams = params.map(p => `${encodeURIComponent(p.name)}=${encodeURIComponent(p.value)}`).join(';');
+                    queryParts.push('q=' + qParams);
+                }
+
+                if (offset) {
+                    queryParts.push('offset=' + offset);
+                }
+                if (limit) {
+                    queryParts.push('limit=' + limit);
+                }
+
+                if (queryParts.length > 0) {
+                    fullUrl += '?' + queryParts.join('&');
+                }
+            } else {
+                // APEX format: ?param1=value1&param2=value2
+                if (params.length > 0) {
+                    const queryString = params.map(p => `${encodeURIComponent(p.name)}=${encodeURIComponent(p.value)}`).join('&');
+                    fullUrl += '?' + queryString;
+                }
+            }
+
+            fullUrlDisplay.textContent = fullUrl;
+            return fullUrl;
+        }
+
+        // Get test parameters from dialog
+        function getTestParameters() {
+            const paramInputs = document.querySelectorAll('.test-param-value');
+            const params = [];
+            paramInputs.forEach(input => {
+                params.push({
+                    name: input.dataset.paramName,
+                    value: input.value
+                });
+            });
+            return params;
         }
 
         // Close test dialog
@@ -6236,8 +6336,8 @@ Click "Run Test" to execute the API call...
             }
         }
 
-        // Run endpoint test
-        async function runEndpointTest() {
+        // Run endpoint test via C# backend
+        function runEndpointTest() {
             if (!currentTestEndpoint) return;
 
             const btnRunTest = document.getElementById('btnRunTest');
@@ -6249,32 +6349,63 @@ Click "Run Test" to execute the API call...
             btnRunTest.innerHTML = '<span>&#8987;</span> Testing...';
             statusBadge.className = 'test-status pending';
             statusBadge.textContent = 'Running...';
-            resultsBody.textContent = 'Executing API call...';
+            resultsBody.textContent = 'Executing API call via backend...';
 
-            const fullUrl = buildFullUrl(currentTestEndpoint);
+            const fullUrl = updateTestUrl();
+
+            // Find instance to get auth credentials
+            const sourceInstance = currentTestEndpoint.sourceInstance;
+            let username = '';
+            let password = '';
+            let noAuth = false;
+
+            if (sourceInstance) {
+                const [source, instanceName] = sourceInstance.split('-');
+                const instance = instancesData.find(i => i.source === source && i.name === instanceName);
+
+                if (instance) {
+                    noAuth = instance.noAuth || false;
+                    if (!noAuth) {
+                        username = instance.username || '';
+                        password = instance.password || '';
+                    }
+                }
+            }
+
+            // Send to C# backend for testing
+            if (window.chrome && window.chrome.webview) {
+                window.chrome.webview.postMessage({
+                    type: 'testEndpoint',
+                    url: fullUrl,
+                    username: username,
+                    password: password,
+                    noAuth: noAuth,
+                    integrationCode: currentTestEndpoint.integrationCode
+                });
+            } else {
+                // Fallback: try direct fetch (may fail due to CORS)
+                runEndpointTestFallback(fullUrl, username, password, noAuth);
+            }
+        }
+
+        // Fallback test method using direct fetch
+        async function runEndpointTestFallback(fullUrl, username, password, noAuth) {
+            const btnRunTest = document.getElementById('btnRunTest');
+            const resultsBody = document.getElementById('testResultsBody');
+            const statusBadge = document.getElementById('testStatusBadge');
             const startTime = Date.now();
 
             try {
-                // Find instance to get auth credentials
-                const sourceInstance = currentTestEndpoint.sourceInstance;
-                let authHeaders = {};
+                let headers = { 'Content-Type': 'application/json' };
 
-                if (sourceInstance) {
-                    const [source, instanceName] = sourceInstance.split('-');
-                    const instance = instancesData.find(i => i.source === source && i.name === instanceName);
-
-                    if (instance && !instance.noAuth && instance.username && instance.password) {
-                        const credentials = btoa(instance.username + ':' + instance.password);
-                        authHeaders['Authorization'] = 'Basic ' + credentials;
-                    }
+                if (!noAuth && username && password) {
+                    const credentials = btoa(username + ':' + password);
+                    headers['Authorization'] = 'Basic ' + credentials;
                 }
 
                 const response = await fetch(fullUrl, {
                     method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...authHeaders
-                    }
+                    headers: headers
                 });
 
                 const endTime = Date.now();
@@ -6303,9 +6434,37 @@ Click "Run Test" to execute the API call...
             } catch (error) {
                 const endTime = Date.now();
                 const duration = endTime - startTime;
-                resultsBody.textContent = `Error: ${error.message}\nDuration: ${duration}ms\n\nThis might be due to CORS restrictions. Try testing from the backend.`;
+                resultsBody.textContent = `Error: ${error.message}\nDuration: ${duration}ms\n\nCORS restriction detected. Please run through WebView2 desktop app.`;
                 statusBadge.className = 'test-status error';
                 statusBadge.textContent = 'Failed';
+            }
+
+            // Re-enable button
+            btnRunTest.disabled = false;
+            btnRunTest.innerHTML = '<span>&#9654;</span> Run Test';
+        }
+
+        // Handle test result from C# backend
+        function handleTestResult(result) {
+            const btnRunTest = document.getElementById('btnRunTest');
+            const resultsBody = document.getElementById('testResultsBody');
+            const statusBadge = document.getElementById('testStatusBadge');
+
+            if (result.success) {
+                statusBadge.className = 'test-status success';
+                statusBadge.textContent = `${result.statusCode} OK`;
+
+                // Try to format JSON
+                try {
+                    const jsonData = JSON.parse(result.data);
+                    resultsBody.textContent = `Status: ${result.statusCode} ${result.statusText}\nDuration: ${result.duration}ms\n\n${JSON.stringify(jsonData, null, 2)}`;
+                } catch (e) {
+                    resultsBody.textContent = `Status: ${result.statusCode} ${result.statusText}\nDuration: ${result.duration}ms\n\n${result.data}`;
+                }
+            } else {
+                statusBadge.className = 'test-status error';
+                statusBadge.textContent = result.statusCode ? `${result.statusCode} Error` : 'Failed';
+                resultsBody.textContent = `Error: ${result.error || 'Unknown error'}\nStatus: ${result.statusCode || 'N/A'}\nDuration: ${result.duration}ms\n\n${result.data || ''}`;
             }
 
             // Re-enable button

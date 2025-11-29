@@ -647,12 +647,13 @@ namespace WMSApp
 
         public EndpointEditForm(EndpointConfig endpoint)
         {
+            // Preserve exact values from the grid - do NOT set defaults for InstanceName
             Endpoint = new EndpointConfig
             {
                 Sno = endpoint.Sno,
                 Source = endpoint.Source ?? "APEX",
                 IntegrationCode = endpoint.IntegrationCode ?? "",
-                InstanceName = endpoint.InstanceName ?? "PROD",
+                InstanceName = endpoint.InstanceName ?? "",  // Show exactly as in data grid, no default
                 BaseUrl = endpoint.BaseUrl ?? "",
                 Endpoint = endpoint.Endpoint ?? "",
                 Comments = endpoint.Comments ?? ""
@@ -877,7 +878,8 @@ namespace WMSApp
             txtSno.Text = Endpoint.Sno.ToString();
             cboSource.SelectedItem = Endpoint.Source ?? "APEX";
             txtIntegrationCode.Text = Endpoint.IntegrationCode ?? "";
-            cboInstanceName.Text = Endpoint.InstanceName ?? "PROD";
+            // Show Instance exactly as in data grid - no default
+            cboInstanceName.Text = Endpoint.InstanceName ?? "";
             txtBaseUrl.Text = Endpoint.BaseUrl ?? "";
             txtEndpoint.Text = Endpoint.Endpoint ?? "";
             txtComments.Text = Endpoint.Comments ?? "";
@@ -965,8 +967,9 @@ namespace WMSApp
 
                 System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ========================================");
                 System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] POSTing to APEX endpoint");
-                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Base APEX URL: {_apexEndpointUrl}");
-                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Save URL: {saveUrl}");
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ========================================");
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] FULL URL: {saveUrl}");
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ========================================");
 
                 // Build the JSON payload
                 var payload = new
@@ -980,14 +983,22 @@ namespace WMSApp
                     comments = Endpoint.Comments
                 };
 
-                string jsonPayload = JsonSerializer.Serialize(payload);
-                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] JSON Payload: {jsonPayload}");
+                // Serialize with indentation for readability in debug
+                var jsonOptions = new JsonSerializerOptions { WriteIndented = true };
+                string jsonPayload = JsonSerializer.Serialize(payload, jsonOptions);
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ========================================");
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] FULL JSON PAYLOAD:");
+                System.Diagnostics.Debug.WriteLine(jsonPayload);
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ========================================");
+
+                // Also serialize without indentation for the actual POST
+                string jsonPayloadCompact = JsonSerializer.Serialize(payload);
 
                 using (var client = new HttpClient())
                 {
                     client.Timeout = TimeSpan.FromSeconds(30);
 
-                    var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+                    var content = new StringContent(jsonPayloadCompact, Encoding.UTF8, "application/json");
 
                     System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Sending POST request...");
                     var response = await client.PostAsync(saveUrl, content);

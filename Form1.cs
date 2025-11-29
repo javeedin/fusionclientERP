@@ -1620,7 +1620,9 @@ namespace WMSApp
         {
             try
             {
+                System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] ========================================");
                 System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] Posting endpoint to APEX");
+                System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] ========================================");
 
                 // Get the endpoint data from the request
                 if (!root.TryGetProperty("endpointData", out var endpointData))
@@ -1645,11 +1647,28 @@ namespace WMSApp
 
                 // Append /save to the base URL
                 string postUrl = baseUrl.EndsWith("/") ? baseUrl + "save" : baseUrl + "/save";
-                System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] POST URL: {postUrl}");
+                System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] ========================================");
+                System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] FULL URL: {postUrl}");
+                System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] ========================================");
 
-                // Serialize the endpoint data
+                // Serialize the endpoint data with indentation for debug
                 string jsonBody = endpointData.GetRawText();
-                System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] POST body: {jsonBody}");
+
+                // Pretty print the JSON for debug output
+                try
+                {
+                    var jsonDoc = System.Text.Json.JsonDocument.Parse(jsonBody);
+                    var prettyOptions = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
+                    string prettyJson = System.Text.Json.JsonSerializer.Serialize(jsonDoc.RootElement, prettyOptions);
+                    System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] ========================================");
+                    System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] FULL JSON PAYLOAD:");
+                    System.Diagnostics.Debug.WriteLine(prettyJson);
+                    System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] ========================================");
+                }
+                catch
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ApexEndpoint] FULL JSON PAYLOAD: {jsonBody}");
+                }
 
                 using (var httpClient = new HttpClient())
                 {

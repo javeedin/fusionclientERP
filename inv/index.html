@@ -6305,10 +6305,9 @@ Click "Run Test" to execute the API call...
             return maxSno + 1;
         }
 
-        // Populate Instance dropdown based on selected Source
+        // Populate Instance dropdown with hardcoded PROD/TEST/DEV values
         function populateEndpointInstanceDropdown(selectedSource) {
             console.log('[JS DEBUG] populateEndpointInstanceDropdown called, selectedSource:', selectedSource);
-            console.log('[JS DEBUG] instancesData:', JSON.stringify(instancesData));
             const select = document.getElementById('endpointInstance');
             if (!select) {
                 console.log('[JS DEBUG] endpointInstance select not found!');
@@ -6317,18 +6316,14 @@ Click "Run Test" to execute the API call...
 
             select.innerHTML = '<option value="">-- Select --</option>';
 
-            // Filter instances by selected source and populate dropdown
-            instancesData.forEach((instance, idx) => {
-                if (!selectedSource || instance.source === selectedSource) {
-                    const optionValue = instance.name;
-                    console.log('[JS DEBUG] Adding instance option[' + idx + ']:', optionValue);
-                    const option = document.createElement('option');
-                    option.value = optionValue;
-                    option.textContent = optionValue;
-                    option.dataset.url = instance.url;
-                    option.dataset.source = instance.source;
-                    select.appendChild(option);
-                }
+            // Hardcoded instance options: PROD, TEST, DEV
+            const instances = ['PROD', 'TEST', 'DEV'];
+            instances.forEach((instanceName) => {
+                console.log('[JS DEBUG] Adding instance option:', instanceName);
+                const option = document.createElement('option');
+                option.value = instanceName;
+                option.textContent = instanceName;
+                select.appendChild(option);
             });
             console.log('[JS DEBUG] Total instance dropdown options:', select.options.length);
         }

@@ -520,12 +520,21 @@ namespace WMSApp
         {
             try
             {
+                // Debug: Show where we're looking for settings
+                string settingsPath = EndpointConfigReader.GetSettingsPath();
+                System.Diagnostics.Debug.WriteLine($"[LOGIN] Settings path: {settingsPath}");
+
                 // Use EndpointConfigReader to get LOGIN endpoints by IntegrationCode
+                var allEndpoints = EndpointConfigReader.LoadEndpoints();
+                System.Diagnostics.Debug.WriteLine($"[LOGIN] Total endpoints loaded: {allEndpoints.Count}");
+
                 var loginEndpoints = EndpointConfigReader.GetByIntegrationCode("LOGIN");
+                System.Diagnostics.Debug.WriteLine($"[LOGIN] LOGIN endpoints found: {loginEndpoints.Count}");
 
                 // Filter to APEX source only for login (supports "APEX", "APEX-PROD", "APEX-TEST", etc.)
                 foreach (var endpoint in loginEndpoints)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Checking endpoint: Source={endpoint.Source}, Instance={endpoint.InstanceName}, URL={endpoint.FullUrl}");
                     if (endpoint.Source != null && endpoint.Source.StartsWith("APEX", StringComparison.OrdinalIgnoreCase))
                     {
                         if (!instanceUrls.ContainsKey(endpoint.InstanceName) && !string.IsNullOrWhiteSpace(endpoint.FullUrl))
@@ -536,12 +545,13 @@ namespace WMSApp
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[LOGIN] Loaded {instanceUrls.Count} LOGIN endpoints from EndpointConfigReader");
+                System.Diagnostics.Debug.WriteLine($"[LOGIN] Instance URLs count: {instanceUrls.Count}");
 
                 // If no LOGIN endpoints found, log warning (error will show when user tries to login)
                 if (instanceUrls.Count == 0)
                 {
                     System.Diagnostics.Debug.WriteLine($"[LOGIN] WARNING: No LOGIN endpoints found. Please configure LOGIN endpoints in Settings.");
+                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Check that endpoints.xml exists at: {settingsPath}");
                 }
 
                 // Update the instance dropdown (only if cboInstance exists)

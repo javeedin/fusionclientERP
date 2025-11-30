@@ -45,9 +45,26 @@ namespace WMSApp
             paths.Add(Path.Combine(appDir, "ERP", "settings"));
             paths.Add(Path.Combine(appDir, "settings"));
 
-            // 3. Walk up directory tree to find ERP/settings (handles bin/Debug/net8.0-windows etc.)
+            // 3. Current working directory (useful when running from VS)
+            string cwd = Environment.CurrentDirectory;
+            paths.Add(Path.Combine(cwd, "ERP", "settings"));
+            paths.Add(Path.Combine(cwd, "settings"));
+
+            // 4. Walk up from application directory to find ERP/settings (handles bin/Debug/net8.0-windows etc.)
             string currentDir = appDir;
             for (int i = 0; i < 6; i++)  // Go up to 6 levels
+            {
+                string parentDir = Directory.GetParent(currentDir)?.FullName;
+                if (string.IsNullOrEmpty(parentDir))
+                    break;
+
+                paths.Add(Path.Combine(parentDir, "ERP", "settings"));
+                currentDir = parentDir;
+            }
+
+            // 5. Walk up from current working directory
+            currentDir = cwd;
+            for (int i = 0; i < 6; i++)
             {
                 string parentDir = Directory.GetParent(currentDir)?.FullName;
                 if (string.IsNullOrEmpty(parentDir))
@@ -69,9 +86,15 @@ namespace WMSApp
                 return _resolvedSettingsPath;
 
             string appDir = AppDomain.CurrentDomain.BaseDirectory;
+            string cwd = Environment.CurrentDirectory;
+            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] ========================================");
             System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] App BaseDirectory: {appDir}");
+            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] Current Directory: {cwd}");
 
-            foreach (var path in GetPossibleSettingsPaths())
+            var possiblePaths = GetPossibleSettingsPaths();
+            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] Searching {possiblePaths.Count} possible paths...");
+
+            foreach (var path in possiblePaths)
             {
                 string xmlPath = Path.Combine(path, "endpoints.xml");
                 string csvPath = Path.Combine(path, "endpoints.csv");
@@ -83,12 +106,14 @@ namespace WMSApp
                 if (xmlExists || csvExists)
                 {
                     System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] FOUND settings at: {path}");
+                    System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] ========================================");
                     _resolvedSettingsPath = path;
                     return path;
                 }
             }
 
             System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] ERROR: No settings file found in any location!");
+            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] ========================================");
             return null;
         }
 

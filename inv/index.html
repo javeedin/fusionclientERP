@@ -1701,6 +1701,96 @@
             color: #721c24;
         }
 
+        /* Shipment Status Badges */
+        .status-shipped {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-open {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .status-picked {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-staged {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-interfaced {
+            background: #e2d5f1;
+            color: #4a235a;
+        }
+
+        .status-closed {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-default {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        /* Detail Card Styles */
+        .detail-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            color: #666;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .detail-value {
+            color: #333;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        /* Action Button for Tables */
+        .btn-action {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-action:hover {
+            background: #5a6fd6;
+        }
+
         /* Modal Styles */
         .modal-overlay {
             position: fixed;
@@ -3492,6 +3582,8 @@ Click "Run Test" to execute the API call...
                 showReceiveExpectedShipments(container);
             } else if (item === 'Manage Shipments') {
                 showManageShipments(container);
+            } else if (item === 'Manage Shipment Lines') {
+                showManageShipmentLines(container);
             } else {
                 container.innerHTML = `
                     <div style="padding: 30px;">
@@ -5644,7 +5736,763 @@ Click "Run Test" to execute the API call...
         // MANAGE SHIPMENTS PAGE
         // =============================================
 
-        // Shipment data storage
+        // Shipments (Header Level) data storage
+        let shipmentsData = [];
+        let filteredShipmentsData = [];
+        let shipmentsFullscreen = false;
+        let shipmentsOriginalTabParent = null;
+        let shipmentsOriginalTabNextSibling = null;
+
+        function showManageShipments(container) {
+            const selectedOrgCode = localStorage.getItem('wms_org_code') || '';
+            shipmentsData = [];
+            filteredShipmentsData = [];
+
+            container.innerHTML = `
+                <div style="padding: 20px; height: 100%; overflow-y: auto;">
+                    <h2 style="color: #667eea; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 24px;">&#128666;</span>
+                        Manage Shipments
+                    </h2>
+
+                    <!-- Collapsible Parameter Section -->
+                    <div class="collapsible-section" id="shipmentsSearchSection">
+                        <div class="collapsible-header" onclick="toggleShipmentsSearchSection()">
+                            <h3><span>&#128269;</span> Search Parameters</h3>
+                            <span class="collapsible-toggle">&#9660;</span>
+                        </div>
+                        <div class="collapsible-content">
+                            <div class="param-row">
+                                <div class="param-group">
+                                    <label>Organization Name *</label>
+                                    <select id="shipmentsParamOrgCode">
+                                        ${getOrgOptionsHtml(selectedOrgCode)}
+                                    </select>
+                                </div>
+                                <div class="param-group">
+                                    <label>Shipment Number</label>
+                                    <input type="text" id="shipmentsParamShipmentNumber" placeholder="Enter shipment number">
+                                </div>
+                                <div class="param-group">
+                                    <label>Delivery Name</label>
+                                    <input type="text" id="shipmentsParamDeliveryName" placeholder="Enter delivery name">
+                                </div>
+                            </div>
+                            <div class="param-row">
+                                <div class="param-group">
+                                    <label>Customer Name</label>
+                                    <input type="text" id="shipmentsParamCustomer" placeholder="Enter customer name">
+                                </div>
+                                <div class="param-group">
+                                    <label>Carrier</label>
+                                    <input type="text" id="shipmentsParamCarrier" placeholder="Enter carrier name">
+                                </div>
+                                <div class="param-group">
+                                    <label>Status</label>
+                                    <select id="shipmentsParamStatus">
+                                        <option value="">All Statuses</option>
+                                        <option value="OPEN">Open</option>
+                                        <option value="PICKED">Picked</option>
+                                        <option value="STAGED">Staged</option>
+                                        <option value="SHIPPED">Shipped</option>
+                                        <option value="INTERFACED">Interfaced</option>
+                                        <option value="CLOSED">Closed</option>
+                                        <option value="CANCELLED">Cancelled</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="param-row">
+                                <div class="param-group">
+                                    <label>Ship Date From</label>
+                                    <input type="date" id="shipmentsParamDateFrom">
+                                </div>
+                                <div class="param-group">
+                                    <label>Ship Date To</label>
+                                    <input type="date" id="shipmentsParamDateTo">
+                                </div>
+                                <div class="param-group" style="flex: 1;">
+                                    <!-- Empty for alignment -->
+                                </div>
+                            </div>
+                            <div class="param-buttons">
+                                <button class="btn-search" id="btnSearchShipments" onclick="searchShipments()">
+                                    <span>&#128269;</span> Search
+                                </button>
+                                <button class="btn-clear" onclick="clearShipmentsParams()">Clear</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabbed Results Section -->
+                    <div class="tab-container" id="shipmentsTabContainer">
+                        <div class="tab-header" id="shipmentsTabHeader">
+                            <button class="tab-btn active" data-tab="shipments-tab-summary" onclick="switchShipmentsTab('shipments-tab-summary')">
+                                &#128202; Summary Statistics
+                            </button>
+                            <button class="tab-btn" data-tab="shipments-tab-list" onclick="switchShipmentsTab('shipments-tab-list')">
+                                &#128666; Shipments List
+                            </button>
+                            <button class="tab-btn" data-tab="shipments-tab-details" onclick="switchShipmentsTab('shipments-tab-details')">
+                                &#128203; Shipment Details
+                            </button>
+                            <button class="btn-fullscreen" onclick="toggleShipmentsFullscreen()" title="Fit to Page" style="margin-left: auto;">
+                                &#9974; Fit to Page
+                            </button>
+                        </div>
+
+                        <!-- Tab 1: Summary Statistics -->
+                        <div class="tab-content active" id="shipments-tab-summary">
+                            <div class="stats-grid" id="shipmentsStatsGrid">
+                                <div class="stat-card">
+                                    <div class="stat-value" id="shipmentsStatTotal">0</div>
+                                    <div class="stat-label">Total Shipments</div>
+                                </div>
+                                <div class="stat-card green">
+                                    <div class="stat-value" id="shipmentsStatShipped">0</div>
+                                    <div class="stat-label">Shipped</div>
+                                </div>
+                                <div class="stat-card orange">
+                                    <div class="stat-value" id="shipmentsStatPending">0</div>
+                                    <div class="stat-label">Pending</div>
+                                </div>
+                                <div class="stat-card red">
+                                    <div class="stat-value" id="shipmentsStatWeight">0</div>
+                                    <div class="stat-label">Total Weight (Kg)</div>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <div class="chart-card">
+                                    <h4>&#128200; Shipments by Customer (Top 10)</h4>
+                                    <div class="chart-bar-container" id="shipmentsChartByCustomer">
+                                        <div style="color: #888; text-align: center; padding: 20px;">Search to view chart data</div>
+                                    </div>
+                                </div>
+                                <div class="chart-card">
+                                    <h4>&#128202; Shipments by Status</h4>
+                                    <div class="chart-bar-container" id="shipmentsChartByStatus">
+                                        <div style="color: #888; text-align: center; padding: 20px;">Search to view chart data</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <div class="chart-card">
+                                    <h4>&#128667; Shipments by Carrier</h4>
+                                    <div class="chart-bar-container" id="shipmentsChartByCarrier">
+                                        <div style="color: #888; text-align: center; padding: 20px;">Search to view chart data</div>
+                                    </div>
+                                </div>
+                                <div class="chart-card">
+                                    <h4>&#128197; Shipments by Date (Last 7 Days)</h4>
+                                    <div class="chart-bar-container" id="shipmentsChartByDate">
+                                        <div style="color: #888; text-align: center; padding: 20px;">Search to view chart data</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab 2: Shipments List -->
+                        <div class="tab-content" id="shipments-tab-list">
+                            <div class="grid-header" style="margin-bottom: 10px; padding: 10px 0; border: none; background: none;">
+                                <div class="grid-title">
+                                    Shipments List
+                                </div>
+                                <div class="grid-search">
+                                    <input type="text" id="shipmentsListSearchInput" placeholder="Filter results..." oninput="filterShipmentsListGrid()">
+                                    <span class="record-count" id="shipmentsListCount">0 Shipment(s)</span>
+                                </div>
+                            </div>
+                            <div class="table-container" style="max-height: calc(100vh - 450px);">
+                                <table class="data-table" id="shipmentsListTable">
+                                    <thead style="background: #e0e0e0; color: #333;">
+                                        <tr>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Shipment #</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Delivery Name</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Customer</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Ship-To Location</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Carrier</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Ship Date</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Weight</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Status</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="shipmentsListTableBody">
+                                        <tr><td colspan="9" class="no-data">Enter search parameters and click Search</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab 3: Shipment Details -->
+                        <div class="tab-content" id="shipments-tab-details">
+                            <div id="shipmentDetailsPanel">
+                                <div style="padding: 30px; text-align: center; color: #888;">
+                                    <span style="font-size: 48px;">&#128196;</span>
+                                    <p style="margin-top: 15px;">Select a shipment from the list to view details</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fullscreen Overlay for Shipments -->
+                <div class="fullscreen-overlay" id="shipmentsFullscreenOverlay">
+                    <div class="fullscreen-header">
+                        <h3>&#128666; Manage Shipments - Full View</h3>
+                        <button class="fullscreen-close" onclick="toggleShipmentsFullscreen()">
+                            &#10005; Close Full View
+                        </button>
+                    </div>
+                    <div class="fullscreen-content" id="shipmentsFullscreenContent">
+                    </div>
+                </div>
+            `;
+        }
+
+        // Toggle Shipments search section
+        function toggleShipmentsSearchSection() {
+            const section = document.getElementById('shipmentsSearchSection');
+            section.classList.toggle('collapsed');
+        }
+
+        // Switch Shipments tabs
+        function switchShipmentsTab(tabId) {
+            document.querySelectorAll('#shipmentsTabContainer .tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.tab === tabId) btn.classList.add('active');
+            });
+            document.querySelectorAll('#shipmentsTabContainer .tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // Toggle Shipments fullscreen
+        function toggleShipmentsFullscreen() {
+            const overlay = document.getElementById('shipmentsFullscreenOverlay');
+            const tabContainer = document.getElementById('shipmentsTabContainer');
+            const fullscreenContent = document.getElementById('shipmentsFullscreenContent');
+
+            if (!shipmentsFullscreen) {
+                shipmentsOriginalTabParent = tabContainer.parentNode;
+                shipmentsOriginalTabNextSibling = tabContainer.nextSibling;
+                fullscreenContent.appendChild(tabContainer);
+                overlay.classList.add('active');
+                shipmentsFullscreen = true;
+                const btn = tabContainer.querySelector('.btn-fullscreen');
+                if (btn) {
+                    btn.innerHTML = '&#10005; Exit Full View';
+                    btn.classList.add('exit');
+                }
+            } else {
+                if (shipmentsOriginalTabParent) {
+                    if (shipmentsOriginalTabNextSibling) {
+                        shipmentsOriginalTabParent.insertBefore(tabContainer, shipmentsOriginalTabNextSibling);
+                    } else {
+                        shipmentsOriginalTabParent.appendChild(tabContainer);
+                    }
+                }
+                overlay.classList.remove('active');
+                shipmentsFullscreen = false;
+                const btn = tabContainer.querySelector('.btn-fullscreen');
+                if (btn) {
+                    btn.innerHTML = '&#9974; Fit to Page';
+                    btn.classList.remove('exit');
+                }
+            }
+        }
+
+        // Clear Shipments params
+        function clearShipmentsParams() {
+            document.getElementById('shipmentsParamShipmentNumber').value = '';
+            document.getElementById('shipmentsParamDeliveryName').value = '';
+            document.getElementById('shipmentsParamCustomer').value = '';
+            document.getElementById('shipmentsParamCarrier').value = '';
+            document.getElementById('shipmentsParamStatus').value = '';
+            document.getElementById('shipmentsParamDateFrom').value = '';
+            document.getElementById('shipmentsParamDateTo').value = '';
+        }
+
+        // Get GET_SHIPMENTS endpoint
+        async function getShipmentsEndpoint() {
+            const instanceName = localStorage.getItem('wms_instance') || 'PROD';
+            return new Promise((resolve) => {
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'endpoint_shipments_' + Date.now();
+                    const handler = function(event) {
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            if (data.requestId === requestId && data.endpoint) {
+                                resolve(data.endpoint);
+                                window.chrome.webview.removeEventListener('message', handler);
+                            }
+                        } catch (e) {}
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+                    window.chrome.webview.postMessage({
+                        action: 'getEndpoint',
+                        requestId: requestId,
+                        integrationCode: 'GET_SHIPMENTS',
+                        instanceName: instanceName
+                    });
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        resolve(null);
+                    }, 5000);
+                } else {
+                    resolve(null);
+                }
+            });
+        }
+
+        // Search shipments
+        async function searchShipments() {
+            const orgCode = document.getElementById('shipmentsParamOrgCode').value;
+            const shipmentNumber = document.getElementById('shipmentsParamShipmentNumber').value.trim();
+            const deliveryName = document.getElementById('shipmentsParamDeliveryName').value.trim();
+            const customer = document.getElementById('shipmentsParamCustomer').value.trim();
+            const carrier = document.getElementById('shipmentsParamCarrier').value.trim();
+            const status = document.getElementById('shipmentsParamStatus').value;
+            const dateFrom = document.getElementById('shipmentsParamDateFrom').value;
+            const dateTo = document.getElementById('shipmentsParamDateTo').value;
+
+            if (!orgCode) {
+                alert('Please select an Organization');
+                return;
+            }
+
+            const btn = document.getElementById('btnSearchShipments');
+            btn.disabled = true;
+            btn.innerHTML = '<span>&#8987;</span> Searching...';
+
+            const tbody = document.getElementById('shipmentsListTableBody');
+            tbody.innerHTML = '<tr><td colspan="9" class="loading">Loading shipments...</td></tr>';
+
+            try {
+                // Fetch shipments
+                const shipmentsEndpoint = await getShipmentsEndpoint();
+                if (!shipmentsEndpoint) {
+                    throw new Error('GET_SHIPMENTS endpoint not configured. Please configure the endpoint in Settings.');
+                }
+
+                let url = `${shipmentsEndpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                if (shipmentNumber) url += `&p_shipment_number=${encodeURIComponent(shipmentNumber)}`;
+                if (deliveryName) url += `&p_delivery_name=${encodeURIComponent(deliveryName)}`;
+                if (customer) url += `&p_customer_name=${encodeURIComponent(customer)}`;
+                if (carrier) url += `&p_carrier=${encodeURIComponent(carrier)}`;
+                if (status) url += `&p_status=${encodeURIComponent(status)}`;
+                if (dateFrom) url += `&p_date_from=${encodeURIComponent(dateFrom)}`;
+                if (dateTo) url += `&p_date_to=${encodeURIComponent(dateTo)}`;
+
+                console.log('[INV] Fetching shipments from:', url);
+                const response = await fetchWithBridge(url);
+
+                if (response && response.items) {
+                    shipmentsData = response.items;
+                    filteredShipmentsData = [...shipmentsData];
+                    updateShipmentsCharts(filteredShipmentsData);
+                    renderShipmentsListTable(filteredShipmentsData);
+                    console.log('[INV] Loaded', shipmentsData.length, 'shipments');
+                } else {
+                    shipmentsData = [];
+                    filteredShipmentsData = [];
+                    updateShipmentsCharts([]);
+                    renderShipmentsListTable([]);
+                }
+            } catch (error) {
+                console.error('[INV] Error fetching shipments:', error);
+                tbody.innerHTML = `<tr><td colspan="9" class="no-data" style="color: #dc3545;">Error: ${error.message}</td></tr>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>&#128269;</span> Search';
+            }
+        }
+
+        // Update Shipments charts
+        function updateShipmentsCharts(data) {
+            if (!data || data.length === 0) {
+                document.getElementById('shipmentsStatTotal').textContent = '0';
+                document.getElementById('shipmentsStatShipped').textContent = '0';
+                document.getElementById('shipmentsStatPending').textContent = '0';
+                document.getElementById('shipmentsStatWeight').textContent = '0';
+                document.getElementById('shipmentsChartByCustomer').innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No data</div>';
+                document.getElementById('shipmentsChartByStatus').innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No data</div>';
+                document.getElementById('shipmentsChartByCarrier').innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No data</div>';
+                document.getElementById('shipmentsChartByDate').innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No data</div>';
+                return;
+            }
+
+            // Calculate stats
+            const totalShipments = data.length;
+            const shippedCount = data.filter(d => (d.status || d.STATUS || '').toUpperCase() === 'SHIPPED').length;
+            const pendingCount = data.filter(d => (d.status || d.STATUS || '').toUpperCase() !== 'SHIPPED' && (d.status || d.STATUS || '').toUpperCase() !== 'CLOSED').length;
+            const totalWeight = data.reduce((sum, d) => sum + (parseFloat(d.weight || d.WEIGHT || d.gross_weight || d.GROSS_WEIGHT) || 0), 0);
+
+            document.getElementById('shipmentsStatTotal').textContent = totalShipments.toLocaleString();
+            document.getElementById('shipmentsStatShipped').textContent = shippedCount.toLocaleString();
+            document.getElementById('shipmentsStatPending').textContent = pendingCount.toLocaleString();
+            document.getElementById('shipmentsStatWeight').textContent = formatNumber(totalWeight);
+
+            // Chart by Customer
+            const byCustomer = {};
+            data.forEach(d => {
+                const customer = d.customer_name || d.CUSTOMER_NAME || d.customer || d.CUSTOMER || 'Unknown';
+                byCustomer[customer] = (byCustomer[customer] || 0) + 1;
+            });
+            const sortedCustomers = Object.entries(byCustomer).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            const maxCustomer = sortedCustomers.length > 0 ? sortedCustomers[0][1] : 1;
+
+            let customerChartHtml = '';
+            sortedCustomers.forEach(([customer, count]) => {
+                const pct = (count / maxCustomer) * 100;
+                const displayName = customer.length > 25 ? customer.substring(0, 25) + '...' : customer;
+                customerChartHtml += `
+                    <div class="chart-bar-row">
+                        <div class="chart-bar-label" title="${customer}">${displayName}</div>
+                        <div class="chart-bar-track">
+                            <div class="chart-bar-fill" style="width: ${pct}%">${count}</div>
+                        </div>
+                    </div>`;
+            });
+            document.getElementById('shipmentsChartByCustomer').innerHTML = customerChartHtml || '<div style="color: #888; text-align: center; padding: 20px;">No data</div>';
+
+            // Chart by Status
+            const byStatus = {};
+            data.forEach(d => {
+                const status = d.status || d.STATUS || d.shipment_status || d.SHIPMENT_STATUS || 'Unknown';
+                byStatus[status] = (byStatus[status] || 0) + 1;
+            });
+            const sortedStatus = Object.entries(byStatus).sort((a, b) => b[1] - a[1]);
+            const maxStatus = sortedStatus.length > 0 ? sortedStatus[0][1] : 1;
+
+            const statusColors = {
+                'SHIPPED': '#28a745',
+                'OPEN': '#007bff',
+                'PICKED': '#17a2b8',
+                'STAGED': '#ffc107',
+                'INTERFACED': '#6f42c1',
+                'CLOSED': '#6c757d',
+                'CANCELLED': '#dc3545'
+            };
+
+            let statusChartHtml = '';
+            sortedStatus.forEach(([status, count]) => {
+                const pct = (count / maxStatus) * 100;
+                const color = statusColors[status.toUpperCase()] || '#667eea';
+                statusChartHtml += `
+                    <div class="chart-bar-row">
+                        <div class="chart-bar-label">${status}</div>
+                        <div class="chart-bar-track">
+                            <div class="chart-bar-fill" style="width: ${pct}%; background: ${color};">${count}</div>
+                        </div>
+                    </div>`;
+            });
+            document.getElementById('shipmentsChartByStatus').innerHTML = statusChartHtml || '<div style="color: #888; text-align: center; padding: 20px;">No data</div>';
+
+            // Chart by Carrier
+            const byCarrier = {};
+            data.forEach(d => {
+                const carrier = d.carrier || d.CARRIER || d.carrier_name || d.CARRIER_NAME || 'Unknown';
+                byCarrier[carrier] = (byCarrier[carrier] || 0) + 1;
+            });
+            const sortedCarriers = Object.entries(byCarrier).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            const maxCarrier = sortedCarriers.length > 0 ? sortedCarriers[0][1] : 1;
+
+            let carrierChartHtml = '';
+            sortedCarriers.forEach(([carrier, count]) => {
+                const pct = (count / maxCarrier) * 100;
+                const displayName = carrier.length > 25 ? carrier.substring(0, 25) + '...' : carrier;
+                carrierChartHtml += `
+                    <div class="chart-bar-row">
+                        <div class="chart-bar-label" title="${carrier}">${displayName}</div>
+                        <div class="chart-bar-track">
+                            <div class="chart-bar-fill" style="width: ${pct}%; background: #17a2b8;">${count}</div>
+                        </div>
+                    </div>`;
+            });
+            document.getElementById('shipmentsChartByCarrier').innerHTML = carrierChartHtml || '<div style="color: #888; text-align: center; padding: 20px;">No data</div>';
+
+            // Chart by Date
+            const byDate = {};
+            data.forEach(d => {
+                const dateVal = d.ship_date || d.SHIP_DATE || d.shipment_date || d.SHIPMENT_DATE || d.creation_date || d.CREATION_DATE;
+                if (dateVal) {
+                    const date = new Date(dateVal);
+                    if (!isNaN(date.getTime())) {
+                        const dateKey = date.toISOString().split('T')[0];
+                        byDate[dateKey] = (byDate[dateKey] || 0) + 1;
+                    }
+                }
+            });
+            const sortedDates = Object.entries(byDate).sort((a, b) => a[0].localeCompare(b[0])).slice(-7);
+            const maxDate = sortedDates.length > 0 ? Math.max(...sortedDates.map(d => d[1])) : 1;
+
+            let dateChartHtml = '';
+            sortedDates.forEach(([date, count]) => {
+                const pct = (count / maxDate) * 100;
+                const displayDate = new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                dateChartHtml += `
+                    <div class="chart-bar-row">
+                        <div class="chart-bar-label">${displayDate}</div>
+                        <div class="chart-bar-track">
+                            <div class="chart-bar-fill" style="width: ${pct}%; background: #6f42c1;">${count}</div>
+                        </div>
+                    </div>`;
+            });
+            document.getElementById('shipmentsChartByDate').innerHTML = dateChartHtml || '<div style="color: #888; text-align: center; padding: 20px;">No data</div>';
+        }
+
+        // Render Shipments List Table
+        function renderShipmentsListTable(data) {
+            const tbody = document.getElementById('shipmentsListTableBody');
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="no-data">No shipments found</td></tr>';
+                document.getElementById('shipmentsListCount').textContent = '0 Shipment(s)';
+                return;
+            }
+
+            let html = '';
+            data.forEach((row, idx) => {
+                const shipmentNum = row.shipment_number || row.SHIPMENT_NUMBER || row.delivery_id || row.DELIVERY_ID || '-';
+                const deliveryName = row.delivery_name || row.DELIVERY_NAME || row.name || row.NAME || '-';
+                const customer = row.customer_name || row.CUSTOMER_NAME || row.customer || row.CUSTOMER || '-';
+                const shipToLoc = row.ship_to_location || row.SHIP_TO_LOCATION || row.ship_to || row.SHIP_TO || '-';
+                const carrier = row.carrier || row.CARRIER || row.carrier_name || row.CARRIER_NAME || '-';
+                const shipDate = row.ship_date || row.SHIP_DATE || row.shipment_date || row.SHIPMENT_DATE || '-';
+                const weight = row.weight || row.WEIGHT || row.gross_weight || row.GROSS_WEIGHT || 0;
+                const status = row.status || row.STATUS || row.shipment_status || row.SHIPMENT_STATUS || '-';
+
+                const statusClass = getShipmentStatusClass(status);
+
+                html += `<tr style="font-size: 11px;">
+                    <td style="padding: 8px; font-weight: bold; color: #667eea;">${shipmentNum}</td>
+                    <td style="padding: 8px;">${deliveryName}</td>
+                    <td style="padding: 8px;" title="${customer}">${customer.length > 20 ? customer.substring(0, 20) + '...' : customer}</td>
+                    <td style="padding: 8px;" title="${shipToLoc}">${shipToLoc.length > 20 ? shipToLoc.substring(0, 20) + '...' : shipToLoc}</td>
+                    <td style="padding: 8px;">${carrier}</td>
+                    <td style="padding: 8px;">${formatDate(shipDate)}</td>
+                    <td style="padding: 8px; text-align: right;">${formatNumber(weight)}</td>
+                    <td style="padding: 8px;"><span class="status-badge ${statusClass}">${status}</span></td>
+                    <td style="padding: 8px;">
+                        <button class="btn-action" onclick="viewShipmentDetails(${idx})" title="View Details">
+                            &#128065; View
+                        </button>
+                    </td>
+                </tr>`;
+            });
+
+            tbody.innerHTML = html;
+            document.getElementById('shipmentsListCount').textContent = data.length + ' Shipment(s)';
+        }
+
+        // Get status class for shipment
+        function getShipmentStatusClass(status) {
+            const upperStatus = (status || '').toUpperCase();
+            switch (upperStatus) {
+                case 'SHIPPED': return 'status-shipped';
+                case 'OPEN': return 'status-open';
+                case 'PICKED': return 'status-picked';
+                case 'STAGED': return 'status-staged';
+                case 'INTERFACED': return 'status-interfaced';
+                case 'CLOSED': return 'status-closed';
+                case 'CANCELLED': return 'status-cancelled';
+                default: return 'status-default';
+            }
+        }
+
+        // View shipment details
+        function viewShipmentDetails(index) {
+            if (index < 0 || index >= filteredShipmentsData.length) return;
+
+            const shipment = filteredShipmentsData[index];
+            const panel = document.getElementById('shipmentDetailsPanel');
+
+            const shipmentNum = shipment.shipment_number || shipment.SHIPMENT_NUMBER || shipment.delivery_id || shipment.DELIVERY_ID || '-';
+            const deliveryName = shipment.delivery_name || shipment.DELIVERY_NAME || shipment.name || shipment.NAME || '-';
+            const customer = shipment.customer_name || shipment.CUSTOMER_NAME || shipment.customer || shipment.CUSTOMER || '-';
+            const shipToLoc = shipment.ship_to_location || shipment.SHIP_TO_LOCATION || shipment.ship_to || shipment.SHIP_TO || '-';
+            const shipToAddress = shipment.ship_to_address || shipment.SHIP_TO_ADDRESS || '-';
+            const carrier = shipment.carrier || shipment.CARRIER || shipment.carrier_name || shipment.CARRIER_NAME || '-';
+            const modeOfTransport = shipment.mode_of_transport || shipment.MODE_OF_TRANSPORT || '-';
+            const serviceLevel = shipment.service_level || shipment.SERVICE_LEVEL || '-';
+            const shipDate = shipment.ship_date || shipment.SHIP_DATE || shipment.shipment_date || shipment.SHIPMENT_DATE || '-';
+            const expectedDelivery = shipment.expected_delivery_date || shipment.EXPECTED_DELIVERY_DATE || '-';
+            const weight = shipment.weight || shipment.WEIGHT || shipment.gross_weight || shipment.GROSS_WEIGHT || 0;
+            const weightUom = shipment.weight_uom || shipment.WEIGHT_UOM || 'Kg';
+            const volume = shipment.volume || shipment.VOLUME || 0;
+            const volumeUom = shipment.volume_uom || shipment.VOLUME_UOM || 'CBM';
+            const status = shipment.status || shipment.STATUS || shipment.shipment_status || shipment.SHIPMENT_STATUS || '-';
+            const trackingNum = shipment.tracking_number || shipment.TRACKING_NUMBER || shipment.waybill || shipment.WAYBILL || '-';
+            const numLines = shipment.num_lines || shipment.NUM_LINES || shipment.line_count || shipment.LINE_COUNT || '-';
+            const totalQty = shipment.total_quantity || shipment.TOTAL_QUANTITY || '-';
+            const createdBy = shipment.created_by || shipment.CREATED_BY || '-';
+            const creationDate = shipment.creation_date || shipment.CREATION_DATE || '-';
+
+            panel.innerHTML = `
+                <div style="padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: #667eea; margin: 0;">
+                            <span>&#128666;</span> Shipment: ${shipmentNum}
+                        </h3>
+                        <span class="status-badge ${getShipmentStatusClass(status)}" style="font-size: 14px; padding: 8px 16px;">${status}</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                        <!-- Shipment Info -->
+                        <div class="detail-card">
+                            <h4 style="color: #333; margin-bottom: 15px; border-bottom: 2px solid #667eea; padding-bottom: 8px;">
+                                &#128196; Shipment Information
+                            </h4>
+                            <div class="detail-row">
+                                <span class="detail-label">Shipment Number:</span>
+                                <span class="detail-value">${shipmentNum}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Delivery Name:</span>
+                                <span class="detail-value">${deliveryName}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Tracking Number:</span>
+                                <span class="detail-value" style="color: #007bff;">${trackingNum}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Number of Lines:</span>
+                                <span class="detail-value">${numLines}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Total Quantity:</span>
+                                <span class="detail-value">${totalQty}</span>
+                            </div>
+                        </div>
+
+                        <!-- Customer Info -->
+                        <div class="detail-card">
+                            <h4 style="color: #333; margin-bottom: 15px; border-bottom: 2px solid #28a745; padding-bottom: 8px;">
+                                &#128100; Customer Information
+                            </h4>
+                            <div class="detail-row">
+                                <span class="detail-label">Customer Name:</span>
+                                <span class="detail-value">${customer}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Ship-To Location:</span>
+                                <span class="detail-value">${shipToLoc}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Ship-To Address:</span>
+                                <span class="detail-value">${shipToAddress}</span>
+                            </div>
+                        </div>
+
+                        <!-- Carrier Info -->
+                        <div class="detail-card">
+                            <h4 style="color: #333; margin-bottom: 15px; border-bottom: 2px solid #17a2b8; padding-bottom: 8px;">
+                                &#128667; Carrier Information
+                            </h4>
+                            <div class="detail-row">
+                                <span class="detail-label">Carrier:</span>
+                                <span class="detail-value">${carrier}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Mode of Transport:</span>
+                                <span class="detail-value">${modeOfTransport}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Service Level:</span>
+                                <span class="detail-value">${serviceLevel}</span>
+                            </div>
+                        </div>
+
+                        <!-- Dates & Measurements -->
+                        <div class="detail-card">
+                            <h4 style="color: #333; margin-bottom: 15px; border-bottom: 2px solid #ffc107; padding-bottom: 8px;">
+                                &#128197; Dates & Measurements
+                            </h4>
+                            <div class="detail-row">
+                                <span class="detail-label">Ship Date:</span>
+                                <span class="detail-value">${formatDate(shipDate)}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Expected Delivery:</span>
+                                <span class="detail-value">${formatDate(expectedDelivery)}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Weight:</span>
+                                <span class="detail-value">${formatNumber(weight)} ${weightUom}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Volume:</span>
+                                <span class="detail-value">${formatNumber(volume)} ${volumeUom}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audit Info -->
+                    <div class="detail-card" style="margin-top: 20px;">
+                        <h4 style="color: #333; margin-bottom: 15px; border-bottom: 2px solid #6c757d; padding-bottom: 8px;">
+                            &#128221; Audit Information
+                        </h4>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                            <div class="detail-row">
+                                <span class="detail-label">Created By:</span>
+                                <span class="detail-value">${createdBy}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Creation Date:</span>
+                                <span class="detail-value">${formatDate(creationDate)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                        <button class="btn-action" onclick="viewShipmentLinesForShipment('${shipmentNum}')" style="background: #667eea; color: white; padding: 10px 20px;">
+                            &#128196; View Shipment Lines
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Switch to details tab
+            switchShipmentsTab('shipments-tab-details');
+        }
+
+        // View shipment lines for a specific shipment
+        function viewShipmentLinesForShipment(shipmentNumber) {
+            // Store the shipment number and switch to Shipment Lines page
+            localStorage.setItem('wms_filter_shipment', shipmentNumber);
+            // Open the Manage Shipment Lines menu item
+            openMenuItem('shipments', 'Manage Shipment Lines');
+        }
+
+        // Filter shipments list grid
+        function filterShipmentsListGrid() {
+            const searchText = document.getElementById('shipmentsListSearchInput').value.toLowerCase();
+            if (!shipmentsData) return;
+
+            if (!searchText) {
+                filteredShipmentsData = [...shipmentsData];
+                renderShipmentsListTable(filteredShipmentsData);
+                return;
+            }
+
+            filteredShipmentsData = shipmentsData.filter(row => {
+                return (row.shipment_number || row.SHIPMENT_NUMBER || '').toLowerCase().includes(searchText) ||
+                       (row.delivery_name || row.DELIVERY_NAME || '').toLowerCase().includes(searchText) ||
+                       (row.customer_name || row.CUSTOMER_NAME || '').toLowerCase().includes(searchText) ||
+                       (row.carrier || row.CARRIER || '').toLowerCase().includes(searchText) ||
+                       (row.status || row.STATUS || '').toLowerCase().includes(searchText);
+            });
+
+            renderShipmentsListTable(filteredShipmentsData);
+        }
+
+        // =============================================
+        // MANAGE SHIPMENT LINES PAGE
+        // =============================================
+
+        // Shipment Lines data storage
         let shipmentLinesData = [];
         let filteredShipmentLinesData = [];
         let shipmentSummaryData = [];
@@ -5652,7 +6500,7 @@ Click "Run Test" to execute the API call...
         let shipmentOriginalTabParent = null;
         let shipmentOriginalTabNextSibling = null;
 
-        function showManageShipments(container) {
+        function showManageShipmentLines(container) {
             const selectedOrgCode = localStorage.getItem('wms_org_code') || '';
             shipmentLinesData = [];
             filteredShipmentLinesData = [];
@@ -5661,7 +6509,7 @@ Click "Run Test" to execute the API call...
             container.innerHTML = `
                 <div style="padding: 20px; height: 100%; overflow-y: auto;">
                     <h2 style="color: #667eea; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 24px;">&#128666;</span>
+                        <span style="font-size: 24px;">&#128196;</span>
                         Manage Shipment Lines
                     </h2>
 

@@ -1660,6 +1660,203 @@ namespace WMSApp
         }
 
         /// <summary>
+        /// Handles getAllInstances request from webview - fetches instances from APEX URL
+        /// </summary>
+        private async Task HandleGetAllInstances(WebView2 wv, string requestId)
+        {
+            System.Diagnostics.Debug.WriteLine($"========================================");
+            System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] HandleGetAllInstances STARTED");
+            System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] RequestId: {requestId}");
+            System.Diagnostics.Debug.WriteLine($"========================================");
+
+            string dataSource = "NONE";
+            string fullApexUrl = "";
+            string rawJsonResponse = "";
+            List<Dictionary<string, object>> instances = null;
+
+            try
+            {
+                // Try to load from APEX
+                string settingsPath = EndpointConfigReader.GetSettingsPath();
+                string apexUrlFilePath = System.IO.Path.Combine(settingsPath, "apexinstances.text");
+
+                System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] Settings Path: {settingsPath}");
+                System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] APEX URL File: {apexUrlFilePath}");
+                System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] File Exists: {System.IO.File.Exists(apexUrlFilePath)}");
+
+                if (System.IO.File.Exists(apexUrlFilePath))
+                {
+                    string apexUrl = System.IO.File.ReadAllText(apexUrlFilePath).Trim();
+                    fullApexUrl = apexUrl;
+                    System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] ====== FULL URL ======");
+                    System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] GET {apexUrl}");
+                    System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] =======================");
+
+                    if (!string.IsNullOrWhiteSpace(apexUrl))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] Attempting to fetch from APEX...");
+
+                        try
+                        {
+                            using (var client = new System.Net.Http.HttpClient())
+                            {
+                                client.Timeout = TimeSpan.FromSeconds(30);
+                                System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] Making HTTP GET request to: {apexUrl}");
+
+                                var response = await client.GetAsync(apexUrl);
+                                System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] Response Status: {(int)response.StatusCode} ({response.StatusCode})");
+
+                                if (response.IsSuccessStatusCode)
+                                {
+                                    string jsonResponse = await response.Content.ReadAsStringAsync();
+                                    rawJsonResponse = jsonResponse;
+                                    System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] ====== RAW RESPONSE ======");
+                                    System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] {jsonResponse}");
+                                    System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] ==========================");
+
+                                    instances = ParseApexInstancesResponse(jsonResponse);
+                                    dataSource = "APEX";
+                                    System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] *** SUCCESS - Parsed {instances?.Count ?? 0} instances from APEX ***");
+                                }
+                                else
+                                {
+                                    string errorBody = await response.Content.ReadAsStringAsync();
+                                    rawJsonResponse = errorBody;
+                                    System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] *** HTTP ERROR: {response.StatusCode} ***");
+                                    System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] Error Body: {errorBody}");
+                                }
+                            }
+                        }
+                        catch (Exception apexEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] *** APEX FETCH FAILED ***");
+                            System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] Exception: {apexEx.GetType().Name}");
+                            System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] Message: {apexEx.Message}");
+                            rawJsonResponse = $"ERROR: {apexEx.Message}";
+                        }
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] *** apexinstances.text NOT FOUND ***");
+                    rawJsonResponse = "ERROR: apexinstances.text not found";
+                }
+
+                // Log each instance
+                foreach (var inst in instances ?? new List<Dictionary<string, object>>())
+                {
+                    System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES]   -> Instance: {inst.GetValueOrDefault("name", "N/A")}");
+                }
+
+                var responseObj = new
+                {
+                    requestId = requestId,
+                    action = "getAllInstancesResponse",
+                    success = instances != null && instances.Count > 0,
+                    source = dataSource,
+                    instances = instances ?? new List<Dictionary<string, object>>(),
+                    settingsPath = settingsPath,
+                    debug = new
+                    {
+                        fullUrl = fullApexUrl,
+                        rawResponse = rawJsonResponse
+                    }
+                };
+
+                string responseJson = System.Text.Json.JsonSerializer.Serialize(responseObj);
+                wv.CoreWebView2.PostWebMessageAsString(responseJson);
+
+                System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] *** COMPLETE - Returned {instances?.Count ?? 0} instances (source: {dataSource}) ***");
+                System.Diagnostics.Debug.WriteLine($"========================================");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] *** FATAL ERROR ***");
+                System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] Exception: {ex.GetType().Name}");
+                System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] Message: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] StackTrace: {ex.StackTrace}");
+
+                var errorResponse = new
+                {
+                    requestId = requestId,
+                    action = "getAllInstancesResponse",
+                    success = false,
+                    source = "ERROR",
+                    error = ex.Message,
+                    debug = new
+                    {
+                        fullUrl = fullApexUrl,
+                        rawResponse = ex.Message
+                    }
+                };
+                string errorJson = System.Text.Json.JsonSerializer.Serialize(errorResponse);
+                wv.CoreWebView2.PostWebMessageAsString(errorJson);
+            }
+        }
+
+        /// <summary>
+        /// Parses the APEX JSON response into a list of instance dictionaries
+        /// </summary>
+        private List<Dictionary<string, object>> ParseApexInstancesResponse(string jsonResponse)
+        {
+            var instances = new List<Dictionary<string, object>>();
+
+            try
+            {
+                using (var doc = System.Text.Json.JsonDocument.Parse(jsonResponse))
+                {
+                    var root = doc.RootElement;
+
+                    // Check if response is an array or has an "items" property
+                    System.Text.Json.JsonElement itemsArray;
+                    if (root.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    {
+                        itemsArray = root;
+                    }
+                    else if (root.TryGetProperty("items", out itemsArray))
+                    {
+                        // APEX REST often wraps results in "items"
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES PARSE] Unexpected JSON structure");
+                        return instances;
+                    }
+
+                    foreach (var item in itemsArray.EnumerateArray())
+                    {
+                        var instance = new Dictionary<string, object>();
+
+                        // Map all fields dynamically - preserve original field names
+                        foreach (var prop in item.EnumerateObject())
+                        {
+                            string key = prop.Name.ToLower();
+                            object value = prop.Value.ValueKind switch
+                            {
+                                System.Text.Json.JsonValueKind.String => prop.Value.GetString(),
+                                System.Text.Json.JsonValueKind.Number => prop.Value.TryGetInt32(out int i) ? i : prop.Value.GetDouble(),
+                                System.Text.Json.JsonValueKind.True => true,
+                                System.Text.Json.JsonValueKind.False => false,
+                                System.Text.Json.JsonValueKind.Null => null,
+                                _ => prop.Value.GetRawText()
+                            };
+                            instance[key] = value;
+                        }
+
+                        instances.Add(instance);
+                        System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES PARSE] Parsed instance: {string.Join(", ", instance.Select(kv => $"{kv.Key}={kv.Value}"))}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES PARSE] Error parsing JSON: {ex.Message}");
+            }
+
+            return instances;
+        }
+
+        /// <summary>
         /// Handles saveAllEndpoints request from webview - saves all endpoints to XML file
         /// </summary>
         private Task HandleSaveAllEndpoints(WebView2 wv, JsonElement root, string requestId)
@@ -2503,6 +2700,11 @@ namespace WMSApp
                                 // Endpoint Testing
                                 case "testEndpoint":
                                     await HandleTestEndpoint(wv, messageJson, requestId);
+                                    break;
+
+                                // Get all instances from APEX
+                                case "getAllInstances":
+                                    await HandleGetAllInstances(wv, requestId);
                                     break;
 
                                 default:

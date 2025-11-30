@@ -2764,7 +2764,8 @@
                             <thead>
                                 <tr>
                                     <th style="width: 50px;">S.No</th>
-                                    <th style="width: 150px;">Instance</th>
+                                    <th style="width: 100px;">Source</th>
+                                    <th style="width: 100px;">Instance</th>
                                     <th>Full URL</th>
                                 </tr>
                             </thead>
@@ -5761,8 +5762,9 @@ Click "Run Test" to execute the API call...
         // Open Settings modal
         function openSettings() {
             document.getElementById('settingsOverlay').classList.add('active');
-            loadInstances();
-            // Don't auto-load endpoints - user must click "Refresh from APEX"
+            // Don't auto-load instances or endpoints - user must click "Refresh"
+            instancesData = [];
+            renderInstancesTable();
             endpointsData = [];
             renderEndpointsTable();
             loadApexEndpointUrl();
@@ -5809,19 +5811,20 @@ Click "Run Test" to execute the API call...
             if (!tbody) return;
 
             if (endpointsData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 30px; color: #888;">No endpoints configured.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 30px; color: #888;">No endpoints loaded. Click "Refresh" to load from APEX.</td></tr>';
                 return;
             }
 
             tbody.innerHTML = endpointsData.map((endpoint, index) => {
-                // Show Source and Instance separately
+                // Show Source and Instance in separate columns
                 const source = endpoint.source || '';
                 const instance = endpoint.instanceName || '';
                 const fullUrl = (endpoint.url || '') + (endpoint.path || '');
                 return `
                 <tr>
                     <td>${endpoint.sno || index + 1}</td>
-                    <td>${escapeHtml(source)} / ${escapeHtml(instance)}</td>
+                    <td>${escapeHtml(source)}</td>
+                    <td>${escapeHtml(instance)}</td>
                     <td style="word-break: break-all;">${escapeHtml(fullUrl)}</td>
                 </tr>`;
             }).join('');
@@ -5835,25 +5838,11 @@ Click "Run Test" to execute the API call...
             }, 500);
         }
 
-        // Load instances from localStorage
+        // Load instances - now fetches from APEX via C#
         function loadInstances() {
-            const stored = localStorage.getItem('fusionclient_instances');
-            console.log('[JS DEBUG] loadInstances called, raw stored:', stored ? stored.substring(0, 500) : 'null');
-            if (stored) {
-                try {
-                    instancesData = JSON.parse(stored);
-                    console.log('[JS DEBUG] Loaded instances count:', instancesData.length);
-                    instancesData.forEach((inst, idx) => {
-                        console.log(`[JS DEBUG] Instance[${idx}]: source=${inst.source}, name=${inst.name}, hasUsername=${!!inst.username}, hasPassword=${!!inst.password}, noAuth=${inst.noAuth}`);
-                    });
-                } catch (e) {
-                    console.log('[JS DEBUG] Error parsing instances:', e);
-                    instancesData = [];
-                }
-            } else {
-                console.log('[JS DEBUG] No stored instances found');
-                instancesData = [];
-            }
+            console.log('[JS DEBUG] loadInstances called - will fetch from APEX');
+            // Don't load from localStorage anymore - must use refreshInstances() to fetch from APEX
+            instancesData = [];
             renderInstancesTable();
         }
 
@@ -5875,7 +5864,7 @@ Click "Run Test" to execute the API call...
             if (!tbody) return;
 
             if (instancesData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px; color: #888;">No instances configured. Click "New" to add one.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px; color: #888;">No instances loaded. Click "Refresh" to load from APEX.</td></tr>';
                 return;
             }
 
@@ -6015,9 +6004,87 @@ Click "Run Test" to execute the API call...
             }
         }
 
-        // Refresh instances
+        // Refresh instances - fetches from APEX via C#
         function refreshInstances() {
-            loadInstances();
+            console.log('========================================');
+            console.log('[APEX INSTANCES] refreshInstances() called');
+            console.log('[APEX INSTANCES] Checking WebView2 availability...');
+            console.log('========================================');
+
+            if (window.chrome && window.chrome.webview) {
+                const requestId = 'getAllInstances_' + Date.now();
+                console.log('[APEX INSTANCES] WebView2 is available');
+                console.log('[APEX INSTANCES] Requesting instances from C# with requestId:', requestId);
+
+                // Set up one-time handler for response
+                const handler = function(event) {
+                    try {
+                        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                        console.log('========================================');
+                        console.log('[APEX INSTANCES] *** RESPONSE RECEIVED FROM C# ***');
+                        console.log('========================================');
+
+                        // Log debug info: Full URL and Raw Response
+                        if (data.debug) {
+                            console.log('[APEX DEBUG] ====== FULL URL ======');
+                            console.log('[APEX DEBUG] GET ' + (data.debug.fullUrl || 'N/A'));
+                            console.log('[APEX DEBUG] =======================');
+                            console.log('[APEX DEBUG] ====== RAW RESPONSE ======');
+                            console.log('[APEX DEBUG] ' + (data.debug.rawResponse || 'N/A'));
+                            console.log('[APEX DEBUG] ==========================');
+                        }
+
+                        console.log('[APEX INSTANCES] data.success:', data.success);
+                        console.log('[APEX INSTANCES] data.source:', data.source || 'not specified');
+                        console.log('[APEX INSTANCES] data.instances count:', data.instances ? data.instances.length : 'undefined');
+                        console.log('========================================');
+
+                        if (data.requestId === requestId || data.action === 'getAllInstancesResponse') {
+                            window.chrome.webview.removeEventListener('message', handler);
+                            if (data.success && data.instances) {
+                                // Map the raw APEX data to the format expected by the table
+                                // Show data as-is without any concatenation
+                                instancesData = data.instances.map(inst => ({
+                                    name: inst.instance_name || inst.name || '',
+                                    source: inst.source || '',
+                                    url: inst.base_url || inst.url || '',
+                                    username: inst.username || '',
+                                    password: inst.password || '',
+                                    noAuth: inst.no_auth === true || inst.no_auth === 'Y' || inst.noauth === true || inst.noauth === 'Y' || false
+                                }));
+                                console.log('[APEX INSTANCES] *** SUCCESS - Loaded ' + instancesData.length + ' instances ***');
+                                instancesData.forEach((inst, idx) => {
+                                    console.log('[APEX INSTANCES]   Instance[' + idx + ']: name=' + inst.name + ', source=' + inst.source + ', url=' + inst.url);
+                                });
+                                renderInstancesTable();
+                            } else {
+                                console.log('[APEX INSTANCES] *** FAILED or no instances ***');
+                                instancesData = [];
+                                renderInstancesTable();
+                                if (data.error) {
+                                    alert('Failed to load instances: ' + data.error);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.log('[APEX INSTANCES] Error processing response:', e);
+                    }
+                };
+
+                window.chrome.webview.addEventListener('message', handler);
+
+                window.chrome.webview.postMessage({
+                    action: 'getAllInstances',
+                    requestId: requestId
+                });
+
+                console.log('[APEX INSTANCES] Message sent to C#');
+            } else {
+                console.log('[APEX INSTANCES] WebView2 not available - cannot fetch from APEX');
+                instancesData = [];
+                renderInstancesTable();
+                alert('WebView2 not available. Cannot fetch instances from APEX.');
+            }
         }
 
         // =============================================

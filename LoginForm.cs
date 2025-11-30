@@ -25,8 +25,12 @@ namespace WMSApp
         // Company Name (hardcoded)
         private const string COMPANY_NAME = "Mitsumi";
 
-        // Instance URLs - will be loaded from settings
-        private Dictionary<string, string> instanceUrls = new Dictionary<string, string>();
+        // Instance URLs - hardcoded for PROD and TEST
+        private Dictionary<string, string> instanceUrls = new Dictionary<string, string>
+        {
+            { "PROD", "https://g09254cbbf8e7af-graysprod.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT" },
+            { "TEST", "https://g09254cbbf8e7af-graystest.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT" }
+        };
 
         public string Username { get; private set; }
         public string Password { get; private set; }

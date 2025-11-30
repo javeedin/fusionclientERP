@@ -29,7 +29,8 @@
         </button>
         <div class="logo">
             <i class="fas fa-warehouse"></i>
-            <span>WMS</span>
+            <span class="module-badge" style="cursor: pointer;" onclick="goToHome()">WMS</span>
+            <span id="toolbarTitle" style="margin-left: 10px; font-weight: normal;">Trip Management</span>
         </div>
         <div class="user-info">
             <i class="fas fa-user-circle"></i>
@@ -220,8 +221,6 @@
 
 <div id="monitor-printing" class="page-content" style="display: none;">
     <div style="margin-bottom: 1.5rem;">
-        <h2 class="page-title" style="margin: 0 0 1rem 0;">📊 Monitor Printing</h2>
-
         <!-- Search Parameters -->
         <div class="parameters-section">
             <div class="parameters-header" id="monitor-parameters-toggle">
@@ -384,16 +383,13 @@
 </div>
 
             <div id="printer-setup" class="page-content" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <h2 class="page-title" style="margin: 0;">🖨️ Printer Management</h2>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn btn-secondary" onclick="loadAllPrinters()">
-                            <i class="fas fa-sync-alt"></i> Refresh
-                        </button>
-                        <button class="btn btn-primary" onclick="showAddPrinterModal()">
-                            <i class="fas fa-plus"></i> Add Printer
-                        </button>
-                    </div>
+                <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 1.5rem; gap: 0.5rem;">
+                    <button class="btn btn-secondary" onclick="loadAllPrinters()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button class="btn btn-primary" onclick="showAddPrinterModal()">
+                        <i class="fas fa-plus"></i> Add Printer
+                    </button>
                 </div>
 
                 <!-- Printers Table -->
@@ -496,16 +492,13 @@
 
             <!-- NEW PRINTER SETUP PAGE -->
             <div id="printer-setup-new" class="page-content" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <h2 class="page-title" style="margin: 0;">🖨️ Printer Management (NEW)</h2>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn btn-secondary" onclick="loadAllPrintersNew()">
-                            <i class="fas fa-sync-alt"></i> Refresh
-                        </button>
-                        <button class="btn btn-primary" onclick="showAddPrinterModalNew()">
-                            <i class="fas fa-plus"></i> Add Printer
-                        </button>
-                    </div>
+                <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 1.5rem; gap: 0.5rem;">
+                    <button class="btn btn-secondary" onclick="loadAllPrintersNew()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button class="btn btn-primary" onclick="showAddPrinterModalNew()">
+                        <i class="fas fa-plus"></i> Add Printer
+                    </button>
                 </div>
 
                 <!-- Printers Table -->

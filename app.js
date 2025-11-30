@@ -19,7 +19,15 @@ function generateRequestId() {
     return 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
-
+function goToHome() {
+    // Reset to default Trip Management page
+    document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+    document.querySelector('.menu-item[data-page="trip-management"]').classList.add('active');
+    document.querySelectorAll('.page-content').forEach(page => page.style.display = 'none');
+    document.getElementById('trip-management').style.display = 'block';
+    document.title = 'WMS - Trip Management';
+    document.getElementById('toolbarTitle').textContent = 'Trip Management';
+}
 
 function sendMessageToCSharp(message, callback) {
     const requestId = message.requestId || generateRequestId();
@@ -1332,6 +1340,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const pageTitle = this.textContent.trim();
             document.title = `WMS - ${pageTitle}`;
+            document.getElementById('toolbarTitle').textContent = pageTitle;
             
             if (pageId === 'vehicles' && currentFullData.length > 0) {
                 initVehiclesPage();

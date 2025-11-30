@@ -2383,6 +2383,18 @@
             background: #999;
         }
     </style>
+    <!-- DevExtreme -->
+    <link rel="stylesheet" href="https://cdn3.devexpress.com/jslib/23.2.6/css/dx.light.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // DevExpress License Configuration
+        DevExpress.config({
+            licenseKey: "ewogICJmb3JtYXQiOiAxLAogICJjdXN0b21lcklkIjogImVlOWVhYTEwLTlkN2QtNGY5OS04YWM1LTdjZmI0ZDA1NWYwZCIsCiAgIm1heFZlcnNpb25BbGxvd2VkIjogMjMyCn0=.Vea066tbF42irVJqwpiFoZQvJi9X4UgfbFNGbmIgqrDv54JlxP+P4/WSJjiy5XpZkqTTbhMRnin//dl0sg1K5kCGOE3XquKboK++pqSbJ+vG7jzjJpfnx8BY10M28dh9iO7Wfw=="
+        });
+    </script>
+    <script src="https://cdn3.devexpress.com/jslib/23.2.6/js/dx.all.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
 <body>
     <!-- Overlay for click outside -->
@@ -5892,35 +5904,7 @@ Click "Run Test" to execute the API call...
 
                         <!-- Tab 2: Shipments List -->
                         <div class="tab-content" id="shipments-tab-list">
-                            <div class="grid-header" style="margin-bottom: 10px; padding: 10px 0; border: none; background: none;">
-                                <div class="grid-title">
-                                    Shipments List
-                                </div>
-                                <div class="grid-search">
-                                    <input type="text" id="shipmentsListSearchInput" placeholder="Filter results..." oninput="filterShipmentsListGrid()">
-                                    <span class="record-count" id="shipmentsListCount">0 Shipment(s)</span>
-                                </div>
-                            </div>
-                            <div class="table-container" style="max-height: calc(100vh - 450px);">
-                                <table class="data-table" id="shipmentsListTable">
-                                    <thead style="background: #e0e0e0; color: #333;">
-                                        <tr>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Shipment #</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Delivery Name</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Customer</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Ship-To Location</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Carrier</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Ship Date</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Weight</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Status</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="shipmentsListTableBody">
-                                        <tr><td colspan="9" class="no-data">Enter search parameters and click Search</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                            <div id="shipmentsDataGrid" style="height: calc(100vh - 420px);"></div>
                         </div>
 
                         <!-- Tab 3: Shipment Details -->
@@ -6242,70 +6226,213 @@ Click "Run Test" to execute the API call...
             document.getElementById('shipmentsChartByDate').innerHTML = dateChartHtml || '<div style="color: #888; text-align: center; padding: 20px;">No data</div>';
         }
 
-        // Render Shipments List Table
+        // Shipments Grid instance
+        let shipmentsGridInstance = null;
+
+        // Render Shipments List Table using DevExpress DataGrid
         function renderShipmentsListTable(data) {
-            const tbody = document.getElementById('shipmentsListTableBody');
+            // Normalize data for the grid
+            const gridData = (data || []).map((row, idx) => ({
+                _index: idx,
+                shipment_number: row.shipment_number || row.SHIPMENT_NUMBER || row.delivery_id || row.DELIVERY_ID || '-',
+                delivery_name: row.delivery_name || row.DELIVERY_NAME || row.name || row.NAME || '-',
+                customer_name: row.customer_name || row.CUSTOMER_NAME || row.customer || row.CUSTOMER || '-',
+                ship_to_location: row.ship_to_location || row.SHIP_TO_LOCATION || row.ship_to || row.SHIP_TO || '-',
+                carrier: row.carrier || row.CARRIER || row.carrier_name || row.CARRIER_NAME || '-',
+                ship_date: row.ship_date || row.SHIP_DATE || row.shipment_date || row.SHIPMENT_DATE || '-',
+                weight: row.weight || row.WEIGHT || row.gross_weight || row.GROSS_WEIGHT || 0,
+                status: row.status || row.STATUS || row.shipment_status || row.SHIPMENT_STATUS || '-',
+                _originalData: row
+            }));
 
-            if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="no-data">No shipments found</td></tr>';
-                document.getElementById('shipmentsListCount').textContent = '0 Shipment(s)';
-                return;
+            // Destroy existing grid instance if exists
+            if (shipmentsGridInstance) {
+                shipmentsGridInstance.dispose();
+                shipmentsGridInstance = null;
             }
 
-            let html = '';
-            data.forEach((row, idx) => {
-                const shipmentNum = row.shipment_number || row.SHIPMENT_NUMBER || row.delivery_id || row.DELIVERY_ID || '-';
-                const deliveryName = row.delivery_name || row.DELIVERY_NAME || row.name || row.NAME || '-';
-                const customer = row.customer_name || row.CUSTOMER_NAME || row.customer || row.CUSTOMER || '-';
-                const shipToLoc = row.ship_to_location || row.SHIP_TO_LOCATION || row.ship_to || row.SHIP_TO || '-';
-                const carrier = row.carrier || row.CARRIER || row.carrier_name || row.CARRIER_NAME || '-';
-                const shipDate = row.ship_date || row.SHIP_DATE || row.shipment_date || row.SHIPMENT_DATE || '-';
-                const weight = row.weight || row.WEIGHT || row.gross_weight || row.GROSS_WEIGHT || 0;
-                const status = row.status || row.STATUS || row.shipment_status || row.SHIPMENT_STATUS || '-';
+            // Initialize DevExpress DataGrid
+            shipmentsGridInstance = $('#shipmentsDataGrid').dxDataGrid({
+                dataSource: gridData,
+                showBorders: true,
+                showRowLines: true,
+                showColumnLines: true,
+                rowAlternationEnabled: true,
+                columnAutoWidth: true,
+                wordWrapEnabled: false,
+                allowColumnResizing: true,
+                columnResizingMode: 'widget',
+                hoverStateEnabled: true,
 
-                const statusClass = getShipmentStatusClass(status);
+                // Paging
+                paging: {
+                    enabled: true,
+                    pageSize: 25
+                },
+                pager: {
+                    visible: true,
+                    showPageSizeSelector: true,
+                    allowedPageSizes: [10, 25, 50, 100],
+                    showInfo: true,
+                    infoText: '{2} Shipment(s)'
+                },
 
-                html += `<tr style="font-size: 11px;">
-                    <td style="padding: 8px; font-weight: bold; color: #667eea;">${shipmentNum}</td>
-                    <td style="padding: 8px;">${deliveryName}</td>
-                    <td style="padding: 8px;" title="${customer}">${customer.length > 20 ? customer.substring(0, 20) + '...' : customer}</td>
-                    <td style="padding: 8px;" title="${shipToLoc}">${shipToLoc.length > 20 ? shipToLoc.substring(0, 20) + '...' : shipToLoc}</td>
-                    <td style="padding: 8px;">${carrier}</td>
-                    <td style="padding: 8px;">${formatDate(shipDate)}</td>
-                    <td style="padding: 8px; text-align: right;">${formatNumber(weight)}</td>
-                    <td style="padding: 8px;"><span class="status-badge ${statusClass}">${status}</span></td>
-                    <td style="padding: 8px;">
-                        <button class="btn-action" onclick="viewShipmentDetails(${idx})" title="View Details">
-                            &#128065; View
-                        </button>
-                    </td>
-                </tr>`;
-            });
+                // Sorting
+                sorting: {
+                    mode: 'multiple'
+                },
 
-            tbody.innerHTML = html;
-            document.getElementById('shipmentsListCount').textContent = data.length + ' Shipment(s)';
+                // Filtering
+                filterRow: {
+                    visible: true,
+                    applyFilter: 'auto'
+                },
+                headerFilter: {
+                    visible: true
+                },
+
+                // Search Panel
+                searchPanel: {
+                    visible: true,
+                    width: 240,
+                    placeholder: 'Search shipments...'
+                },
+
+                // Export to Excel
+                export: {
+                    enabled: true,
+                    allowExportSelectedData: true,
+                    fileName: 'Shipments_Export'
+                },
+                onExporting: function(e) {
+                    const workbook = new ExcelJS.Workbook();
+                    const worksheet = workbook.addWorksheet('Shipments');
+
+                    DevExpress.excelExporter.exportDataGrid({
+                        component: e.component,
+                        worksheet: worksheet,
+                        autoFilterEnabled: true,
+                        topLeftCell: { row: 1, column: 1 }
+                    }).then(function() {
+                        workbook.xlsx.writeBuffer().then(function(buffer) {
+                            saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'Shipments_Export.xlsx');
+                        });
+                    });
+                    e.cancel = true;
+                },
+
+                // Selection
+                selection: {
+                    mode: 'single'
+                },
+
+                // Row click to view details
+                onRowClick: function(e) {
+                    if (e.rowType === 'data') {
+                        viewShipmentDetailsByData(e.data._originalData);
+                    }
+                },
+
+                // Columns
+                columns: [
+                    {
+                        dataField: 'shipment_number',
+                        caption: 'Shipment #',
+                        width: 120,
+                        cellTemplate: function(container, options) {
+                            $('<div>')
+                                .css({
+                                    'font-weight': '600',
+                                    'color': '#667eea'
+                                })
+                                .text(options.value)
+                                .appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: 'delivery_name',
+                        caption: 'Delivery Name',
+                        width: 150
+                    },
+                    {
+                        dataField: 'customer_name',
+                        caption: 'Customer',
+                        minWidth: 150
+                    },
+                    {
+                        dataField: 'ship_to_location',
+                        caption: 'Ship-To Location',
+                        minWidth: 150
+                    },
+                    {
+                        dataField: 'carrier',
+                        caption: 'Carrier',
+                        width: 120
+                    },
+                    {
+                        dataField: 'ship_date',
+                        caption: 'Ship Date',
+                        width: 110,
+                        customizeText: function(cellInfo) {
+                            return formatDate(cellInfo.value);
+                        }
+                    },
+                    {
+                        dataField: 'weight',
+                        caption: 'Weight',
+                        width: 100,
+                        alignment: 'right',
+                        customizeText: function(cellInfo) {
+                            return formatNumber(cellInfo.value);
+                        }
+                    },
+                    {
+                        dataField: 'status',
+                        caption: 'Status',
+                        width: 120,
+                        cellTemplate: function(container, options) {
+                            const statusClass = getShipmentStatusClass(options.value);
+                            $('<span>')
+                                .addClass('status-badge ' + statusClass)
+                                .text(options.value)
+                                .appendTo(container);
+                        }
+                    },
+                    {
+                        caption: 'Actions',
+                        width: 90,
+                        allowFiltering: false,
+                        allowSorting: false,
+                        allowExporting: false,
+                        cellTemplate: function(container, options) {
+                            $('<button>')
+                                .addClass('btn-action')
+                                .attr('title', 'View Details')
+                                .html('&#128065; View')
+                                .on('click', function(e) {
+                                    e.stopPropagation();
+                                    viewShipmentDetailsByData(options.data._originalData);
+                                })
+                                .appendTo(container);
+                        }
+                    }
+                ]
+            }).dxDataGrid('instance');
         }
 
-        // Get status class for shipment
-        function getShipmentStatusClass(status) {
-            const upperStatus = (status || '').toUpperCase();
-            switch (upperStatus) {
-                case 'SHIPPED': return 'status-shipped';
-                case 'OPEN': return 'status-open';
-                case 'PICKED': return 'status-picked';
-                case 'STAGED': return 'status-staged';
-                case 'INTERFACED': return 'status-interfaced';
-                case 'CLOSED': return 'status-closed';
-                case 'CANCELLED': return 'status-cancelled';
-                default: return 'status-default';
-            }
+        // View shipment details by data object
+        function viewShipmentDetailsByData(shipment) {
+            // Switch to details tab
+            document.querySelectorAll('.shipments-tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+            document.querySelector('.shipments-tab-btn[data-tab="shipments-tab-details"]').classList.add('active');
+            document.getElementById('shipments-tab-details').style.display = 'block';
+
+            renderShipmentDetailsPanel(shipment);
         }
 
-        // View shipment details
-        function viewShipmentDetails(index) {
-            if (index < 0 || index >= filteredShipmentsData.length) return;
-
-            const shipment = filteredShipmentsData[index];
+        // Render shipment details panel
+        function renderShipmentDetailsPanel(shipment) {
             const panel = document.getElementById('shipmentDetailsPanel');
 
             const shipmentNum = shipment.shipment_number || shipment.SHIPMENT_NUMBER || shipment.delivery_id || shipment.DELIVERY_ID || '-';
@@ -6357,22 +6484,18 @@ Click "Run Test" to execute the API call...
                                 <span class="detail-value" style="color: #007bff;">${trackingNum}</span>
                             </div>
                             <div class="detail-row">
-                                <span class="detail-label">Number of Lines:</span>
-                                <span class="detail-value">${numLines}</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Total Quantity:</span>
-                                <span class="detail-value">${totalQty}</span>
+                                <span class="detail-label">Lines/Quantity:</span>
+                                <span class="detail-value">${numLines} lines / ${totalQty} units</span>
                             </div>
                         </div>
 
                         <!-- Customer Info -->
                         <div class="detail-card">
-                            <h4 style="color: #333; margin-bottom: 15px; border-bottom: 2px solid #28a745; padding-bottom: 8px;">
+                            <h4 style="color: #333; margin-bottom: 15px; border-bottom: 2px solid #667eea; padding-bottom: 8px;">
                                 &#128100; Customer Information
                             </h4>
                             <div class="detail-row">
-                                <span class="detail-label">Customer Name:</span>
+                                <span class="detail-label">Customer:</span>
                                 <span class="detail-value">${customer}</span>
                             </div>
                             <div class="detail-row">
@@ -6385,10 +6508,10 @@ Click "Run Test" to execute the API call...
                             </div>
                         </div>
 
-                        <!-- Carrier Info -->
+                        <!-- Shipping Info -->
                         <div class="detail-card">
-                            <h4 style="color: #333; margin-bottom: 15px; border-bottom: 2px solid #17a2b8; padding-bottom: 8px;">
-                                &#128667; Carrier Information
+                            <h4 style="color: #333; margin-bottom: 15px; border-bottom: 2px solid #667eea; padding-bottom: 8px;">
+                                &#128666; Shipping Details
                             </h4>
                             <div class="detail-row">
                                 <span class="detail-label">Carrier:</span>
@@ -6402,13 +6525,6 @@ Click "Run Test" to execute the API call...
                                 <span class="detail-label">Service Level:</span>
                                 <span class="detail-value">${serviceLevel}</span>
                             </div>
-                        </div>
-
-                        <!-- Dates & Measurements -->
-                        <div class="detail-card">
-                            <h4 style="color: #333; margin-bottom: 15px; border-bottom: 2px solid #ffc107; padding-bottom: 8px;">
-                                &#128197; Dates & Measurements
-                            </h4>
                             <div class="detail-row">
                                 <span class="detail-label">Ship Date:</span>
                                 <span class="detail-value">${formatDate(shipDate)}</span>
@@ -6417,6 +6533,13 @@ Click "Run Test" to execute the API call...
                                 <span class="detail-label">Expected Delivery:</span>
                                 <span class="detail-value">${formatDate(expectedDelivery)}</span>
                             </div>
+                        </div>
+
+                        <!-- Weight/Volume Info -->
+                        <div class="detail-card">
+                            <h4 style="color: #333; margin-bottom: 15px; border-bottom: 2px solid #667eea; padding-bottom: 8px;">
+                                &#9878; Weight & Volume
+                            </h4>
                             <div class="detail-row">
                                 <span class="detail-label">Weight:</span>
                                 <span class="detail-value">${formatNumber(weight)} ${weightUom}</span>
@@ -6425,15 +6548,6 @@ Click "Run Test" to execute the API call...
                                 <span class="detail-label">Volume:</span>
                                 <span class="detail-value">${formatNumber(volume)} ${volumeUom}</span>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Audit Info -->
-                    <div class="detail-card" style="margin-top: 20px;">
-                        <h4 style="color: #333; margin-bottom: 15px; border-bottom: 2px solid #6c757d; padding-bottom: 8px;">
-                            &#128221; Audit Information
-                        </h4>
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
                             <div class="detail-row">
                                 <span class="detail-label">Created By:</span>
                                 <span class="detail-value">${createdBy}</span>
@@ -6453,9 +6567,21 @@ Click "Run Test" to execute the API call...
                     </div>
                 </div>
             `;
+        }
 
-            // Switch to details tab
-            switchShipmentsTab('shipments-tab-details');
+        // Get status class for shipment
+        function getShipmentStatusClass(status) {
+            const upperStatus = (status || '').toUpperCase();
+            switch (upperStatus) {
+                case 'SHIPPED': return 'status-shipped';
+                case 'OPEN': return 'status-open';
+                case 'PICKED': return 'status-picked';
+                case 'STAGED': return 'status-staged';
+                case 'INTERFACED': return 'status-interfaced';
+                case 'CLOSED': return 'status-closed';
+                case 'CANCELLED': return 'status-cancelled';
+                default: return 'status-default';
+            }
         }
 
         // View shipment lines for a specific shipment
@@ -6464,28 +6590,6 @@ Click "Run Test" to execute the API call...
             localStorage.setItem('wms_filter_shipment', shipmentNumber);
             // Open the Manage Shipment Lines menu item
             openMenuItem('shipments', 'Manage Shipment Lines');
-        }
-
-        // Filter shipments list grid
-        function filterShipmentsListGrid() {
-            const searchText = document.getElementById('shipmentsListSearchInput').value.toLowerCase();
-            if (!shipmentsData) return;
-
-            if (!searchText) {
-                filteredShipmentsData = [...shipmentsData];
-                renderShipmentsListTable(filteredShipmentsData);
-                return;
-            }
-
-            filteredShipmentsData = shipmentsData.filter(row => {
-                return (row.shipment_number || row.SHIPMENT_NUMBER || '').toLowerCase().includes(searchText) ||
-                       (row.delivery_name || row.DELIVERY_NAME || '').toLowerCase().includes(searchText) ||
-                       (row.customer_name || row.CUSTOMER_NAME || '').toLowerCase().includes(searchText) ||
-                       (row.carrier || row.CARRIER || '').toLowerCase().includes(searchText) ||
-                       (row.status || row.STATUS || '').toLowerCase().includes(searchText);
-            });
-
-            renderShipmentsListTable(filteredShipmentsData);
         }
 
         // =============================================

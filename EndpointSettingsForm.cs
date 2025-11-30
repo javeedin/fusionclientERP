@@ -642,6 +642,8 @@ namespace WMSApp
         private Button btnOk;
         private Button btnCancel;
         private string _apexEndpointUrl;
+        private List<Dictionary<string, object>> _instancesData;
+        private bool _isLoadingInstances = false;
 
         public EndpointConfig Endpoint { get; private set; }
 
@@ -700,6 +702,332 @@ namespace WMSApp
             }
         }
 
+        /// <summary>
+        /// Loads instances data from the APEX API
+        /// </summary>
+        private async Task LoadInstancesFromApex()
+        {
+            if (_isLoadingInstances) return;
+            _isLoadingInstances = true;
+
+            try
+            {
+                string settingsPath = EndpointConfigReader.GetSettingsPath();
+                string apexInstancesFilePath = Path.Combine(settingsPath, "apexinstances.txt");
+
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ========================================");
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Loading instances from APEX");
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Instances URL file: {apexInstancesFilePath}");
+
+                if (!File.Exists(apexInstancesFilePath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] WARNING: apexinstances.txt not found");
+                    _instancesData = new List<Dictionary<string, object>>();
+                    return;
+                }
+
+                string apexInstancesUrl = File.ReadAllText(apexInstancesFilePath).Trim();
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Fetching from: {apexInstancesUrl}");
+
+                if (string.IsNullOrWhiteSpace(apexInstancesUrl))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] WARNING: apexinstances.txt is empty");
+                    _instancesData = new List<Dictionary<string, object>>();
+                    return;
+                }
+
+                using (var client = new HttpClient())
+                {
+                    client.Timeout = TimeSpan.FromSeconds(30);
+                    var response = await client.GetAsync(apexInstancesUrl);
+
+                    System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Response Status: {response.StatusCode}");
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string jsonResponse = await response.Content.ReadAsStringAsync();
+                        System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Raw Response: {jsonResponse}");
+
+                        _instancesData = ParseInstancesResponse(jsonResponse);
+                        System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Parsed {_instancesData.Count} instances");
+
+                        // Log each instance
+                        foreach (var inst in _instancesData)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   -> {string.Join(", ", inst.Select(kv => $"{kv.Key}={kv.Value}"))}");
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] HTTP Error: {response.StatusCode}");
+                        _instancesData = new List<Dictionary<string, object>>();
+                    }
+                }
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ========================================");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ERROR loading instances: {ex.Message}");
+                _instancesData = new List<Dictionary<string, object>>();
+            }
+            finally
+            {
+                _isLoadingInstances = false;
+            }
+        }
+
+        /// <summary>
+        /// Parses the instances JSON response into a list of dictionaries
+        /// </summary>
+        private List<Dictionary<string, object>> ParseInstancesResponse(string jsonResponse)
+        {
+            var instances = new List<Dictionary<string, object>>();
+
+            try
+            {
+                using (var doc = JsonDocument.Parse(jsonResponse))
+                {
+                    var root = doc.RootElement;
+
+                    // Check if response is an array or has an "items" property
+                    JsonElement itemsArray;
+                    if (root.ValueKind == JsonValueKind.Array)
+                    {
+                        itemsArray = root;
+                    }
+                    else if (root.TryGetProperty("items", out itemsArray))
+                    {
+                        // APEX REST often wraps results in "items"
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Unexpected JSON structure");
+                        return instances;
+                    }
+
+                    foreach (var item in itemsArray.EnumerateArray())
+                    {
+                        var instance = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+
+                        foreach (var prop in item.EnumerateObject())
+                        {
+                            string key = prop.Name;
+                            object value = prop.Value.ValueKind switch
+                            {
+                                JsonValueKind.String => prop.Value.GetString(),
+                                JsonValueKind.Number => prop.Value.TryGetInt32(out int i) ? i : prop.Value.GetDouble(),
+                                JsonValueKind.True => true,
+                                JsonValueKind.False => false,
+                                JsonValueKind.Null => null,
+                                _ => prop.Value.GetRawText()
+                            };
+                            instance[key] = value;
+                        }
+
+                        instances.Add(instance);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Error parsing instances JSON: {ex.Message}");
+            }
+
+            return instances;
+        }
+
+        /// <summary>
+        /// Gets the base URL for a given source type and instance name from the cached instances data
+        /// </summary>
+        private string GetBaseUrlForInstance(string sourceType, string instanceName)
+        {
+            if (_instancesData == null || _instancesData.Count == 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] GetBaseUrlForInstance: No instances data available");
+                return null;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Looking for base URL: source={sourceType}, instance={instanceName}");
+
+            foreach (var inst in _instancesData)
+            {
+                // Get instance name - try multiple field names
+                string instName = inst.TryGetValue("instance", out var instVal) ? instVal?.ToString() :
+                                  inst.TryGetValue("instance_name", out instVal) ? instVal?.ToString() :
+                                  inst.TryGetValue("name", out instVal) ? instVal?.ToString() : null;
+
+                // Get source type - try multiple field names
+                string instSource = inst.TryGetValue("source_type", out var srcVal) ? srcVal?.ToString() :
+                                    inst.TryGetValue("source", out srcVal) ? srcVal?.ToString() : null;
+
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   Checking: instName={instName}, instSource={instSource}");
+
+                // Match by instance name and source type
+                if (string.Equals(instName, instanceName, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(instSource, sourceType, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Get base URL - try source-specific URL first, then generic
+                    string baseUrl = null;
+                    if (string.Equals(sourceType, "APEX", StringComparison.OrdinalIgnoreCase))
+                    {
+                        baseUrl = inst.TryGetValue("apex_base_url", out var urlVal) ? urlVal?.ToString() : null;
+                    }
+                    else if (string.Equals(sourceType, "FUSION", StringComparison.OrdinalIgnoreCase))
+                    {
+                        baseUrl = inst.TryGetValue("fusion_base_url", out var urlVal) ? urlVal?.ToString() : null;
+                    }
+
+                    // Fallback to generic base_url or url field
+                    if (string.IsNullOrEmpty(baseUrl))
+                    {
+                        baseUrl = inst.TryGetValue("base_url", out var urlVal) ? urlVal?.ToString() :
+                                  inst.TryGetValue("url", out urlVal) ? urlVal?.ToString() : null;
+                    }
+
+                    if (!string.IsNullOrEmpty(baseUrl))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   FOUND base URL: {baseUrl}");
+                        return baseUrl;
+                    }
+                }
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] GetBaseUrlForInstance: No matching instance found");
+            return null;
+        }
+
+        /// <summary>
+        /// Populates the Instance dropdown based on the selected source type
+        /// </summary>
+        private void PopulateInstanceDropdown(string sourceType, string selectedInstance = null)
+        {
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] PopulateInstanceDropdown: source={sourceType}, selected={selectedInstance}");
+
+            cboInstanceName.Items.Clear();
+
+            if (_instancesData == null || _instancesData.Count == 0)
+            {
+                // Fall back to default instances if no data available
+                cboInstanceName.Items.AddRange(new object[] { "PROD", "TEST", "DEV" });
+                if (!string.IsNullOrEmpty(selectedInstance))
+                {
+                    int idx = cboInstanceName.Items.IndexOf(selectedInstance);
+                    cboInstanceName.SelectedIndex = idx >= 0 ? idx : 0;
+                }
+                else
+                {
+                    cboInstanceName.SelectedIndex = 0;
+                }
+                return;
+            }
+
+            // Get distinct instance names for the selected source type
+            var instanceNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var inst in _instancesData)
+            {
+                // Get source type from instance
+                string instSource = inst.TryGetValue("source_type", out var srcVal) ? srcVal?.ToString() :
+                                    inst.TryGetValue("source", out srcVal) ? srcVal?.ToString() : null;
+
+                // Match source type
+                if (string.Equals(instSource, sourceType, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Get instance name
+                    string instName = inst.TryGetValue("instance", out var instVal) ? instVal?.ToString() :
+                                      inst.TryGetValue("instance_name", out instVal) ? instVal?.ToString() :
+                                      inst.TryGetValue("name", out instVal) ? instVal?.ToString() : null;
+
+                    if (!string.IsNullOrEmpty(instName))
+                    {
+                        instanceNames.Add(instName);
+                    }
+                }
+            }
+
+            // Add found instances to dropdown
+            foreach (var name in instanceNames.OrderBy(n => n))
+            {
+                cboInstanceName.Items.Add(name);
+            }
+
+            // If no instances found for source, add defaults
+            if (cboInstanceName.Items.Count == 0)
+            {
+                cboInstanceName.Items.AddRange(new object[] { "PROD", "TEST", "DEV" });
+            }
+
+            // Select the appropriate instance
+            if (!string.IsNullOrEmpty(selectedInstance))
+            {
+                int idx = cboInstanceName.Items.IndexOf(selectedInstance);
+                if (idx >= 0)
+                {
+                    cboInstanceName.SelectedIndex = idx;
+                }
+                else
+                {
+                    cboInstanceName.SelectedIndex = 0;
+                }
+            }
+            else if (cboInstanceName.Items.Count > 0)
+            {
+                cboInstanceName.SelectedIndex = 0;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] PopulateInstanceDropdown: Added {cboInstanceName.Items.Count} instances");
+        }
+
+        /// <summary>
+        /// Handles source selection change - repopulates instances and updates base URL
+        /// </summary>
+        private async void CboSource_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cboSource.SelectedItem == null) return;
+
+            string sourceType = cboSource.SelectedItem.ToString();
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Source changed to: {sourceType}");
+
+            // Load instances if not already loaded
+            if (_instancesData == null || _instancesData.Count == 0)
+            {
+                await LoadInstancesFromApex();
+            }
+
+            // Populate instance dropdown for selected source
+            PopulateInstanceDropdown(sourceType);
+
+            // Update base URL for new selection
+            UpdateBaseUrlFromInstance();
+        }
+
+        /// <summary>
+        /// Handles instance selection change - updates base URL
+        /// </summary>
+        private void CboInstanceName_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            UpdateBaseUrlFromInstance();
+        }
+
+        /// <summary>
+        /// Updates the base URL field based on selected source and instance
+        /// </summary>
+        private void UpdateBaseUrlFromInstance()
+        {
+            if (cboSource.SelectedItem == null || cboInstanceName.SelectedItem == null) return;
+
+            string sourceType = cboSource.SelectedItem.ToString();
+            string instanceName = cboInstanceName.SelectedItem.ToString();
+
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] UpdateBaseUrlFromInstance: source={sourceType}, instance={instanceName}");
+
+            string baseUrl = GetBaseUrlForInstance(sourceType, instanceName);
+            if (!string.IsNullOrEmpty(baseUrl))
+            {
+                txtBaseUrl.Text = baseUrl;
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Base URL auto-filled: {baseUrl}");
+            }
+        }
+
         private void InitializeComponent()
         {
             this.Text = Endpoint.Sno > 0 && !string.IsNullOrEmpty(Endpoint.IntegrationCode)
@@ -741,6 +1069,7 @@ namespace WMSApp
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
             cboSource.Items.AddRange(new object[] { "APEX", "FUSION" });
+            cboSource.SelectedIndexChanged += CboSource_SelectedIndexChanged;
             this.Controls.Add(cboSource);
             yPos += rowHeight;
 
@@ -777,6 +1106,7 @@ namespace WMSApp
             };
             cboInstanceName.Items.AddRange(new object[] { "PROD", "TEST", "DEV" });
             cboInstanceName.SelectedIndex = 0;  // Default to PROD for new endpoints
+            cboInstanceName.SelectedIndexChanged += CboInstanceName_SelectedIndexChanged;
             this.Controls.Add(cboInstanceName);
             yPos += rowHeight;
 
@@ -865,7 +1195,7 @@ namespace WMSApp
             this.Controls.Add(label);
         }
 
-        private void PopulateFields()
+        private async void PopulateFields()
         {
             System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] PopulateFields START");
             System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Endpoint.Sno = {Endpoint.Sno}");
@@ -876,15 +1206,59 @@ namespace WMSApp
             System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Endpoint.Endpoint = '{Endpoint.Endpoint}'");
             System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Endpoint.Comments = '{Endpoint.Comments}'");
 
+            // Remember if this is a new endpoint (no base URL yet)
+            bool isNewEndpoint = string.IsNullOrEmpty(Endpoint.BaseUrl);
+            string savedInstanceName = Endpoint.InstanceName;
+            string savedBaseUrl = Endpoint.BaseUrl;
+
             txtSno.Text = Endpoint.Sno.ToString();
-            cboSource.SelectedItem = Endpoint.Source ?? "APEX";
             txtIntegrationCode.Text = Endpoint.IntegrationCode ?? "";
-            // Select matching instance from dropdown, default to PROD if not found
-            int instanceIndex = cboInstanceName.Items.IndexOf(Endpoint.InstanceName ?? "");
-            cboInstanceName.SelectedIndex = instanceIndex >= 0 ? instanceIndex : 0;
-            txtBaseUrl.Text = Endpoint.BaseUrl ?? "";
             txtEndpoint.Text = Endpoint.Endpoint ?? "";
             txtComments.Text = Endpoint.Comments ?? "";
+
+            // Load instances from APEX first
+            await LoadInstancesFromApex();
+
+            // Temporarily disable event handlers while populating
+            cboSource.SelectedIndexChanged -= CboSource_SelectedIndexChanged;
+            cboInstanceName.SelectedIndexChanged -= CboInstanceName_SelectedIndexChanged;
+
+            try
+            {
+                // Set source
+                cboSource.SelectedItem = Endpoint.Source ?? "APEX";
+
+                // Populate instance dropdown based on selected source
+                string sourceType = cboSource.SelectedItem?.ToString() ?? "APEX";
+                PopulateInstanceDropdown(sourceType, savedInstanceName);
+
+                // Set the base URL
+                if (isNewEndpoint)
+                {
+                    // For new endpoints, auto-fill base URL from selected instance
+                    string instanceName = cboInstanceName.SelectedItem?.ToString();
+                    if (!string.IsNullOrEmpty(instanceName))
+                    {
+                        string baseUrl = GetBaseUrlForInstance(sourceType, instanceName);
+                        if (!string.IsNullOrEmpty(baseUrl))
+                        {
+                            txtBaseUrl.Text = baseUrl;
+                            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Auto-filled base URL for new endpoint: {baseUrl}");
+                        }
+                    }
+                }
+                else
+                {
+                    // For existing endpoints, keep the saved base URL
+                    txtBaseUrl.Text = savedBaseUrl ?? "";
+                }
+            }
+            finally
+            {
+                // Re-enable event handlers
+                cboSource.SelectedIndexChanged += CboSource_SelectedIndexChanged;
+                cboInstanceName.SelectedIndexChanged += CboInstanceName_SelectedIndexChanged;
+            }
 
             System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] PopulateFields END - Fields populated");
         }

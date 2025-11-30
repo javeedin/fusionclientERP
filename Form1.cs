@@ -1432,22 +1432,100 @@ namespace WMSApp
         }
 
         /// <summary>
-        /// Handles getAllEndpoints request from webview - loads all endpoints from XML file
+        /// Handles getAllEndpoints request from webview - loads endpoints from APEX (with XML fallback)
         /// </summary>
-        private Task HandleGetAllEndpoints(WebView2 wv, string requestId)
+        private async Task HandleGetAllEndpoints(WebView2 wv, string requestId)
         {
+            System.Diagnostics.Debug.WriteLine($"========================================");
+            System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] HandleGetAllEndpoints STARTED");
+            System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] RequestId: {requestId}");
+            System.Diagnostics.Debug.WriteLine($"========================================");
+
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[Endpoints] Getting all endpoints from XML");
+                List<EndpointConfig> endpoints = null;
+                string dataSource = "unknown";
 
-                // Clear cache to get fresh data
-                EndpointConfigReader.ClearCache();
-                var endpoints = EndpointConfigReader.LoadEndpoints();
+                // Try to load from APEX first
+                string settingsPath = EndpointConfigReader.GetSettingsPath();
+                string apexUrlFilePath = System.IO.Path.Combine(settingsPath, "apexendpointurl.txt");
+
+                System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Settings Path: {settingsPath}");
+                System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] APEX URL File: {apexUrlFilePath}");
+                System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] File Exists: {System.IO.File.Exists(apexUrlFilePath)}");
+
+                if (System.IO.File.Exists(apexUrlFilePath))
+                {
+                    string apexUrl = System.IO.File.ReadAllText(apexUrlFilePath).Trim();
+                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] APEX URL: {apexUrl}");
+
+                    if (!string.IsNullOrWhiteSpace(apexUrl))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Attempting to fetch from APEX...");
+
+                        try
+                        {
+                            using (var client = new System.Net.Http.HttpClient())
+                            {
+                                client.Timeout = TimeSpan.FromSeconds(30);
+                                System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Making HTTP GET request...");
+
+                                var response = await client.GetAsync(apexUrl);
+                                System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Response Status: {(int)response.StatusCode} ({response.StatusCode})");
+
+                                if (response.IsSuccessStatusCode)
+                                {
+                                    string jsonResponse = await response.Content.ReadAsStringAsync();
+                                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Response Length: {jsonResponse?.Length ?? 0} chars");
+                                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Response (first 500 chars): {jsonResponse?.Substring(0, Math.Min(jsonResponse?.Length ?? 0, 500))}");
+
+                                    endpoints = ParseApexEndpointsResponse(jsonResponse);
+                                    dataSource = "APEX";
+                                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] *** SUCCESS - Parsed {endpoints?.Count ?? 0} endpoints from APEX ***");
+                                }
+                                else
+                                {
+                                    string errorBody = await response.Content.ReadAsStringAsync();
+                                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] *** HTTP ERROR: {response.StatusCode} ***");
+                                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Error Body: {errorBody}");
+                                }
+                            }
+                        }
+                        catch (Exception apexEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] *** APEX FETCH FAILED ***");
+                            System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Exception: {apexEx.GetType().Name}");
+                            System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Message: {apexEx.Message}");
+                        }
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] *** apexendpointurl.txt NOT FOUND ***");
+                }
+
+                // Fallback to local XML if APEX failed
+                if (endpoints == null || endpoints.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Falling back to local XML file...");
+                    EndpointConfigReader.ClearCache();
+                    endpoints = EndpointConfigReader.LoadEndpoints();
+                    dataSource = "LOCAL_XML";
+                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Loaded {endpoints?.Count ?? 0} endpoints from XML");
+                }
+
+                // Log each endpoint
+                foreach (var ep in endpoints ?? new List<EndpointConfig>())
+                {
+                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS]   -> Sno={ep.Sno}, Source={ep.Source}, Code={ep.IntegrationCode}, Instance={ep.InstanceName}");
+                }
 
                 // Convert to JSON-friendly format
-                var endpointsList = endpoints.Select(ep => new
+                var endpointsList = (endpoints ?? new List<EndpointConfig>()).Select(ep => new
                 {
                     sno = ep.Sno,
+                    source = ep.Source,
+                    instanceName = ep.InstanceName,
                     sourceInstance = $"{ep.Source}:{ep.InstanceName}",
                     integrationCode = ep.IntegrationCode,
                     url = ep.BaseUrl,
@@ -1458,35 +1536,108 @@ namespace WMSApp
                     limit = 100
                 }).ToList();
 
-                var response = new
+                var responseObj = new
                 {
                     requestId = requestId,
                     action = "getAllEndpointsResponse",
                     success = true,
+                    source = dataSource,
                     endpoints = endpointsList,
-                    settingsPath = EndpointConfigReader.GetSettingsPath()
+                    settingsPath = settingsPath
                 };
 
-                string responseJson = System.Text.Json.JsonSerializer.Serialize(response);
+                string responseJson = System.Text.Json.JsonSerializer.Serialize(responseObj);
                 wv.CoreWebView2.PostWebMessageAsString(responseJson);
 
-                System.Diagnostics.Debug.WriteLine($"[Endpoints] Returned {endpoints.Count} endpoints");
+                System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] *** COMPLETE - Returned {endpointsList.Count} endpoints (source: {dataSource}) ***");
+                System.Diagnostics.Debug.WriteLine($"========================================");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Endpoints] Error getting all endpoints: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] *** FATAL ERROR ***");
+                System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Exception: {ex.GetType().Name}");
+                System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Message: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] StackTrace: {ex.StackTrace}");
 
                 var errorResponse = new
                 {
                     requestId = requestId,
                     action = "getAllEndpointsResponse",
                     success = false,
+                    source = "ERROR",
                     error = ex.Message
                 };
                 string errorJson = System.Text.Json.JsonSerializer.Serialize(errorResponse);
                 wv.CoreWebView2.PostWebMessageAsString(errorJson);
             }
-            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Parses the APEX JSON response into EndpointConfig list
+        /// </summary>
+        private List<EndpointConfig> ParseApexEndpointsResponse(string jsonResponse)
+        {
+            var endpoints = new List<EndpointConfig>();
+
+            try
+            {
+                using (var doc = System.Text.Json.JsonDocument.Parse(jsonResponse))
+                {
+                    var root = doc.RootElement;
+
+                    // Check if response is an array or has an "items" property
+                    System.Text.Json.JsonElement itemsArray;
+                    if (root.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    {
+                        itemsArray = root;
+                    }
+                    else if (root.TryGetProperty("items", out itemsArray))
+                    {
+                        // APEX REST often wraps results in "items"
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[APEX PARSE] Unexpected JSON structure");
+                        return endpoints;
+                    }
+
+                    foreach (var item in itemsArray.EnumerateArray())
+                    {
+                        var endpoint = new EndpointConfig();
+
+                        // Map fields (case-insensitive)
+                        if (item.TryGetProperty("sno", out var snoEl) || item.TryGetProperty("SNO", out snoEl))
+                            endpoint.Sno = snoEl.TryGetInt32(out int sno) ? sno : 0;
+
+                        if (item.TryGetProperty("source", out var sourceEl) || item.TryGetProperty("SOURCE", out sourceEl))
+                            endpoint.Source = sourceEl.GetString() ?? "";
+
+                        if (item.TryGetProperty("integration_code", out var codeEl) || item.TryGetProperty("INTEGRATION_CODE", out codeEl))
+                            endpoint.IntegrationCode = codeEl.GetString() ?? "";
+
+                        if (item.TryGetProperty("instance_name", out var instEl) || item.TryGetProperty("INSTANCE_NAME", out instEl))
+                            endpoint.InstanceName = instEl.GetString() ?? "";
+
+                        if (item.TryGetProperty("base_url", out var urlEl) || item.TryGetProperty("BASE_URL", out urlEl))
+                            endpoint.BaseUrl = urlEl.GetString() ?? "";
+
+                        if (item.TryGetProperty("endpoint", out var epEl) || item.TryGetProperty("ENDPOINT", out epEl))
+                            endpoint.Endpoint = epEl.GetString() ?? "";
+
+                        if (item.TryGetProperty("comments", out var commEl) || item.TryGetProperty("COMMENTS", out commEl))
+                            endpoint.Comments = commEl.GetString() ?? "";
+
+                        endpoints.Add(endpoint);
+                        System.Diagnostics.Debug.WriteLine($"[APEX PARSE] Parsed: Sno={endpoint.Sno}, Source={endpoint.Source}, Code={endpoint.IntegrationCode}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[APEX PARSE] Error parsing JSON: {ex.Message}");
+            }
+
+            return endpoints;
         }
 
         /// <summary>

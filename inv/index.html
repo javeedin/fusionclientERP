@@ -2679,8 +2679,8 @@
                         <button class="btn-danger" onclick="deleteSelectedEndpoint()">
                             <span>&#128465;</span> Delete
                         </button>
-                        <button onclick="refreshEndpoints()">
-                            <span>&#8635;</span> Refresh
+                        <button onclick="refreshEndpoints()" style="background-color: #00796B; color: white;">
+                            <span>&#8635;</span> Refresh from APEX
                         </button>
                         <button class="btn-export" onclick="exportEndpointsJSON()">
                             <span>&#128190;</span> Export JSON
@@ -6014,68 +6014,97 @@ Click "Run Test" to execute the API call...
         // Global variable to store the settings path from C#
         let endpointsSettingsPath = 'C:\\fusionclient\\ERP\\settings\\endpoints.xml';
 
-        // Load endpoints from C# (XML file)
+        // Load endpoints from C# (which fetches from APEX or falls back to XML)
         function loadEndpoints() {
-            console.log('[JS DEBUG] loadEndpoints called');
+            console.log('========================================');
+            console.log('[APEX LOAD] loadEndpoints() STARTED');
+            console.log('[APEX LOAD] Checking WebView2 availability...');
+            console.log('[APEX LOAD] window.chrome exists:', !!window.chrome);
+            console.log('[APEX LOAD] window.chrome.webview exists:', !!(window.chrome && window.chrome.webview));
+            console.log('========================================');
+
             if (window.chrome && window.chrome.webview) {
                 const requestId = 'getAllEndpoints_' + Date.now();
-                console.log('[JS DEBUG] Requesting endpoints from C# with requestId:', requestId);
+                console.log('[APEX LOAD] WebView2 is available');
+                console.log('[APEX LOAD] Requesting endpoints from C# with requestId:', requestId);
+                console.log('[APEX LOAD] Sending message: { action: "getAllEndpoints", requestId: "' + requestId + '" }');
 
                 // Set up one-time handler for response
                 const handler = function(event) {
                     try {
                         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                        console.log('[JS DEBUG] Received message from C#:', JSON.stringify(data, null, 2));
+                        console.log('========================================');
+                        console.log('[APEX LOAD] *** RESPONSE RECEIVED FROM C# ***');
+                        console.log('[APEX LOAD] Raw data type:', typeof event.data);
+                        console.log('[APEX LOAD] Parsed data:', JSON.stringify(data, null, 2));
+                        console.log('[APEX LOAD] data.success:', data.success);
+                        console.log('[APEX LOAD] data.endpoints count:', data.endpoints ? data.endpoints.length : 'undefined');
+                        console.log('[APEX LOAD] data.source:', data.source || 'not specified');
+                        console.log('========================================');
+
                         if (data.requestId === requestId || data.action === 'getAllEndpointsResponse') {
                             window.chrome.webview.removeEventListener('message', handler);
                             if (data.success && data.endpoints) {
                                 endpointsData = data.endpoints;
-                                console.log('[JS DEBUG] Loaded endpoints from C#:');
+                                console.log('[APEX LOAD] *** SUCCESS - Loaded ' + endpointsData.length + ' endpoints ***');
+                                console.log('[APEX LOAD] Data source: ' + (data.source || 'unknown (check C# logs)'));
                                 endpointsData.forEach((ep, idx) => {
-                                    console.log('[JS DEBUG]   Endpoint[' + idx + ']:', JSON.stringify(ep));
+                                    console.log('[APEX LOAD]   Endpoint[' + idx + ']: Sno=' + ep.sno + ', Source=' + ep.source + ', Code=' + ep.integrationCode + ', Instance=' + ep.instanceName);
                                 });
                                 if (data.settingsPath) {
                                     endpointsSettingsPath = data.settingsPath + '\\endpoints.xml';
                                     updateSettingsHeader();
                                 }
-                                console.log('[JS DEBUG] Loaded', endpointsData.length, 'endpoints from C#');
                             } else {
-                                console.warn('[JS DEBUG] Failed to load endpoints from C#, using defaults');
-                                console.warn('[JS DEBUG] Response data:', JSON.stringify(data));
+                                console.warn('[APEX LOAD] *** FAILED - No endpoints from C# ***');
+                                console.warn('[APEX LOAD] data.success:', data.success);
+                                console.warn('[APEX LOAD] data.error:', data.error || 'none');
+                                console.warn('[APEX LOAD] Falling back to default endpoints');
                                 endpointsData = getDefaultEndpoints();
                             }
                             renderEndpointsTable();
                         }
                     } catch (e) {
-                        console.error('[JS DEBUG] Error parsing endpoints response:', e);
+                        console.error('[APEX LOAD] *** ERROR parsing response ***');
+                        console.error('[APEX LOAD] Error:', e.message);
+                        console.error('[APEX LOAD] Stack:', e.stack);
                     }
                 };
 
                 window.chrome.webview.addEventListener('message', handler);
+                console.log('[APEX LOAD] Message listener registered, posting message to C#...');
                 window.chrome.webview.postMessage({
                     action: 'getAllEndpoints',
                     requestId: requestId
                 });
+                console.log('[APEX LOAD] Message posted to C#, waiting for response...');
 
                 // Timeout fallback
                 setTimeout(() => {
                     window.chrome.webview.removeEventListener('message', handler);
                     if (endpointsData.length === 0) {
-                        console.log('[JS] Timeout loading endpoints, using defaults');
+                        console.warn('[APEX LOAD] *** TIMEOUT after 3 seconds ***');
+                        console.warn('[APEX LOAD] No response from C#, using default endpoints');
                         endpointsData = getDefaultEndpoints();
                         renderEndpointsTable();
                     }
                 }, 3000);
             } else {
+                console.warn('[APEX LOAD] *** WebView2 NOT AVAILABLE ***');
+                console.log('[APEX LOAD] Running outside WebView2 context');
+                console.log('[APEX LOAD] Checking localStorage for endpoints...');
                 // Fallback for testing outside WebView - use localStorage
                 const stored = localStorage.getItem('fusionclient_endpoints');
                 if (stored) {
                     try {
                         endpointsData = JSON.parse(stored);
+                        console.log('[APEX LOAD] Loaded ' + endpointsData.length + ' endpoints from localStorage');
                     } catch (e) {
+                        console.error('[APEX LOAD] Failed to parse localStorage:', e.message);
                         endpointsData = getDefaultEndpoints();
                     }
                 } else {
+                    console.log('[APEX LOAD] No localStorage data, using defaults');
                     endpointsData = getDefaultEndpoints();
                 }
                 renderEndpointsTable();
@@ -6491,6 +6520,10 @@ Click "Run Test" to execute the API call...
 
         // Refresh endpoints
         function refreshEndpoints() {
+            console.log('========================================');
+            console.log('[APEX REFRESH] User clicked "Refresh from APEX" button');
+            console.log('[APEX REFRESH] Calling loadEndpoints()...');
+            console.log('========================================');
             loadEndpoints();
         }
 

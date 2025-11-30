@@ -1445,6 +1445,8 @@ namespace WMSApp
             {
                 List<EndpointConfig> endpoints = null;
                 string dataSource = "unknown";
+                string fullApexUrl = "";
+                string rawJsonResponse = "";
 
                 // Try to load from APEX first
                 string settingsPath = EndpointConfigReader.GetSettingsPath();
@@ -1457,7 +1459,10 @@ namespace WMSApp
                 if (System.IO.File.Exists(apexUrlFilePath))
                 {
                     string apexUrl = System.IO.File.ReadAllText(apexUrlFilePath).Trim();
-                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] APEX URL: {apexUrl}");
+                    fullApexUrl = apexUrl;
+                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] ====== FULL URL ======");
+                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] GET {apexUrl}");
+                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] =======================");
 
                     if (!string.IsNullOrWhiteSpace(apexUrl))
                     {
@@ -1468,7 +1473,7 @@ namespace WMSApp
                             using (var client = new System.Net.Http.HttpClient())
                             {
                                 client.Timeout = TimeSpan.FromSeconds(30);
-                                System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Making HTTP GET request...");
+                                System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Making HTTP GET request to: {apexUrl}");
 
                                 var response = await client.GetAsync(apexUrl);
                                 System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Response Status: {(int)response.StatusCode} ({response.StatusCode})");
@@ -1476,8 +1481,10 @@ namespace WMSApp
                                 if (response.IsSuccessStatusCode)
                                 {
                                     string jsonResponse = await response.Content.ReadAsStringAsync();
-                                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Response Length: {jsonResponse?.Length ?? 0} chars");
-                                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Response (first 500 chars): {jsonResponse?.Substring(0, Math.Min(jsonResponse?.Length ?? 0, 500))}");
+                                    rawJsonResponse = jsonResponse;
+                                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] ====== RAW RESPONSE ======");
+                                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] {jsonResponse}");
+                                    System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] ==========================");
 
                                     endpoints = ParseApexEndpointsResponse(jsonResponse);
                                     dataSource = "APEX";
@@ -1486,6 +1493,7 @@ namespace WMSApp
                                 else
                                 {
                                     string errorBody = await response.Content.ReadAsStringAsync();
+                                    rawJsonResponse = errorBody;
                                     System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] *** HTTP ERROR: {response.StatusCode} ***");
                                     System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Error Body: {errorBody}");
                                 }
@@ -1496,12 +1504,14 @@ namespace WMSApp
                             System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] *** APEX FETCH FAILED ***");
                             System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Exception: {apexEx.GetType().Name}");
                             System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] Message: {apexEx.Message}");
+                            rawJsonResponse = $"ERROR: {apexEx.Message}";
                         }
                     }
                 }
                 else
                 {
                     System.Diagnostics.Debug.WriteLine($"[APEX ENDPOINTS] *** apexendpointurl.txt NOT FOUND ***");
+                    rawJsonResponse = "ERROR: apexendpointurl.txt not found";
                 }
 
                 // Fallback to local XML if APEX failed
@@ -1543,7 +1553,12 @@ namespace WMSApp
                     success = true,
                     source = dataSource,
                     endpoints = endpointsList,
-                    settingsPath = settingsPath
+                    settingsPath = settingsPath,
+                    debug = new
+                    {
+                        fullUrl = fullApexUrl,
+                        rawResponse = rawJsonResponse
+                    }
                 };
 
                 string responseJson = System.Text.Json.JsonSerializer.Serialize(responseObj);
@@ -1565,7 +1580,12 @@ namespace WMSApp
                     action = "getAllEndpointsResponse",
                     success = false,
                     source = "ERROR",
-                    error = ex.Message
+                    error = ex.Message,
+                    debug = new
+                    {
+                        fullUrl = "",
+                        rawResponse = ex.Message
+                    }
                 };
                 string errorJson = System.Text.Json.JsonSerializer.Serialize(errorResponse);
                 wv.CoreWebView2.PostWebMessageAsString(errorJson);

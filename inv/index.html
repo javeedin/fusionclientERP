@@ -5753,7 +5753,9 @@ Click "Run Test" to execute the API call...
         function openSettings() {
             document.getElementById('settingsOverlay').classList.add('active');
             loadInstances();
-            loadEndpoints();
+            // Don't auto-load endpoints - user must click "Refresh from APEX"
+            endpointsData = [];
+            renderEndpointsTable();
             loadApexEndpointUrl();
         }
 
@@ -6035,11 +6037,21 @@ Click "Run Test" to execute the API call...
                         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
                         console.log('========================================');
                         console.log('[APEX LOAD] *** RESPONSE RECEIVED FROM C# ***');
-                        console.log('[APEX LOAD] Raw data type:', typeof event.data);
-                        console.log('[APEX LOAD] Parsed data:', JSON.stringify(data, null, 2));
+                        console.log('========================================');
+
+                        // Log debug info: Full URL and Raw Response
+                        if (data.debug) {
+                            console.log('[APEX DEBUG] ====== FULL URL ======');
+                            console.log('[APEX DEBUG] GET ' + (data.debug.fullUrl || 'N/A'));
+                            console.log('[APEX DEBUG] =======================');
+                            console.log('[APEX DEBUG] ====== RAW RESPONSE ======');
+                            console.log('[APEX DEBUG] ' + (data.debug.rawResponse || 'N/A'));
+                            console.log('[APEX DEBUG] ==========================');
+                        }
+
                         console.log('[APEX LOAD] data.success:', data.success);
-                        console.log('[APEX LOAD] data.endpoints count:', data.endpoints ? data.endpoints.length : 'undefined');
                         console.log('[APEX LOAD] data.source:', data.source || 'not specified');
+                        console.log('[APEX LOAD] data.endpoints count:', data.endpoints ? data.endpoints.length : 'undefined');
                         console.log('========================================');
 
                         if (data.requestId === requestId || data.action === 'getAllEndpointsResponse') {
@@ -6059,6 +6071,10 @@ Click "Run Test" to execute the API call...
                                 console.warn('[APEX LOAD] *** FAILED - No endpoints from C# ***');
                                 console.warn('[APEX LOAD] data.success:', data.success);
                                 console.warn('[APEX LOAD] data.error:', data.error || 'none');
+                                if (data.debug) {
+                                    console.warn('[APEX LOAD] debug.fullUrl:', data.debug.fullUrl || 'N/A');
+                                    console.warn('[APEX LOAD] debug.rawResponse:', data.debug.rawResponse || 'N/A');
+                                }
                                 console.warn('[APEX LOAD] Falling back to default endpoints');
                                 endpointsData = getDefaultEndpoints();
                             }

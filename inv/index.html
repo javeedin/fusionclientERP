@@ -6796,8 +6796,22 @@ Click "Run Test" to execute the API call...
             const dateFrom = document.getElementById('shipmentParamDateFrom').value;
             const dateTo = document.getElementById('shipmentParamDateTo').value;
 
+            // Get instance name and organization name for API call
+            const instanceName = localStorage.getItem('wms_instance') || '';
+            const orgName = localStorage.getItem('wms_org_name') || '';
+
             if (!orgCode) {
                 alert('Please select an Organization');
+                return;
+            }
+
+            if (!instanceName) {
+                alert('Instance name not found. Please log in again.');
+                return;
+            }
+
+            if (!orgName) {
+                alert('Organization name not found. Please select an organization.');
                 return;
             }
 
@@ -6818,7 +6832,8 @@ Click "Run Test" to execute the API call...
                     throw new Error('GET_PENDING_SHIPMENT_LINES endpoint not configured');
                 }
 
-                let url = `${shipmentEndpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                // API requires P_INSTANCE_NAME and P_ORG_NAME parameters
+                let url = `${shipmentEndpoint}?P_INSTANCE_NAME=${encodeURIComponent(instanceName)}&P_ORG_NAME=${encodeURIComponent(orgName)}`;
                 if (orderNumber) url += `&p_order_number=${encodeURIComponent(orderNumber)}`;
                 if (itemDesc) url += `&p_item_description=${encodeURIComponent(itemDesc)}`;
                 if (dateFrom) url += `&p_date_from=${encodeURIComponent(dateFrom)}`;

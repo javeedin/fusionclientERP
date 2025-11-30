@@ -843,40 +843,77 @@ namespace WMSApp
         /// </summary>
         private string GetBaseUrlForInstance(string sourceType, string instanceName)
         {
-            if (_instancesData == null || _instancesData.Count == 0)
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ============ GetBaseUrlForInstance START ============");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Looking for: sourceType='{sourceType}', instanceName='{instanceName}'");
+
+            if (_instancesData == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] GetBaseUrlForInstance: No instances data available");
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ERROR: _instancesData is NULL");
                 return null;
             }
 
-            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Looking for base URL: source={sourceType}, instance={instanceName}");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] _instancesData.Count = {_instancesData.Count}");
+
+            if (_instancesData.Count == 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ERROR: _instancesData is EMPTY");
+                return null;
+            }
+
+            // Log all available instances for debugging
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] All available instances:");
+            int idx = 0;
+            foreach (var inst in _instancesData)
+            {
+                var keys = string.Join(", ", inst.Keys);
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   [{idx}] Keys: {keys}");
+                foreach (var kv in inst)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]       {kv.Key} = '{kv.Value}'");
+                }
+                idx++;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Now searching for match...");
 
             foreach (var inst in _instancesData)
             {
                 // Get instance name from "instance" field
-                string instName = inst.TryGetValue("instance", out var instVal) ? instVal?.ToString() : null;
+                bool hasInstance = inst.TryGetValue("instance", out var instVal);
+                string instName = instVal?.ToString();
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   TryGetValue('instance'): found={hasInstance}, value='{instName}'");
 
                 // Get source type from "source" field
-                string instSource = inst.TryGetValue("source", out var srcVal) ? srcVal?.ToString() : null;
+                bool hasSource = inst.TryGetValue("source", out var srcVal);
+                string instSource = srcVal?.ToString();
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   TryGetValue('source'): found={hasSource}, value='{instSource}'");
 
-                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   Checking: instName={instName}, instSource={instSource}");
+                // Check match conditions
+                bool instanceMatch = string.Equals(instName, instanceName, StringComparison.OrdinalIgnoreCase);
+                bool sourceMatch = string.Equals(instSource, sourceType, StringComparison.OrdinalIgnoreCase);
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   instanceMatch={instanceMatch}, sourceMatch={sourceMatch}");
 
                 // Match by instance name AND source type
-                if (string.Equals(instName, instanceName, StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(instSource, sourceType, StringComparison.OrdinalIgnoreCase))
+                if (instanceMatch && sourceMatch)
                 {
                     // Get base_url directly from the instance record
-                    string baseUrl = inst.TryGetValue("base_url", out var urlVal) ? urlVal?.ToString() : null;
+                    bool hasBaseUrl = inst.TryGetValue("base_url", out var urlVal);
+                    string baseUrl = urlVal?.ToString();
+                    System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   MATCH FOUND! TryGetValue('base_url'): found={hasBaseUrl}, value='{baseUrl}'");
 
                     if (!string.IsNullOrEmpty(baseUrl))
                     {
-                        System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   FOUND base URL: {baseUrl}");
+                        System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ============ GetBaseUrlForInstance END (FOUND: {baseUrl}) ============");
                         return baseUrl;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   WARNING: Match found but base_url is empty!");
                     }
                 }
             }
 
-            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] GetBaseUrlForInstance: No matching instance found");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ============ GetBaseUrlForInstance END (NOT FOUND) ============");
             return null;
         }
 
@@ -886,12 +923,14 @@ namespace WMSApp
         /// </summary>
         private void PopulateInstanceDropdown(string sourceType, string selectedInstance = null)
         {
-            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] PopulateInstanceDropdown: source={sourceType}, selected={selectedInstance}");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ++++++ PopulateInstanceDropdown START ++++++");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] sourceType='{sourceType}', selectedInstance='{selectedInstance}'");
 
             cboInstanceName.Items.Clear();
 
             if (_instancesData == null || _instancesData.Count == 0)
             {
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] _instancesData is null or empty, using defaults");
                 // Fall back to default instances if no data available
                 cboInstanceName.Items.AddRange(new object[] { "PROD", "TEST", "DEV" });
                 if (!string.IsNullOrEmpty(selectedInstance))
@@ -903,38 +942,50 @@ namespace WMSApp
                 {
                     cboInstanceName.SelectedIndex = 0;
                 }
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ++++++ PopulateInstanceDropdown END (defaults) ++++++");
                 return;
             }
+
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Scanning {_instancesData.Count} instances for sourceType='{sourceType}'");
 
             // Get distinct instance names for the selected source type
             var instanceNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var inst in _instancesData)
             {
                 // Get source from "source" field
-                string instSource = inst.TryGetValue("source", out var srcVal) ? srcVal?.ToString() : null;
+                bool hasSource = inst.TryGetValue("source", out var srcVal);
+                string instSource = srcVal?.ToString();
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   Checking instance: source='{instSource}' (hasSource={hasSource})");
 
                 // Match source type
                 if (string.Equals(instSource, sourceType, StringComparison.OrdinalIgnoreCase))
                 {
                     // Get instance name from "instance" field
-                    string instName = inst.TryGetValue("instance", out var instVal) ? instVal?.ToString() : null;
+                    bool hasInstance = inst.TryGetValue("instance", out var instVal);
+                    string instName = instVal?.ToString();
+                    System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]     SOURCE MATCH! instance='{instName}' (hasInstance={hasInstance})");
 
                     if (!string.IsNullOrEmpty(instName))
                     {
                         instanceNames.Add(instName);
+                        System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]     Added '{instName}' to instanceNames");
                     }
                 }
             }
+
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Found {instanceNames.Count} unique instances for source '{sourceType}'");
 
             // Add found instances to dropdown
             foreach (var name in instanceNames.OrderBy(n => n))
             {
                 cboInstanceName.Items.Add(name);
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   Added to dropdown: '{name}'");
             }
 
             // If no instances found for source, add defaults
             if (cboInstanceName.Items.Count == 0)
             {
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] No instances found, adding defaults");
                 cboInstanceName.Items.AddRange(new object[] { "PROD", "TEST", "DEV" });
             }
 
@@ -942,6 +993,7 @@ namespace WMSApp
             if (!string.IsNullOrEmpty(selectedInstance))
             {
                 int idx = cboInstanceName.Items.IndexOf(selectedInstance);
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Looking for selectedInstance='{selectedInstance}', found at idx={idx}");
                 if (idx >= 0)
                 {
                     cboInstanceName.SelectedIndex = idx;
@@ -956,7 +1008,8 @@ namespace WMSApp
                 cboInstanceName.SelectedIndex = 0;
             }
 
-            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] PopulateInstanceDropdown: Added {cboInstanceName.Items.Count} instances");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Final dropdown count: {cboInstanceName.Items.Count}, SelectedIndex: {cboInstanceName.SelectedIndex}");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ++++++ PopulateInstanceDropdown END ++++++");
         }
 
         /// <summary>
@@ -964,22 +1017,37 @@ namespace WMSApp
         /// </summary>
         private async void CboSource_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (cboSource.SelectedItem == null) return;
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] >>>>>> CboSource_SelectedIndexChanged FIRED <<<<<<");
+
+            if (cboSource.SelectedItem == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] cboSource.SelectedItem is NULL, returning");
+                return;
+            }
 
             string sourceType = cboSource.SelectedItem.ToString();
-            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Source changed to: {sourceType}");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Source changed to: '{sourceType}'");
 
             // Load instances if not already loaded
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] _instancesData is null? {_instancesData == null}");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] _instancesData count: {_instancesData?.Count ?? -1}");
+
             if (_instancesData == null || _instancesData.Count == 0)
             {
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Calling LoadInstancesFromApex...");
                 await LoadInstancesFromApex();
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] LoadInstancesFromApex completed. _instancesData count: {_instancesData?.Count ?? -1}");
             }
 
             // Populate instance dropdown for selected source
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Calling PopulateInstanceDropdown('{sourceType}')...");
             PopulateInstanceDropdown(sourceType);
 
             // Update base URL for new selection
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Calling UpdateBaseUrlFromInstance...");
             UpdateBaseUrlFromInstance();
+
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] >>>>>> CboSource_SelectedIndexChanged DONE <<<<<<");
         }
 
         /// <summary>
@@ -987,7 +1055,10 @@ namespace WMSApp
         /// </summary>
         private void CboInstanceName_SelectedIndexChanged(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] >>>>>> CboInstanceName_SelectedIndexChanged FIRED <<<<<<");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] cboInstanceName.SelectedItem = '{cboInstanceName.SelectedItem}'");
             UpdateBaseUrlFromInstance();
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] >>>>>> CboInstanceName_SelectedIndexChanged DONE <<<<<<");
         }
 
         /// <summary>
@@ -995,19 +1066,41 @@ namespace WMSApp
         /// </summary>
         private void UpdateBaseUrlFromInstance()
         {
-            if (cboSource.SelectedItem == null || cboInstanceName.SelectedItem == null) return;
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ------ UpdateBaseUrlFromInstance START ------");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] cboSource.SelectedItem = '{cboSource.SelectedItem}'");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] cboInstanceName.SelectedItem = '{cboInstanceName.SelectedItem}'");
+
+            if (cboSource.SelectedItem == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] cboSource.SelectedItem is NULL, returning");
+                return;
+            }
+
+            if (cboInstanceName.SelectedItem == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] cboInstanceName.SelectedItem is NULL, returning");
+                return;
+            }
 
             string sourceType = cboSource.SelectedItem.ToString();
             string instanceName = cboInstanceName.SelectedItem.ToString();
 
-            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] UpdateBaseUrlFromInstance: source={sourceType}, instance={instanceName}");
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] UpdateBaseUrlFromInstance: sourceType='{sourceType}', instanceName='{instanceName}'");
 
             string baseUrl = GetBaseUrlForInstance(sourceType, instanceName);
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] GetBaseUrlForInstance returned: '{baseUrl}'");
+
             if (!string.IsNullOrEmpty(baseUrl))
             {
                 txtBaseUrl.Text = baseUrl;
-                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] Base URL auto-filled: {baseUrl}");
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] SUCCESS: Base URL set to: '{baseUrl}'");
             }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] WARNING: No base URL found, txtBaseUrl not updated");
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[EndpointEditForm] ------ UpdateBaseUrlFromInstance END ------");
         }
 
         private void InitializeComponent()

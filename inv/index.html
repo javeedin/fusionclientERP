@@ -5762,11 +5762,10 @@ Click "Run Test" to execute the API call...
         // Open Settings modal
         function openSettings() {
             document.getElementById('settingsOverlay').classList.add('active');
-            // Don't auto-load instances or endpoints - user must click "Refresh"
-            instancesData = [];
-            renderInstancesTable();
-            endpointsData = [];
-            renderEndpointsTable();
+            // Load instances from cache (user can click Refresh for fresh data from APEX)
+            loadInstances();
+            // Load endpoints from cache
+            loadEndpoints();
             loadApexEndpointUrl();
         }
 
@@ -5797,8 +5796,16 @@ Click "Run Test" to execute the API call...
 
             if (tabName === 'endpoints') {
                 document.getElementById('settingsEndpointsPanel').classList.add('active');
+                // Load instances from cache for endpoint dropdowns
+                if (instancesData.length === 0) {
+                    loadInstances();
+                }
             } else if (tabName === 'instances') {
                 document.getElementById('settingsInstancesPanel').classList.add('active');
+                // Load instances from cache for the table
+                if (instancesData.length === 0) {
+                    loadInstances();
+                }
             } else if (tabName === 'endpointsStorage') {
                 document.getElementById('settingsEndpointsStoragePanel').classList.add('active');
                 renderEndpointsStorageTable();
@@ -5838,10 +5845,25 @@ Click "Run Test" to execute the API call...
             }, 500);
         }
 
-        // Load instances - now fetches from APEX via C#
+        // Load instances - try localStorage cache first, then fetch from APEX
         function loadInstances() {
-            console.log('[JS DEBUG] loadInstances called - will fetch from APEX');
-            // Don't load from localStorage anymore - must use refreshInstances() to fetch from APEX
+            console.log('[JS DEBUG] loadInstances called');
+
+            // Try to load from localStorage cache first
+            const cachedInstances = localStorage.getItem('fusionclient_instances');
+            if (cachedInstances) {
+                try {
+                    instancesData = JSON.parse(cachedInstances);
+                    console.log('[JS DEBUG] Loaded ' + instancesData.length + ' instances from localStorage cache');
+                    renderInstancesTable();
+                    return;
+                } catch (e) {
+                    console.log('[JS DEBUG] Error parsing cached instances:', e);
+                }
+            }
+
+            // No cache - show empty state and prompt user to refresh
+            console.log('[JS DEBUG] No cached instances - user must click Refresh');
             instancesData = [];
             renderInstancesTable();
         }
@@ -6058,6 +6080,19 @@ Click "Run Test" to execute the API call...
                                     console.log('[APEX INSTANCES]   Instance[' + idx + ']: id=' + inst.instance_id + ', name=' + inst.name + ', source=' + inst.source + ', url=' + inst.url + ', noAuth=' + inst.noAuth);
                                 });
                                 renderInstancesTable();
+
+                                // Save to localStorage for caching
+                                saveInstancesToStorage();
+                                console.log('[APEX INSTANCES] Saved instances to localStorage cache');
+
+                                // If endpoint form is open, refresh the instance dropdown
+                                const endpointFormOverlay = document.getElementById('endpointFormOverlay');
+                                if (endpointFormOverlay && endpointFormOverlay.style.display !== 'none') {
+                                    const sourceSelect = document.getElementById('endpointSource');
+                                    const selectedSource = sourceSelect ? sourceSelect.value : '';
+                                    console.log('[APEX INSTANCES] Endpoint form is open - refreshing instance dropdown for source:', selectedSource);
+                                    populateEndpointInstanceDropdown(selectedSource);
+                                }
                             } else {
                                 console.log('[APEX INSTANCES] *** FAILED or no instances ***');
                                 instancesData = [];
@@ -6373,9 +6408,11 @@ Click "Run Test" to execute the API call...
             return maxSno + 1;
         }
 
-        // Populate Instance dropdown with hardcoded PROD/TEST/DEV values
+        // Populate Instance dropdown from instancesData filtered by source
         function populateEndpointInstanceDropdown(selectedSource) {
             console.log('[JS DEBUG] populateEndpointInstanceDropdown called, selectedSource:', selectedSource);
+            console.log('[JS DEBUG] instancesData available:', instancesData.length, 'instances');
+
             const select = document.getElementById('endpointInstance');
             if (!select) {
                 console.log('[JS DEBUG] endpointInstance select not found!');
@@ -6384,15 +6421,48 @@ Click "Run Test" to execute the API call...
 
             select.innerHTML = '<option value="">-- Select --</option>';
 
-            // Hardcoded instance options: PROD, TEST, DEV
-            const instances = ['PROD', 'TEST', 'DEV'];
-            instances.forEach((instanceName) => {
-                console.log('[JS DEBUG] Adding instance option:', instanceName);
+            // Filter instancesData by selected source (case-insensitive)
+            // If no source selected, show all instances
+            const filteredInstances = instancesData.filter(inst => {
+                if (!selectedSource) return true;
+                return inst.source && inst.source.toUpperCase() === selectedSource.toUpperCase();
+            });
+
+            console.log('[JS DEBUG] Filtered instances for source "' + selectedSource + '":', filteredInstances.length);
+
+            // Use a Set to track unique instance names (avoid duplicates)
+            const addedNames = new Set();
+
+            filteredInstances.forEach((inst) => {
+                const instanceName = inst.name;
+                const instanceUrl = inst.url || '';
+
+                // Skip if we've already added this instance name
+                if (addedNames.has(instanceName.toUpperCase())) {
+                    console.log('[JS DEBUG] Skipping duplicate instance:', instanceName);
+                    return;
+                }
+                addedNames.add(instanceName.toUpperCase());
+
+                console.log('[JS DEBUG] Adding instance option:', instanceName, 'with URL:', instanceUrl);
                 const option = document.createElement('option');
                 option.value = instanceName;
                 option.textContent = instanceName;
+                option.dataset.url = instanceUrl; // Store URL for auto-fill
                 select.appendChild(option);
             });
+
+            // If no instances found from data, add default options as fallback
+            if (filteredInstances.length === 0) {
+                console.log('[JS DEBUG] No instances from data, adding fallback options');
+                ['PROD', 'TEST', 'DEV'].forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    select.appendChild(option);
+                });
+            }
+
             console.log('[JS DEBUG] Total instance dropdown options:', select.options.length);
         }
 
@@ -6411,20 +6481,37 @@ Click "Run Test" to execute the API call...
 
         // Handle Instance dropdown change - auto-fill URL
         function onEndpointInstanceChange() {
+            console.log('[JS DEBUG] onEndpointInstanceChange called');
             const select = document.getElementById('endpointInstance');
             const urlInput = document.getElementById('endpointURL');
             const selectedOption = select.options[select.selectedIndex];
 
+            console.log('[JS DEBUG] Selected option:', selectedOption ? selectedOption.value : 'none');
+            console.log('[JS DEBUG] Selected option dataset.url:', selectedOption ? selectedOption.dataset.url : 'none');
+
             if (selectedOption && selectedOption.dataset.url) {
+                console.log('[JS DEBUG] Auto-filling URL:', selectedOption.dataset.url);
                 urlInput.value = selectedOption.dataset.url;
             } else {
-                urlInput.value = '';
+                console.log('[JS DEBUG] No URL to auto-fill');
+                // Don't clear URL - user might have manually entered it
             }
         }
 
         // Show endpoint form (new or edit)
         function showEndpointForm(mode, index = null) {
             console.log('[JS DEBUG] showEndpointForm called - mode:', mode, 'index:', index);
+            console.log('[JS DEBUG] instancesData.length at form open:', instancesData.length);
+
+            // If instances haven't been loaded yet, try to refresh them first
+            if (instancesData.length === 0) {
+                console.log('[JS DEBUG] instancesData is empty - triggering refresh');
+                // Try to refresh instances, then show form
+                if (typeof refreshInstances === 'function') {
+                    refreshInstances();
+                    console.log('[JS DEBUG] refreshInstances() called, but it is async - proceeding with form');
+                }
+            }
 
             const overlay = document.getElementById('endpointFormOverlay');
             const title = document.getElementById('endpointFormTitle');

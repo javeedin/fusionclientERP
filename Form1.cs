@@ -1536,7 +1536,6 @@ namespace WMSApp
                     sno = ep.Sno,
                     source = ep.Source,
                     instanceName = ep.InstanceName,
-                    sourceInstance = $"{ep.Source}:{ep.InstanceName}",
                     integrationCode = ep.IntegrationCode,
                     url = ep.BaseUrl,
                     path = ep.Endpoint,

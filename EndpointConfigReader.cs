@@ -31,89 +31,39 @@ namespace WMSApp
         private static string _resolvedSettingsPath = null;
 
         /// <summary>
-        /// Gets the list of possible settings paths to search
+        /// Gets the settings path - always C:\fusionclient\ERP\settings
         /// </summary>
-        private static List<string> GetPossibleSettingsPaths()
+        private static string GetStandardSettingsPath()
         {
-            var paths = new List<string>();
-
-            // 1. Standard deployment path
-            paths.Add(@"C:\fusionclient\ERP\settings");
-
-            // 2. Relative to application directory
-            string appDir = AppDomain.CurrentDomain.BaseDirectory;
-            paths.Add(Path.Combine(appDir, "ERP", "settings"));
-            paths.Add(Path.Combine(appDir, "settings"));
-
-            // 3. Current working directory (useful when running from VS)
-            string cwd = Environment.CurrentDirectory;
-            paths.Add(Path.Combine(cwd, "ERP", "settings"));
-            paths.Add(Path.Combine(cwd, "settings"));
-
-            // 4. Walk up from application directory to find ERP/settings (handles bin/Debug/net8.0-windows etc.)
-            string currentDir = appDir;
-            for (int i = 0; i < 6; i++)  // Go up to 6 levels
-            {
-                string parentDir = Directory.GetParent(currentDir)?.FullName;
-                if (string.IsNullOrEmpty(parentDir))
-                    break;
-
-                paths.Add(Path.Combine(parentDir, "ERP", "settings"));
-                currentDir = parentDir;
-            }
-
-            // 5. Walk up from current working directory
-            currentDir = cwd;
-            for (int i = 0; i < 6; i++)
-            {
-                string parentDir = Directory.GetParent(currentDir)?.FullName;
-                if (string.IsNullOrEmpty(parentDir))
-                    break;
-
-                paths.Add(Path.Combine(parentDir, "ERP", "settings"));
-                currentDir = parentDir;
-            }
-
-            return paths;
+            return @"C:\fusionclient\ERP\settings";
         }
 
         /// <summary>
-        /// Finds the settings path that contains the endpoints file
+        /// Finds the settings path - always uses C:\fusionclient\ERP\settings
         /// </summary>
         private static string FindSettingsPath()
         {
             if (_resolvedSettingsPath != null)
                 return _resolvedSettingsPath;
 
-            string appDir = AppDomain.CurrentDomain.BaseDirectory;
-            string cwd = Environment.CurrentDirectory;
-            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] ========================================");
-            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] App BaseDirectory: {appDir}");
-            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] Current Directory: {cwd}");
+            string path = GetStandardSettingsPath();
+            string xmlPath = Path.Combine(path, "endpoints.xml");
+            string csvPath = Path.Combine(path, "endpoints.csv");
 
-            var possiblePaths = GetPossibleSettingsPaths();
-            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] Searching {possiblePaths.Count} possible paths...");
+            bool xmlExists = File.Exists(xmlPath);
+            bool csvExists = File.Exists(csvPath);
 
-            foreach (var path in possiblePaths)
+            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] Settings path: {path}");
+            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] endpoints.xml exists: {xmlExists}");
+            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] endpoints.csv exists: {csvExists}");
+
+            if (xmlExists || csvExists)
             {
-                string xmlPath = Path.Combine(path, "endpoints.xml");
-                string csvPath = Path.Combine(path, "endpoints.csv");
-
-                bool xmlExists = File.Exists(xmlPath);
-                bool csvExists = File.Exists(csvPath);
-                System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] Checking: {path} (xml={xmlExists}, csv={csvExists})");
-
-                if (xmlExists || csvExists)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] FOUND settings at: {path}");
-                    System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] ========================================");
-                    _resolvedSettingsPath = path;
-                    return path;
-                }
+                _resolvedSettingsPath = path;
+                return path;
             }
 
-            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] ERROR: No settings file found in any location!");
-            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] ========================================");
+            System.Diagnostics.Debug.WriteLine($"[EndpointConfigReader] ERROR: No settings file found at {path}");
             return null;
         }
 

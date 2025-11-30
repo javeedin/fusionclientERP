@@ -25,12 +25,8 @@ namespace WMSApp
         // Company Name (hardcoded)
         private const string COMPANY_NAME = "Mitsumi";
 
-        // Instance URLs - hardcoded for PROD and TEST
-        private Dictionary<string, string> instanceUrls = new Dictionary<string, string>
-        {
-            { "PROD", "https://g09254cbbf8e7af-graysprod.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT" },
-            { "TEST", "https://g09254cbbf8e7af-graystest.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/WAREHOUSEMANAGEMENT" }
-        };
+        // Instance URLs - loaded from C:\fusionclient\ERP\settings\endpoints.xml
+        private Dictionary<string, string> instanceUrls = new Dictionary<string, string>();
 
         public string Username { get; private set; }
         public string Password { get; private set; }
@@ -173,13 +169,10 @@ namespace WMSApp
                 Font = new Font("Segoe UI", 10),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
-            // Hardcode Instance options
-            cboInstance.Items.AddRange(new object[] { "PROD", "TEST" });
-            cboInstance.SelectedIndex = 0;
             contentPanel.Controls.Add(cboInstance);
             yPosition += 65;
 
-            // Load endpoint URLs from settings for the hardcoded instances
+            // Load endpoints from C:\fusionclient\ERP\settings\endpoints.xml
             LoadEndpointsFromSettings();
 
             // Business Unit
@@ -554,15 +547,26 @@ namespace WMSApp
 
                 System.Diagnostics.Debug.WriteLine($"[LOGIN] Instance URLs count: {instanceUrls.Count}");
 
-                // If no LOGIN endpoints found, log warning (error will show when user tries to login)
+                // If no LOGIN endpoints found, log warning
                 if (instanceUrls.Count == 0)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[LOGIN] WARNING: No LOGIN endpoints found. Please configure LOGIN endpoints in Settings.");
-                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Check that endpoints.xml exists at: {settingsPath}");
+                    System.Diagnostics.Debug.WriteLine($"[LOGIN] WARNING: No LOGIN endpoints found.");
+                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Please ensure endpoints.xml exists at: C:\\fusionclient\\ERP\\settings\\endpoints.xml");
                 }
 
-                // Note: Instance dropdown is now hardcoded with PROD/TEST in InitializeComponent
-                // This method just loads the URLs for those instances
+                // Populate the Instance dropdown from loaded endpoints
+                if (cboInstance != null)
+                {
+                    cboInstance.Items.Clear();
+                    foreach (var instance in instanceUrls.Keys)
+                    {
+                        cboInstance.Items.Add(instance);
+                    }
+                    if (cboInstance.Items.Count > 0)
+                    {
+                        cboInstance.SelectedIndex = 0;
+                    }
+                }
             }
             catch (Exception ex)
             {

@@ -5813,12 +5813,14 @@ Click "Run Test" to execute the API call...
             }
 
             tbody.innerHTML = endpointsData.map((endpoint, index) => {
-                const instance = endpoint.sourceInstance || `${endpoint.source || ''}-${endpoint.instanceName || ''}`;
+                // Show Source and Instance separately
+                const source = endpoint.source || '';
+                const instance = endpoint.instanceName || '';
                 const fullUrl = (endpoint.url || '') + (endpoint.path || '');
                 return `
                 <tr>
                     <td>${endpoint.sno || index + 1}</td>
-                    <td>${escapeHtml(instance)}</td>
+                    <td>${escapeHtml(source)} / ${escapeHtml(instance)}</td>
                     <td style="word-break: break-all;">${escapeHtml(fullUrl)}</td>
                 </tr>`;
             }).join('');
@@ -6146,12 +6148,12 @@ Click "Run Test" to execute the API call...
         // Get default endpoints matching XML structure
         function getDefaultEndpoints() {
             return [
-                { sno: 1, sourceInstance: 'APEX-PROD', integrationCode: 'LOGIN', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/Login', comments: 'TEST' },
-                { sno: 2, sourceInstance: 'APEX-PROD', integrationCode: 'INVENTORY_ORGS', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/getallinventoryorgs', comments: '' },
-                { sno: 3, sourceInstance: 'APEX-PROD', integrationCode: 'INVENTORY_ON_HAND', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/getonhandbyorg', comments: '' },
-                { sno: 4, sourceInstance: 'APEX-PROD', integrationCode: 'INVENTORY_ON_HAND_BY_SRNO', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/onhandbyserialnumber', comments: '' },
-                { sno: 5, sourceInstance: 'APEX-PROD', integrationCode: 'EXPECTED_PO_RECEIPTS', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/poexpectedreceipts', comments: '' },
-                { sno: 6, sourceInstance: 'APEX-PROD', integrationCode: 'PO_EXPECTED_RECEIPTS_LINES', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/poexpectedreceiptdetails', comments: '' }
+                { sno: 1, source: 'APEX', instanceName: 'PROD', integrationCode: 'LOGIN', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/Login', comments: 'TEST' },
+                { sno: 2, source: 'APEX', instanceName: 'PROD', integrationCode: 'INVENTORY_ORGS', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/getallinventoryorgs', comments: '' },
+                { sno: 3, source: 'APEX', instanceName: 'PROD', integrationCode: 'INVENTORY_ON_HAND', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/getonhandbyorg', comments: '' },
+                { sno: 4, source: 'APEX', instanceName: 'PROD', integrationCode: 'INVENTORY_ON_HAND_BY_SRNO', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/onhandbyserialnumber', comments: '' },
+                { sno: 5, source: 'APEX', instanceName: 'PROD', integrationCode: 'EXPECTED_PO_RECEIPTS', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/poexpectedreceipts', comments: '' },
+                { sno: 6, source: 'APEX', instanceName: 'PROD', integrationCode: 'PO_EXPECTED_RECEIPTS_LINES', url: 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com', path: '/ords/test/FUSIONCLIENTERP/inventory/poexpectedreceiptdetails', comments: '' }
             ];
         }
 
@@ -6215,9 +6217,10 @@ Click "Run Test" to execute the API call...
             return endpointsData
                 .map((ep, idx) => ({ endpoint: ep, originalIndex: idx }))
                 .filter(({ endpoint }) => {
-                    const sourceDisplay = endpoint.sourceInstance || `${endpoint.source || ''}-${endpoint.instanceName || ''}`;
+                    // Use separate source and instanceName fields for search
                     const searchableText = [
-                        sourceDisplay,
+                        endpoint.source || '',
+                        endpoint.instanceName || '',
                         endpoint.integrationCode,
                         endpoint.url,
                         endpoint.path,
@@ -6242,17 +6245,9 @@ Click "Run Test" to execute the API call...
             }
 
             tbody.innerHTML = filteredEndpoints.map(({ endpoint, originalIndex }) => {
-                // Split sourceInstance into Source and Instance Name
-                const sourceInstance = endpoint.sourceInstance || `${endpoint.source || ''}-${endpoint.instanceName || ''}`;
-                let sourceType = '';
-                let instanceName = '';
-                const firstHyphen = sourceInstance.indexOf('-');
-                if (firstHyphen > 0) {
-                    sourceType = sourceInstance.substring(0, firstHyphen);
-                    instanceName = sourceInstance.substring(firstHyphen + 1);
-                } else {
-                    sourceType = sourceInstance;
-                }
+                // Use separate source and instanceName fields directly
+                const sourceType = endpoint.source || '';
+                const instanceName = endpoint.instanceName || '';
                 // Parameters count
                 const paramCount = (endpoint.parameters && endpoint.parameters.length) || 0;
                 const paramBadge = paramCount > 0 ? `<span style="background: #667eea; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px;">${paramCount}</span>` : '<span style="color: #999;">0</span>';
@@ -6643,7 +6638,7 @@ Click "Run Test" to execute the API call...
         // Build full URL with parameters based on source type
         function buildFullUrl(endpoint) {
             let fullUrl = endpoint.url + endpoint.path;
-            const sourceType = endpoint.sourceInstance ? endpoint.sourceInstance.split('-')[0] : '';
+            const sourceType = endpoint.source || '';
             const params = endpoint.parameters || [];
 
             if (sourceType.toUpperCase() === 'FUSION') {
@@ -6705,12 +6700,14 @@ Click "Run Test" to execute the API call...
             const resultsBody = document.getElementById('testResultsBody');
             const statusBadge = document.getElementById('testStatusBadge');
 
-            // Show endpoint info
-            document.getElementById('testSourceInstance').textContent = endpoint.sourceInstance || '-';
+            // Show endpoint info - use separate source and instanceName fields
+            const sourceDisplay = endpoint.source || '';
+            const instanceDisplay = endpoint.instanceName || '';
+            document.getElementById('testSourceInstance').textContent = sourceDisplay + ' / ' + instanceDisplay;
             document.getElementById('testIntegrationCode').textContent = endpoint.integrationCode || '-';
 
-            // Determine source type
-            const sourceType = endpoint.sourceInstance ? endpoint.sourceInstance.split('-')[0] : '';
+            // Determine source type from separate field
+            const sourceType = endpoint.source || '';
             const isFusion = sourceType.toUpperCase() === 'FUSION';
 
             // Show credentials status
@@ -6719,23 +6716,18 @@ Click "Run Test" to execute the API call...
             let credStatus = { text: 'No Instance Found', color: '#dc3545' };
             currentTestInstanceIndex = -1;
 
-            if (endpoint.sourceInstance) {
-                const firstHyphen = endpoint.sourceInstance.indexOf('-');
-                if (firstHyphen > 0) {
-                    const source = endpoint.sourceInstance.substring(0, firstHyphen);
-                    const instanceName = endpoint.sourceInstance.substring(firstHyphen + 1);
-                    const instanceIndex = instancesData.findIndex(i => i.source === source && i.name === instanceName);
-                    const instance = instanceIndex >= 0 ? instancesData[instanceIndex] : null;
+            if (sourceDisplay && instanceDisplay) {
+                const instanceIndex = instancesData.findIndex(i => i.source === sourceDisplay && i.name === instanceDisplay);
+                const instance = instanceIndex >= 0 ? instancesData[instanceIndex] : null;
 
-                    if (instance) {
-                        currentTestInstanceIndex = instanceIndex;
-                        if (instance.noAuth) {
-                            credStatus = { text: 'No Auth (Public)', color: '#6c757d' };
-                        } else if (instance.username && instance.password) {
-                            credStatus = { text: instance.username + ' (from Instance)', color: '#28a745' };
-                        } else {
-                            credStatus = { text: 'Credentials Missing', color: '#dc3545' };
-                        }
+                if (instance) {
+                    currentTestInstanceIndex = instanceIndex;
+                    if (instance.noAuth) {
+                        credStatus = { text: 'No Auth (Public)', color: '#6c757d' };
+                    } else if (instance.username && instance.password) {
+                        credStatus = { text: instance.username + ' (from Instance)', color: '#28a745' };
+                    } else {
+                        credStatus = { text: 'Credentials Missing', color: '#dc3545' };
                     }
                 }
             }
@@ -6783,7 +6775,7 @@ Click "Run Test" to execute the API call...
             if (!currentTestEndpoint) return;
 
             const fullUrlDisplay = document.getElementById('testFullUrl');
-            const sourceType = currentTestEndpoint.sourceInstance ? currentTestEndpoint.sourceInstance.split('-')[0] : '';
+            const sourceType = currentTestEndpoint.source || '';
             const isFusion = sourceType.toUpperCase() === 'FUSION';
 
             // Get current parameter values from inputs
@@ -6889,48 +6881,43 @@ Click "Run Test" to execute the API call...
 
             const fullUrl = updateTestUrl();
 
-            // Find instance to get auth credentials
-            const sourceInstance = currentTestEndpoint.sourceInstance;
+            // Find instance to get auth credentials using separate source and instanceName fields
+            const endpointSource = currentTestEndpoint.source || '';
+            const endpointInstanceName = currentTestEndpoint.instanceName || '';
             let username = '';
             let password = '';
             let noAuth = false;
 
             console.log('[JS DEBUG] runEndpointTest called');
             console.log('[JS DEBUG] currentTestEndpoint:', JSON.stringify(currentTestEndpoint, null, 2));
-            console.log('[JS DEBUG] sourceInstance:', sourceInstance);
+            console.log('[JS DEBUG] endpointSource:', endpointSource);
+            console.log('[JS DEBUG] endpointInstanceName:', endpointInstanceName);
             console.log('[JS DEBUG] instancesData count:', instancesData.length);
             console.log('[JS DEBUG] instancesData:', JSON.stringify(instancesData, null, 2));
 
-            if (sourceInstance) {
-                // Split on first hyphen only (instance name might contain hyphens)
-                const firstHyphen = sourceInstance.indexOf('-');
-                console.log('[JS DEBUG] firstHyphen index:', firstHyphen);
-                if (firstHyphen > 0) {
-                    const source = sourceInstance.substring(0, firstHyphen);
-                    const instanceName = sourceInstance.substring(firstHyphen + 1);
-                    console.log('[JS DEBUG] Parsed source:', source, 'instanceName:', instanceName);
+            if (endpointSource && endpointInstanceName) {
+                console.log('[JS DEBUG] Looking for instance with source:', endpointSource, 'name:', endpointInstanceName);
 
-                    const instance = instancesData.find(i => i.source === source && i.name === instanceName);
-                    console.log('[JS DEBUG] Found instance:', instance ? JSON.stringify(instance, null, 2) : 'null');
+                const instance = instancesData.find(i => i.source === endpointSource && i.name === endpointInstanceName);
+                console.log('[JS DEBUG] Found instance:', instance ? JSON.stringify(instance, null, 2) : 'null');
 
-                    if (instance) {
-                        noAuth = instance.noAuth || false;
-                        console.log('[JS DEBUG] noAuth:', noAuth);
-                        console.log('[JS DEBUG] instance.username:', instance.username ? '(set)' : '(empty)');
-                        console.log('[JS DEBUG] instance.password:', instance.password ? '(set)' : '(empty)');
-                        if (!noAuth && instance.username && instance.password) {
-                            username = instance.username;
-                            password = instance.password;
-                            console.log('[JS DEBUG] Using credentials from instance');
-                        } else {
-                            console.log('[JS DEBUG] NOT using credentials - noAuth:', noAuth, 'hasUsername:', !!instance.username, 'hasPassword:', !!instance.password);
-                        }
+                if (instance) {
+                    noAuth = instance.noAuth || false;
+                    console.log('[JS DEBUG] noAuth:', noAuth);
+                    console.log('[JS DEBUG] instance.username:', instance.username ? '(set)' : '(empty)');
+                    console.log('[JS DEBUG] instance.password:', instance.password ? '(set)' : '(empty)');
+                    if (!noAuth && instance.username && instance.password) {
+                        username = instance.username;
+                        password = instance.password;
+                        console.log('[JS DEBUG] Using credentials from instance');
                     } else {
-                        console.log('[JS DEBUG] No matching instance found for source:', source, 'name:', instanceName);
+                        console.log('[JS DEBUG] NOT using credentials - noAuth:', noAuth, 'hasUsername:', !!instance.username, 'hasPassword:', !!instance.password);
                     }
+                } else {
+                    console.log('[JS DEBUG] No matching instance found for source:', endpointSource, 'name:', endpointInstanceName);
                 }
             } else {
-                console.log('[JS DEBUG] No sourceInstance on endpoint');
+                console.log('[JS DEBUG] Missing source or instanceName on endpoint');
             }
 
             console.log('[JS DEBUG] Final credentials - username:', username ? '(set)' : '(empty)', 'password:', password ? '(set)' : '(empty)', 'noAuth:', noAuth);
@@ -7066,19 +7053,21 @@ Click "Run Test" to execute the API call...
 
         // Export endpoints to CSV
         function exportEndpointsCSV() {
-            // CSV header
-            const headers = ['S.No', 'Source', 'Integration Code', 'URL', 'Path', 'Parameters', 'Offset', 'Limit', 'Comments'];
+            // CSV header - use separate Source and Instance columns
+            const headers = ['S.No', 'Source', 'Instance', 'Integration Code', 'URL', 'Path', 'Parameters', 'Offset', 'Limit', 'Comments'];
             const csvRows = [headers.join(',')];
 
             // CSV rows
             endpointsData.forEach(endpoint => {
-                const sourceDisplay = endpoint.sourceInstance || `${endpoint.source || ''}-${endpoint.instanceName || ''}`;
+                const source = endpoint.source || '';
+                const instanceName = endpoint.instanceName || '';
                 const params = endpoint.parameters || [];
                 const paramsStr = params.map(p => `${p.name}=${p.value}`).join(';');
 
                 const row = [
                     endpoint.sno || '',
-                    `"${sourceDisplay}"`,
+                    `"${source}"`,
+                    `"${instanceName}"`,
                     `"${endpoint.integrationCode || ''}"`,
                     `"${endpoint.url || ''}"`,
                     `"${endpoint.path || ''}"`,

@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
 
@@ -206,17 +209,225 @@ namespace WMSApp
         private Button btnDelete;
         private Button btnSave;
         private Button btnRefresh;
-        private List<EndpointConfig> _endpoints;
+        private List<EndpointConfig> _endpoints = new List<EndpointConfig>();
         private bool _isDirty = false;
         private string _settingsPath;
+        private string _apexEndpointUrl;
 
         public bool HasUnsavedChanges => _isDirty;
 
         public EndpointSettingsPanel(string settingsPath)
         {
             _settingsPath = settingsPath;
+            LoadApexEndpointUrl();
             InitializeComponent();
-            LoadEndpoints();
+            // Load endpoints asynchronously from APEX
+            LoadEndpointsFromApexAsync();
+        }
+
+        /// <summary>
+        /// Loads the APEX endpoint URL from apexendpointurl.txt file
+        /// </summary>
+        private void LoadApexEndpointUrl()
+        {
+            try
+            {
+                string apexUrlFilePath = Path.Combine(_settingsPath, "apexendpointurl.txt");
+
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Loading APEX URL from: {apexUrlFilePath}");
+
+                if (File.Exists(apexUrlFilePath))
+                {
+                    _apexEndpointUrl = File.ReadAllText(apexUrlFilePath).Trim();
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Loaded APEX URL: {_apexEndpointUrl}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] WARNING: apexendpointurl.txt not found at: {apexUrlFilePath}");
+                    _apexEndpointUrl = "";
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] ERROR loading APEX URL: {ex.Message}");
+                _apexEndpointUrl = "";
+            }
+        }
+
+        /// <summary>
+        /// Loads endpoints from APEX endpoint via HTTP GET
+        /// </summary>
+        private async void LoadEndpointsFromApexAsync()
+        {
+            if (string.IsNullOrWhiteSpace(_apexEndpointUrl))
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] No APEX URL configured, falling back to local file");
+                LoadEndpointsFromLocal();
+                return;
+            }
+
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Fetching endpoints from APEX: {_apexEndpointUrl}");
+
+                using (var client = new HttpClient())
+                {
+                    client.Timeout = TimeSpan.FromSeconds(30);
+
+                    var response = await client.GetAsync(_apexEndpointUrl);
+                    System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Response Status: {response.StatusCode}");
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string jsonResponse = await response.Content.ReadAsStringAsync();
+                        System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Response JSON: {jsonResponse}");
+
+                        // Parse the JSON response
+                        _endpoints = ParseApexResponse(jsonResponse);
+
+                        // Update UI on the UI thread
+                        if (this.InvokeRequired)
+                        {
+                            this.Invoke(new Action(() => RefreshGrid()));
+                        }
+                        else
+                        {
+                            RefreshGrid();
+                        }
+
+                        _isDirty = false;
+                        System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Loaded {_endpoints.Count} endpoints from APEX");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] HTTP Error: {response.StatusCode}, falling back to local");
+                        LoadEndpointsFromLocal();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Error fetching from APEX: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Falling back to local file");
+                LoadEndpointsFromLocal();
+            }
+        }
+
+        /// <summary>
+        /// Parses the APEX JSON response into EndpointConfig list
+        /// Values are used exactly as returned - no concatenation or appending
+        /// </summary>
+        private List<EndpointConfig> ParseApexResponse(string jsonResponse)
+        {
+            var endpoints = new List<EndpointConfig>();
+
+            try
+            {
+                using (JsonDocument doc = JsonDocument.Parse(jsonResponse))
+                {
+                    JsonElement root = doc.RootElement;
+
+                    // Check if response is an array or has an "items" property
+                    JsonElement itemsArray;
+                    if (root.ValueKind == JsonValueKind.Array)
+                    {
+                        itemsArray = root;
+                    }
+                    else if (root.TryGetProperty("items", out itemsArray))
+                    {
+                        // APEX REST often wraps results in "items"
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Unexpected JSON structure");
+                        return endpoints;
+                    }
+
+                    foreach (JsonElement item in itemsArray.EnumerateArray())
+                    {
+                        var endpoint = new EndpointConfig();
+
+                        // Map fields exactly as they come from the API - no concatenation
+                        if (item.TryGetProperty("sno", out JsonElement snoEl))
+                            endpoint.Sno = snoEl.TryGetInt32(out int sno) ? sno : 0;
+                        else if (item.TryGetProperty("SNO", out snoEl))
+                            endpoint.Sno = snoEl.TryGetInt32(out int sno2) ? sno2 : 0;
+
+                        if (item.TryGetProperty("source", out JsonElement sourceEl))
+                            endpoint.Source = sourceEl.GetString() ?? "";
+                        else if (item.TryGetProperty("SOURCE", out sourceEl))
+                            endpoint.Source = sourceEl.GetString() ?? "";
+
+                        if (item.TryGetProperty("integration_code", out JsonElement codeEl))
+                            endpoint.IntegrationCode = codeEl.GetString() ?? "";
+                        else if (item.TryGetProperty("INTEGRATION_CODE", out codeEl))
+                            endpoint.IntegrationCode = codeEl.GetString() ?? "";
+
+                        if (item.TryGetProperty("instance_name", out JsonElement instEl))
+                            endpoint.InstanceName = instEl.GetString() ?? "";
+                        else if (item.TryGetProperty("INSTANCE_NAME", out instEl))
+                            endpoint.InstanceName = instEl.GetString() ?? "";
+
+                        if (item.TryGetProperty("base_url", out JsonElement urlEl))
+                            endpoint.BaseUrl = urlEl.GetString() ?? "";
+                        else if (item.TryGetProperty("BASE_URL", out urlEl))
+                            endpoint.BaseUrl = urlEl.GetString() ?? "";
+
+                        if (item.TryGetProperty("endpoint", out JsonElement epEl))
+                            endpoint.Endpoint = epEl.GetString() ?? "";
+                        else if (item.TryGetProperty("ENDPOINT", out epEl))
+                            endpoint.Endpoint = epEl.GetString() ?? "";
+
+                        if (item.TryGetProperty("comments", out JsonElement commEl))
+                            endpoint.Comments = commEl.GetString() ?? "";
+                        else if (item.TryGetProperty("COMMENTS", out commEl))
+                            endpoint.Comments = commEl.GetString() ?? "";
+
+                        endpoints.Add(endpoint);
+                        System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Parsed endpoint: Sno={endpoint.Sno}, Source={endpoint.Source}, Code={endpoint.IntegrationCode}, Instance={endpoint.InstanceName}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Error parsing JSON: {ex.Message}");
+            }
+
+            return endpoints;
+        }
+
+        /// <summary>
+        /// Fallback: Load endpoints from local XML file
+        /// </summary>
+        private void LoadEndpointsFromLocal()
+        {
+            try
+            {
+                if (!Directory.Exists(_settingsPath))
+                {
+                    Directory.CreateDirectory(_settingsPath);
+                }
+
+                EndpointConfigReader.ClearCache();
+                _endpoints = EndpointConfigReader.LoadEndpoints(_settingsPath);
+
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(() => RefreshGrid()));
+                }
+                else
+                {
+                    RefreshGrid();
+                }
+
+                _isDirty = false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading endpoints: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _endpoints = new List<EndpointConfig>();
+            }
         }
 
         private void InitializeComponent()
@@ -342,32 +553,10 @@ namespace WMSApp
 
         private void LoadEndpoints()
         {
-            try
-            {
-                if (!Directory.Exists(_settingsPath))
-                {
-                    Directory.CreateDirectory(_settingsPath);
-                }
-
-                EndpointConfigReader.ClearCache();
-                _endpoints = EndpointConfigReader.LoadEndpoints(_settingsPath);
-
-                dgvEndpoints.Rows.Clear();
-                foreach (var ep in _endpoints)
-                {
-                    dgvEndpoints.Rows.Add(
-                        ep.Sno, ep.Source, ep.IntegrationCode, ep.InstanceName,
-                        ep.BaseUrl, ep.Endpoint, ep.Comments
-                    );
-                }
-
-                _isDirty = false;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error loading endpoints: {ex.Message}", "Error",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            // Reload APEX URL in case it was changed
+            LoadApexEndpointUrl();
+            // Load from APEX (with fallback to local)
+            LoadEndpointsFromApexAsync();
         }
 
         private void RefreshGrid()

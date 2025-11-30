@@ -234,22 +234,32 @@ namespace WMSApp
             {
                 string apexUrlFilePath = Path.Combine(_settingsPath, "apexendpointurl.txt");
 
-                System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Loading APEX URL from: {apexUrlFilePath}");
+                System.Diagnostics.Debug.WriteLine($"========================================");
+                System.Diagnostics.Debug.WriteLine($"[APEX URL] LoadApexEndpointUrl STARTED");
+                System.Diagnostics.Debug.WriteLine($"[APEX URL] Looking for file: {apexUrlFilePath}");
+                System.Diagnostics.Debug.WriteLine($"[APEX URL] Directory exists: {Directory.Exists(_settingsPath)}");
+                System.Diagnostics.Debug.WriteLine($"[APEX URL] File exists: {File.Exists(apexUrlFilePath)}");
 
                 if (File.Exists(apexUrlFilePath))
                 {
                     _apexEndpointUrl = File.ReadAllText(apexUrlFilePath).Trim();
-                    System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Loaded APEX URL: {_apexEndpointUrl}");
+                    System.Diagnostics.Debug.WriteLine($"[APEX URL] *** SUCCESS - Loaded APEX URL: {_apexEndpointUrl}");
+                    System.Diagnostics.Debug.WriteLine($"[APEX URL] URL Length: {_apexEndpointUrl.Length} characters");
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] WARNING: apexendpointurl.txt not found at: {apexUrlFilePath}");
+                    System.Diagnostics.Debug.WriteLine($"[APEX URL] *** WARNING: File not found! ***");
+                    System.Diagnostics.Debug.WriteLine($"[APEX URL] Please create file: {apexUrlFilePath}");
+                    System.Diagnostics.Debug.WriteLine($"[APEX URL] With content: Your APEX endpoint URL");
                     _apexEndpointUrl = "";
                 }
+                System.Diagnostics.Debug.WriteLine($"========================================");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] ERROR loading APEX URL: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[APEX URL] *** ERROR loading APEX URL ***");
+                System.Diagnostics.Debug.WriteLine($"[APEX URL] Exception: {ex.GetType().Name}");
+                System.Diagnostics.Debug.WriteLine($"[APEX URL] Message: {ex.Message}");
                 _apexEndpointUrl = "";
             }
         }
@@ -259,33 +269,60 @@ namespace WMSApp
         /// </summary>
         private async void LoadEndpointsFromApexAsync()
         {
+            System.Diagnostics.Debug.WriteLine($"========================================");
+            System.Diagnostics.Debug.WriteLine($"[APEX FETCH] LoadEndpointsFromApexAsync STARTED");
+            System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Settings Path: {_settingsPath}");
+            System.Diagnostics.Debug.WriteLine($"[APEX FETCH] APEX URL configured: '{_apexEndpointUrl}'");
+            System.Diagnostics.Debug.WriteLine($"========================================");
+
             if (string.IsNullOrWhiteSpace(_apexEndpointUrl))
             {
-                System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] No APEX URL configured, falling back to local file");
+                System.Diagnostics.Debug.WriteLine($"[APEX FETCH] *** WARNING: No APEX URL configured! ***");
+                System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Expected file: {Path.Combine(_settingsPath, "apexendpointurl.txt")}");
+                System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Falling back to local XML file");
                 LoadEndpointsFromLocal();
                 return;
             }
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Fetching endpoints from APEX: {_apexEndpointUrl}");
+                System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Making HTTP GET request to: {_apexEndpointUrl}");
 
                 using (var client = new HttpClient())
                 {
                     client.Timeout = TimeSpan.FromSeconds(30);
+                    System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Timeout set to 30 seconds");
 
+                    System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Sending request...");
                     var response = await client.GetAsync(_apexEndpointUrl);
-                    System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Response Status: {response.StatusCode}");
+
+                    System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Response received!");
+                    System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Status Code: {(int)response.StatusCode} ({response.StatusCode})");
+                    System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Reason Phrase: {response.ReasonPhrase}");
+                    System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Content-Type: {response.Content?.Headers?.ContentType}");
 
                     if (response.IsSuccessStatusCode)
                     {
                         string jsonResponse = await response.Content.ReadAsStringAsync();
-                        System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Response JSON: {jsonResponse}");
+
+                        System.Diagnostics.Debug.WriteLine($"[APEX FETCH] *** SUCCESS - Response received ***");
+                        System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Response Length: {jsonResponse?.Length ?? 0} characters");
+                        System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Response JSON (first 1000 chars):");
+                        System.Diagnostics.Debug.WriteLine($"[APEX FETCH] {jsonResponse?.Substring(0, Math.Min(jsonResponse?.Length ?? 0, 1000))}");
 
                         // Parse the JSON response
+                        System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Parsing JSON response...");
                         _endpoints = ParseApexResponse(jsonResponse);
+                        System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Parsed {_endpoints.Count} endpoints");
+
+                        // Log each endpoint
+                        foreach (var ep in _endpoints)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[APEX FETCH]   -> Sno={ep.Sno}, Source={ep.Source}, Code={ep.IntegrationCode}, Instance={ep.InstanceName}, BaseUrl={ep.BaseUrl}");
+                        }
 
                         // Update UI on the UI thread
+                        System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Updating UI (InvokeRequired={this.InvokeRequired})...");
                         if (this.InvokeRequired)
                         {
                             this.Invoke(new Action(() => RefreshGrid()));
@@ -296,19 +333,41 @@ namespace WMSApp
                         }
 
                         _isDirty = false;
-                        System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Loaded {_endpoints.Count} endpoints from APEX");
+                        System.Diagnostics.Debug.WriteLine($"[APEX FETCH] *** COMPLETE - Loaded {_endpoints.Count} endpoints from APEX ***");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] HTTP Error: {response.StatusCode}, falling back to local");
+                        string errorBody = await response.Content.ReadAsStringAsync();
+                        System.Diagnostics.Debug.WriteLine($"[APEX FETCH] *** HTTP ERROR: {response.StatusCode} ***");
+                        System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Error Body: {errorBody}");
+                        System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Falling back to local file");
                         LoadEndpointsFromLocal();
                     }
                 }
             }
+            catch (HttpRequestException httpEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"[APEX FETCH] *** HTTP EXCEPTION ***");
+                System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Message: {httpEx.Message}");
+                System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Inner Exception: {httpEx.InnerException?.Message}");
+                System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Falling back to local file");
+                LoadEndpointsFromLocal();
+            }
+            catch (TaskCanceledException tcEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"[APEX FETCH] *** TIMEOUT EXCEPTION ***");
+                System.Diagnostics.Debug.WriteLine($"[APEX FETCH] The request timed out after 30 seconds");
+                System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Message: {tcEx.Message}");
+                System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Falling back to local file");
+                LoadEndpointsFromLocal();
+            }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Error fetching from APEX: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Falling back to local file");
+                System.Diagnostics.Debug.WriteLine($"[APEX FETCH] *** GENERAL EXCEPTION ***");
+                System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Type: {ex.GetType().Name}");
+                System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Message: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[APEX FETCH] StackTrace: {ex.StackTrace}");
+                System.Diagnostics.Debug.WriteLine($"[APEX FETCH] Falling back to local file");
                 LoadEndpointsFromLocal();
             }
         }
@@ -471,10 +530,11 @@ namespace WMSApp
             btnDelete = CreateButton("Delete", Color.FromArgb(244, 67, 54), 210);
             btnDelete.Click += BtnDelete_Click;
 
-            btnRefresh = CreateButton("Refresh", Color.FromArgb(158, 158, 158), 310);
+            btnRefresh = CreateButton("Refresh from APEX", Color.FromArgb(0, 150, 136), 310);
+            btnRefresh.Width = 130; // Wider button for longer text
             btnRefresh.Click += BtnRefresh_Click;
 
-            btnSave = CreateButton("Save", Color.FromArgb(76, 175, 80), 410);
+            btnSave = CreateButton("Save", Color.FromArgb(76, 175, 80), 450);
             btnSave.Click += BtnSave_Click;
 
             toolbarPanel.Controls.AddRange(new Control[] { btnAdd, btnEdit, btnDelete, btnRefresh, btnSave });
@@ -644,6 +704,10 @@ namespace WMSApp
 
         private void BtnRefresh_Click(object sender, EventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine($"========================================");
+            System.Diagnostics.Debug.WriteLine($"[APEX REFRESH] User clicked 'Refresh from APEX' button");
+            System.Diagnostics.Debug.WriteLine($"========================================");
+
             if (_isDirty)
             {
                 var result = MessageBox.Show(
@@ -652,6 +716,19 @@ namespace WMSApp
                 if (result != DialogResult.Yes)
                     return;
             }
+
+            // Show info about the refresh
+            string apexUrlFilePath = Path.Combine(_settingsPath, "apexendpointurl.txt");
+            string statusMessage = $"Refreshing from APEX...\n\n" +
+                $"Settings Path: {_settingsPath}\n" +
+                $"APEX URL File: {apexUrlFilePath}\n" +
+                $"File Exists: {File.Exists(apexUrlFilePath)}\n" +
+                $"Current APEX URL: {(string.IsNullOrWhiteSpace(_apexEndpointUrl) ? "(not configured)" : _apexEndpointUrl)}\n\n" +
+                $"Check Visual Studio Output window for detailed logs.\n" +
+                $"(Debug -> Windows -> Output)";
+
+            MessageBox.Show(statusMessage, "Refresh from APEX", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
             LoadEndpoints();
         }
 

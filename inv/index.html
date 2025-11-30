@@ -6746,34 +6746,7 @@ Click "Run Test" to execute the API call...
 
                         <!-- Tab 3: All Lines Details -->
                         <div class="tab-content" id="shipment-tab-details">
-                            <div class="grid-header" style="margin-bottom: 10px; padding: 10px 0; border: none; background: none;">
-                                <div class="grid-title">
-                                    All Lines
-                                </div>
-                                <div class="grid-search">
-                                    <input type="text" id="shipmentDetailsSearchInput" placeholder="Filter results..." oninput="filterShipmentDetailsGrid()">
-                                    <span class="record-count" id="shipmentDetailsCount">0 Line(s)</span>
-                                </div>
-                            </div>
-                            <div class="table-container" style="max-height: calc(100vh - 450px);">
-                                <table class="grouped-table" id="shipmentDetailsTable">
-                                    <thead style="background: #e0e0e0; color: #333;">
-                                        <tr>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Order #</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Order Date</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Customer</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Item Number</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Description</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Qty</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Status</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Organization</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="shipmentDetailsTableBody">
-                                        <tr><td colspan="8" class="no-data">Enter search parameters and click Search</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                            <div id="shipmentLinesDataGrid" style="height: calc(100vh - 420px);"></div>
                         </div>
                     </div>
                 </div>
@@ -7160,41 +7133,190 @@ Click "Run Test" to execute the API call...
             return '';
         }
 
-        // Render Shipment Details Table (flat item-level view)
-        function renderShipmentDetailsTable(data) {
-            const tbody = document.getElementById('shipmentDetailsTableBody');
+        // Shipment Lines Grid instance
+        let shipmentLinesGridInstance = null;
 
-            if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="no-data">No line data found</td></tr>';
-                document.getElementById('shipmentDetailsCount').textContent = '0 Line(s)';
-                return;
+        // Render Shipment Details Table using DevExpress DataGrid
+        function renderShipmentDetailsTable(data) {
+            // Normalize data for the grid
+            const gridData = (data || []).map((row, idx) => ({
+                _index: idx,
+                order_number: row.source_order_number || row.SOURCE_ORDER_NUMBER || row.order_number || row.ORDER_NUMBER || '-',
+                order_date: row.order_date || row.ORDER_DATE || '-',
+                customer_name: row.account_name || row.ACCOUNT_NAME || row.customer_name || row.CUSTOMER_NAME || '-',
+                item_number: row.item_number || row.ITEM_NUMBER || '-',
+                description: row.description || row.DESCRIPTION || '-',
+                qty: parseFloat(row.order_qty || row.ORDER_QTY || row.ordered_quantity || row.ORDERED_QUANTITY || 0) || 0,
+                status: row.line_status || row.LINE_STATUS || row.status || row.STATUS || '-',
+                organization: row.organization_name || row.ORGANIZATION_NAME || row.instance || row.INSTANCE || '-',
+                _originalData: row
+            }));
+
+            // Destroy existing grid instance if exists
+            if (shipmentLinesGridInstance) {
+                shipmentLinesGridInstance.dispose();
+                shipmentLinesGridInstance = null;
             }
 
-            let html = '';
-            data.forEach(row => {
-                const orderNum = row.source_order_number || row.SOURCE_ORDER_NUMBER || row.order_number || row.ORDER_NUMBER || '-';
-                const orderDate = row.order_date || row.ORDER_DATE || '-';
-                const customerName = row.account_name || row.ACCOUNT_NAME || row.customer_name || row.CUSTOMER_NAME || '-';
-                const itemNumber = row.item_number || row.ITEM_NUMBER || '-';
-                const description = row.description || row.DESCRIPTION || '-';
-                const qty = row.order_qty || row.ORDER_QTY || row.ordered_quantity || row.ORDERED_QUANTITY || 0;
-                const status = row.line_status || row.LINE_STATUS || row.status || row.STATUS || '-';
-                const orgName = row.organization_name || row.ORGANIZATION_NAME || row.instance || row.INSTANCE || '-';
+            // Initialize DevExpress DataGrid
+            shipmentLinesGridInstance = $('#shipmentLinesDataGrid').dxDataGrid({
+                dataSource: gridData,
+                showBorders: true,
+                showRowLines: true,
+                showColumnLines: true,
+                rowAlternationEnabled: true,
+                columnAutoWidth: true,
+                wordWrapEnabled: false,
+                allowColumnResizing: true,
+                columnResizingMode: 'widget',
+                hoverStateEnabled: true,
 
-                html += `<tr style="font-size: 11px;">
-                    <td style="padding: 8px; font-weight: bold; color: #667eea;">${orderNum}</td>
-                    <td style="padding: 8px;">${formatDate(orderDate)}</td>
-                    <td style="padding: 8px;" title="${customerName}">${customerName.length > 20 ? customerName.substring(0, 20) + '...' : customerName}</td>
-                    <td style="padding: 8px; color: #555;">${itemNumber}</td>
-                    <td style="padding: 8px; color: #555;" title="${description}">${description.length > 30 ? description.substring(0, 30) + '...' : description}</td>
-                    <td style="padding: 8px; text-align: right; font-weight: bold; color: #28a745;">${formatNumber(qty)}</td>
-                    <td style="padding: 8px;"><span class="status-badge ${getLineStatusClass(status)}">${status}</span></td>
-                    <td style="padding: 8px;">${orgName}</td>
-                </tr>`;
-            });
+                // Paging
+                paging: {
+                    enabled: true,
+                    pageSize: 25
+                },
+                pager: {
+                    visible: true,
+                    showPageSizeSelector: true,
+                    allowedPageSizes: [10, 25, 50, 100],
+                    showInfo: true,
+                    infoText: '{2} Line(s)'
+                },
 
-            tbody.innerHTML = html;
-            document.getElementById('shipmentDetailsCount').textContent = data.length + ' Line(s)';
+                // Sorting
+                sorting: {
+                    mode: 'multiple'
+                },
+
+                // Filtering
+                filterRow: {
+                    visible: true,
+                    applyFilter: 'auto'
+                },
+                headerFilter: {
+                    visible: true
+                },
+
+                // Search Panel
+                searchPanel: {
+                    visible: true,
+                    width: 240,
+                    placeholder: 'Search lines...'
+                },
+
+                // Export to Excel
+                export: {
+                    enabled: true,
+                    allowExportSelectedData: true,
+                    fileName: 'Shipment_Lines_Export'
+                },
+                onExporting: function(e) {
+                    const workbook = new ExcelJS.Workbook();
+                    const worksheet = workbook.addWorksheet('Shipment Lines');
+
+                    DevExpress.excelExporter.exportDataGrid({
+                        component: e.component,
+                        worksheet: worksheet,
+                        autoFilterEnabled: true,
+                        topLeftCell: { row: 1, column: 1 }
+                    }).then(function() {
+                        workbook.xlsx.writeBuffer().then(function(buffer) {
+                            saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'Shipment_Lines_Export.xlsx');
+                        });
+                    });
+                    e.cancel = true;
+                },
+
+                // Selection
+                selection: {
+                    mode: 'multiple',
+                    showCheckBoxesMode: 'always'
+                },
+
+                // Summary
+                summary: {
+                    totalItems: [{
+                        column: 'qty',
+                        summaryType: 'sum',
+                        displayFormat: 'Total: {0}',
+                        valueFormat: { type: 'fixedPoint', precision: 0 }
+                    }]
+                },
+
+                // Columns
+                columns: [
+                    {
+                        dataField: 'order_number',
+                        caption: 'Order #',
+                        width: 130,
+                        cellTemplate: function(container, options) {
+                            $('<div>')
+                                .css({
+                                    'font-weight': '600',
+                                    'color': '#667eea'
+                                })
+                                .text(options.value)
+                                .appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: 'order_date',
+                        caption: 'Order Date',
+                        width: 110,
+                        customizeText: function(cellInfo) {
+                            return formatDate(cellInfo.value);
+                        }
+                    },
+                    {
+                        dataField: 'customer_name',
+                        caption: 'Customer',
+                        minWidth: 150
+                    },
+                    {
+                        dataField: 'item_number',
+                        caption: 'Item Number',
+                        width: 130
+                    },
+                    {
+                        dataField: 'description',
+                        caption: 'Description',
+                        minWidth: 200
+                    },
+                    {
+                        dataField: 'qty',
+                        caption: 'Qty',
+                        width: 100,
+                        alignment: 'right',
+                        cellTemplate: function(container, options) {
+                            $('<div>')
+                                .css({
+                                    'font-weight': 'bold',
+                                    'color': '#28a745'
+                                })
+                                .text(formatNumber(options.value))
+                                .appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: 'status',
+                        caption: 'Status',
+                        width: 120,
+                        cellTemplate: function(container, options) {
+                            const statusClass = getLineStatusClass(options.value);
+                            $('<span>')
+                                .addClass('status-badge ' + statusClass)
+                                .text(options.value)
+                                .appendTo(container);
+                        }
+                    },
+                    {
+                        dataField: 'organization',
+                        caption: 'Organization',
+                        width: 130
+                    }
+                ]
+            }).dxDataGrid('instance');
         }
 
         // Format date helper
@@ -7247,28 +7369,6 @@ Click "Run Test" to execute the API call...
             });
 
             renderShipmentSummaryTable(filtered);
-        }
-
-        // Filter shipment details grid - using API field names
-        function filterShipmentDetailsGrid() {
-            const searchText = document.getElementById('shipmentDetailsSearchInput').value.toLowerCase();
-            if (!shipmentLinesData) return;
-
-            if (!searchText) {
-                renderShipmentDetailsTable(shipmentLinesData);
-                return;
-            }
-
-            const filtered = shipmentLinesData.filter(row => {
-                return (row.source_order_number || row.SOURCE_ORDER_NUMBER || row.order_number || row.ORDER_NUMBER || '').toLowerCase().includes(searchText) ||
-                       (row.account_name || row.ACCOUNT_NAME || row.customer_name || row.CUSTOMER_NAME || '').toLowerCase().includes(searchText) ||
-                       (row.item_number || row.ITEM_NUMBER || '').toLowerCase().includes(searchText) ||
-                       (row.description || row.DESCRIPTION || '').toLowerCase().includes(searchText) ||
-                       (row.organization_name || row.ORGANIZATION_NAME || '').toLowerCase().includes(searchText) ||
-                       (row.line_status || row.LINE_STATUS || '').toLowerCase().includes(searchText);
-            });
-
-            renderShipmentDetailsTable(filtered);
         }
 
         // =============================================

@@ -6615,7 +6615,7 @@ Click "Run Test" to execute the API call...
                         <div class="tab-content" id="shipment-tab-orders">
                             <div class="grid-header" style="margin-bottom: 10px; padding: 10px 0; border: none; background: none;">
                                 <div class="grid-title">
-                                    Pending Shipments Summary
+                                    Orders Summary
                                     <button class="btn-expand-collapse" onclick="expandAllShipmentGroups()" title="Expand All">&#9654; Expand All</button>
                                     <button class="btn-expand-collapse" onclick="collapseAllShipmentGroups()" title="Collapse All">&#9660; Collapse All</button>
                                 </div>
@@ -6628,31 +6628,32 @@ Click "Run Test" to execute the API call...
                                 <table class="grouped-table" id="shipmentSummaryTable">
                                     <thead style="background: #e0e0e0; color: #333;">
                                         <tr>
+                                            <th style="padding: 10px 8px; font-size: 11px; width: 30px;"></th>
                                             <th style="padding: 10px 8px; font-size: 11px;">Order Number</th>
                                             <th style="padding: 10px 8px; font-size: 11px;">Customer Name</th>
                                             <th style="padding: 10px 8px; font-size: 11px;">Order Date</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Ship To Location</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Total Lines</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Ship To</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Lines</th>
                                             <th style="padding: 10px 8px; font-size: 11px;">Total Qty</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Status</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Organization</th>
                                         </tr>
                                     </thead>
                                     <tbody id="shipmentSummaryTableBody">
-                                        <tr><td colspan="7" class="no-data">Enter search parameters and click Search</td></tr>
+                                        <tr><td colspan="8" class="no-data">Enter search parameters and click Search</td></tr>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
 
-                        <!-- Tab 3: Shipment Details -->
+                        <!-- Tab 3: All Lines Details -->
                         <div class="tab-content" id="shipment-tab-details">
                             <div class="grid-header" style="margin-bottom: 10px; padding: 10px 0; border: none; background: none;">
                                 <div class="grid-title">
-                                    Shipment Order Details
+                                    All Lines
                                 </div>
                                 <div class="grid-search">
                                     <input type="text" id="shipmentDetailsSearchInput" placeholder="Filter results..." oninput="filterShipmentDetailsGrid()">
-                                    <span class="record-count" id="shipmentDetailsCount">0 Order(s)</span>
+                                    <span class="record-count" id="shipmentDetailsCount">0 Line(s)</span>
                                 </div>
                             </div>
                             <div class="table-container" style="max-height: calc(100vh - 450px);">
@@ -6662,16 +6663,15 @@ Click "Run Test" to execute the API call...
                                             <th style="padding: 10px 8px; font-size: 11px;">Order #</th>
                                             <th style="padding: 10px 8px; font-size: 11px;">Order Date</th>
                                             <th style="padding: 10px 8px; font-size: 11px;">Customer</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Account #</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Organization</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Address</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Total Lines</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Total Qty</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Item Number</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Description</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Qty</th>
                                             <th style="padding: 10px 8px; font-size: 11px;">Status</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Organization</th>
                                         </tr>
                                     </thead>
                                     <tbody id="shipmentDetailsTableBody">
-                                        <tr><td colspan="9" class="no-data">Enter search parameters and click Search</td></tr>
+                                        <tr><td colspan="8" class="no-data">Enter search parameters and click Search</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -6876,10 +6876,11 @@ Click "Run Test" to execute the API call...
                 return;
             }
 
-            // Calculate stats - using API field names: source_order_number, account_name, total_qty, total_lines
+            // Calculate stats - using API field names: source_order_number, account_name, order_qty
+            // Each row is a line, so count is number of lines and sum order_qty for total qty
             const uniqueOrders = [...new Set(data.map(d => d.source_order_number || d.SOURCE_ORDER_NUMBER || d.order_number || d.ORDER_NUMBER).filter(o => o))];
-            const totalLines = data.reduce((sum, d) => sum + (parseInt(d.total_lines || d.TOTAL_LINES) || 1), 0);
-            const totalQty = data.reduce((sum, d) => sum + (parseFloat(d.total_qty || d.TOTAL_QTY || d.ordered_quantity || d.ORDERED_QUANTITY || d.pending_quantity || d.PENDING_QUANTITY) || 0), 0);
+            const totalLines = data.length; // Each row is a line
+            const totalQty = data.reduce((sum, d) => sum + (parseFloat(d.order_qty || d.ORDER_QTY || d.ordered_quantity || d.ORDERED_QUANTITY || 0) || 0), 0);
             const uniqueCustomers = [...new Set(data.map(d => d.account_name || d.ACCOUNT_NAME || d.customer_name || d.CUSTOMER_NAME).filter(c => c))];
 
             document.getElementById('shipmentStatTotalOrders').textContent = uniqueOrders.length.toLocaleString();
@@ -6933,17 +6934,17 @@ Click "Run Test" to execute the API call...
             document.getElementById('shipmentChartByStatus').innerHTML = statusChartHtml || '<div style="color: #888; text-align: center; padding: 20px;">No data</div>';
         }
 
-        // Render Shipment Summary Table (grouped by order)
+        // Render Shipment Summary Table (grouped by order with expandable item details)
         function renderShipmentSummaryTable(data) {
             const tbody = document.getElementById('shipmentSummaryTableBody');
 
             if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="no-data">No shipment data found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="no-data">No shipment data found</td></tr>';
                 document.getElementById('shipmentSummaryCount').textContent = '0 Order(s)';
                 return;
             }
 
-            // Group by order number - using API field names: source_order_number, account_name, address, total_qty, total_lines
+            // Group by order number - using API field names: source_order_number, account_name, address, order_qty, item_number, description
             const grouped = {};
             data.forEach(d => {
                 const orderNum = d.source_order_number || d.SOURCE_ORDER_NUMBER || d.order_number || d.ORDER_NUMBER || 'Unknown';
@@ -6951,46 +6952,122 @@ Click "Run Test" to execute the API call...
                     grouped[orderNum] = {
                         orderNumber: orderNum,
                         customerName: d.account_name || d.ACCOUNT_NAME || d.customer_name || d.CUSTOMER_NAME || '-',
+                        accountNumber: d.account_number || d.ACCOUNT_NUMBER || '-',
                         orderDate: d.order_date || d.ORDER_DATE || d.creation_date || d.CREATION_DATE || '-',
                         shipToLocation: d.address || d.ADDRESS || d.ship_to_location || d.SHIP_TO_LOCATION || d.deliver_to_location || d.DELIVER_TO_LOCATION || '-',
-                        status: d.line_status || d.LINE_STATUS || d.status || d.STATUS || '-',
-                        lines: [],
+                        organization: d.organization_name || d.ORGANIZATION_NAME || d.instance || d.INSTANCE || '-',
+                        items: [],
                         totalQty: 0,
-                        totalLines: 0
+                        lineCount: 0
                     };
                 }
-                grouped[orderNum].lines.push(d);
-                grouped[orderNum].totalQty += parseFloat(d.total_qty || d.TOTAL_QTY || d.ordered_quantity || d.ORDERED_QUANTITY || d.pending_quantity || d.PENDING_QUANTITY) || 0;
-                grouped[orderNum].totalLines += parseInt(d.total_lines || d.TOTAL_LINES) || 1;
+                // Add item to the order
+                grouped[orderNum].items.push({
+                    itemNumber: d.item_number || d.ITEM_NUMBER || '-',
+                    description: d.description || d.DESCRIPTION || '-',
+                    qty: parseFloat(d.order_qty || d.ORDER_QTY || d.ordered_quantity || d.ORDERED_QUANTITY || 0) || 0,
+                    status: d.line_status || d.LINE_STATUS || d.status || d.STATUS || '-'
+                });
+                // Sum qty and count lines
+                grouped[orderNum].totalQty += parseFloat(d.order_qty || d.ORDER_QTY || d.ordered_quantity || d.ORDERED_QUANTITY || 0) || 0;
+                grouped[orderNum].lineCount += 1;
             });
 
             let html = '';
             Object.values(grouped).forEach((group, idx) => {
                 const groupId = 'shipsum_' + idx;
-                html += `<tr class="group-header" style="cursor: default; background: #f0f4ff;">
-                    <td style="padding: 10px 8px; font-size: 11px; font-weight: bold;">
+                const hasItems = group.items.length > 0;
+
+                // Order header row with expand toggle
+                html += `<tr class="group-header" style="cursor: pointer; background: #f0f4ff;" onclick="toggleShipmentOrderItems('${groupId}')">
+                    <td style="padding: 10px 8px; font-size: 11px; text-align: center;">
+                        <span class="group-toggle" id="${groupId}_toggle" style="cursor: pointer; font-size: 10px;">&#9654;</span>
+                    </td>
+                    <td style="padding: 10px 8px; font-size: 11px; font-weight: bold; color: #667eea;">
                         ${group.orderNumber}
                     </td>
-                    <td style="padding: 10px 8px; font-size: 11px;">${group.customerName}</td>
+                    <td style="padding: 10px 8px; font-size: 11px;" title="${group.customerName}">${group.customerName.length > 25 ? group.customerName.substring(0, 25) + '...' : group.customerName}</td>
                     <td style="padding: 10px 8px; font-size: 11px;">${formatDate(group.orderDate)}</td>
-                    <td style="padding: 10px 8px; font-size: 11px;">${group.shipToLocation}</td>
-                    <td style="padding: 10px 8px; font-size: 11px; font-weight: bold;">${group.totalLines}</td>
-                    <td style="padding: 10px 8px; font-size: 11px; font-weight: bold;">${formatNumber(group.totalQty)}</td>
-                    <td style="padding: 10px 8px; font-size: 11px;">${group.status}</td>
+                    <td style="padding: 10px 8px; font-size: 11px;" title="${group.shipToLocation}">${group.shipToLocation.length > 20 ? group.shipToLocation.substring(0, 20) + '...' : group.shipToLocation}</td>
+                    <td style="padding: 10px 8px; font-size: 11px; font-weight: bold; text-align: center; color: #17a2b8;">${group.lineCount}</td>
+                    <td style="padding: 10px 8px; font-size: 11px; font-weight: bold; text-align: right; color: #28a745;">${formatNumber(group.totalQty)}</td>
+                    <td style="padding: 10px 8px; font-size: 11px;">${group.organization}</td>
                 </tr>`;
+
+                // Item detail rows (hidden by default)
+                if (hasItems) {
+                    html += `<tr class="group-row" id="${groupId}_items" style="display: none;">
+                        <td colspan="8" style="padding: 0; background: #fafafa;">
+                            <table style="width: 100%; border-collapse: collapse; margin: 0;">
+                                <thead style="background: #e8e8e8;">
+                                    <tr>
+                                        <th style="padding: 6px 8px; font-size: 10px; text-align: left; width: 40px;"></th>
+                                        <th style="padding: 6px 8px; font-size: 10px; text-align: left;">Item Number</th>
+                                        <th style="padding: 6px 8px; font-size: 10px; text-align: left;">Description</th>
+                                        <th style="padding: 6px 8px; font-size: 10px; text-align: right;">Qty</th>
+                                        <th style="padding: 6px 8px; font-size: 10px; text-align: left;">Status</th>
+                                        <th style="padding: 6px 8px; font-size: 10px;"></th>
+                                        <th style="padding: 6px 8px; font-size: 10px;"></th>
+                                        <th style="padding: 6px 8px; font-size: 10px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+
+                    group.items.forEach((item, itemIdx) => {
+                        html += `<tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 5px 8px; font-size: 10px;"></td>
+                            <td style="padding: 5px 8px; font-size: 10px; color: #555;">${item.itemNumber}</td>
+                            <td style="padding: 5px 8px; font-size: 10px; color: #555;" title="${item.description}">${item.description.length > 35 ? item.description.substring(0, 35) + '...' : item.description}</td>
+                            <td style="padding: 5px 8px; font-size: 10px; text-align: right; color: #555;">${formatNumber(item.qty)}</td>
+                            <td style="padding: 5px 8px; font-size: 10px;"><span class="status-badge ${getLineStatusClass(item.status)}">${item.status}</span></td>
+                            <td style="padding: 5px 8px;"></td>
+                            <td style="padding: 5px 8px;"></td>
+                            <td style="padding: 5px 8px;"></td>
+                        </tr>`;
+                    });
+
+                    html += `</tbody></table></td></tr>`;
+                }
             });
 
             tbody.innerHTML = html;
             document.getElementById('shipmentSummaryCount').textContent = Object.keys(grouped).length + ' Order(s)';
         }
 
-        // Render Shipment Details Table (flat order-level view)
+        // Toggle order items visibility
+        function toggleShipmentOrderItems(groupId) {
+            const itemsRow = document.getElementById(groupId + '_items');
+            const toggle = document.getElementById(groupId + '_toggle');
+
+            if (itemsRow) {
+                if (itemsRow.style.display === 'none') {
+                    itemsRow.style.display = '';
+                    toggle.innerHTML = '&#9660;';
+                } else {
+                    itemsRow.style.display = 'none';
+                    toggle.innerHTML = '&#9654;';
+                }
+            }
+        }
+
+        // Get status class for line status
+        function getLineStatusClass(status) {
+            if (!status) return '';
+            const s = status.toUpperCase();
+            if (s.includes('SHIP') || s.includes('COMPLETE')) return 'status-shipped';
+            if (s.includes('AWAIT') || s.includes('PENDING') || s.includes('READY')) return 'status-pending';
+            if (s.includes('PICK') || s.includes('PROGRESS')) return 'status-in-transit';
+            if (s.includes('CANCEL')) return 'status-cancelled';
+            return '';
+        }
+
+        // Render Shipment Details Table (flat item-level view)
         function renderShipmentDetailsTable(data) {
             const tbody = document.getElementById('shipmentDetailsTableBody');
 
             if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="no-data">No shipment data found</td></tr>';
-                document.getElementById('shipmentDetailsCount').textContent = '0 Order(s)';
+                tbody.innerHTML = '<tr><td colspan="8" class="no-data">No line data found</td></tr>';
+                document.getElementById('shipmentDetailsCount').textContent = '0 Line(s)';
                 return;
             }
 
@@ -6999,28 +7076,26 @@ Click "Run Test" to execute the API call...
                 const orderNum = row.source_order_number || row.SOURCE_ORDER_NUMBER || row.order_number || row.ORDER_NUMBER || '-';
                 const orderDate = row.order_date || row.ORDER_DATE || '-';
                 const customerName = row.account_name || row.ACCOUNT_NAME || row.customer_name || row.CUSTOMER_NAME || '-';
-                const accountNum = row.account_number || row.ACCOUNT_NUMBER || '-';
-                const orgName = row.organization_name || row.ORGANIZATION_NAME || '-';
-                const address = row.address || row.ADDRESS || row.ship_to_location || row.SHIP_TO_LOCATION || '-';
-                const totalLines = row.total_lines || row.TOTAL_LINES || 0;
-                const totalQty = row.total_qty || row.TOTAL_QTY || 0;
+                const itemNumber = row.item_number || row.ITEM_NUMBER || '-';
+                const description = row.description || row.DESCRIPTION || '-';
+                const qty = row.order_qty || row.ORDER_QTY || row.ordered_quantity || row.ORDERED_QUANTITY || 0;
                 const status = row.line_status || row.LINE_STATUS || row.status || row.STATUS || '-';
+                const orgName = row.organization_name || row.ORGANIZATION_NAME || row.instance || row.INSTANCE || '-';
 
                 html += `<tr style="font-size: 11px;">
-                    <td style="padding: 8px; font-weight: bold;">${orderNum}</td>
+                    <td style="padding: 8px; font-weight: bold; color: #667eea;">${orderNum}</td>
                     <td style="padding: 8px;">${formatDate(orderDate)}</td>
-                    <td style="padding: 8px;" title="${customerName}">${customerName.length > 25 ? customerName.substring(0, 25) + '...' : customerName}</td>
-                    <td style="padding: 8px;">${accountNum}</td>
+                    <td style="padding: 8px;" title="${customerName}">${customerName.length > 20 ? customerName.substring(0, 20) + '...' : customerName}</td>
+                    <td style="padding: 8px; color: #555;">${itemNumber}</td>
+                    <td style="padding: 8px; color: #555;" title="${description}">${description.length > 30 ? description.substring(0, 30) + '...' : description}</td>
+                    <td style="padding: 8px; text-align: right; font-weight: bold; color: #28a745;">${formatNumber(qty)}</td>
+                    <td style="padding: 8px;"><span class="status-badge ${getLineStatusClass(status)}">${status}</span></td>
                     <td style="padding: 8px;">${orgName}</td>
-                    <td style="padding: 8px;" title="${address}">${address.length > 25 ? address.substring(0, 25) + '...' : address}</td>
-                    <td style="padding: 8px; text-align: right; font-weight: bold;">${totalLines}</td>
-                    <td style="padding: 8px; text-align: right; font-weight: bold;">${formatNumber(totalQty)}</td>
-                    <td style="padding: 8px;">${status}</td>
                 </tr>`;
             });
 
             tbody.innerHTML = html;
-            document.getElementById('shipmentDetailsCount').textContent = data.length + ' Order(s)';
+            document.getElementById('shipmentDetailsCount').textContent = data.length + ' Line(s)';
         }
 
         // Format date helper
@@ -7067,7 +7142,9 @@ Click "Run Test" to execute the API call...
                 return (row.source_order_number || row.SOURCE_ORDER_NUMBER || row.order_number || row.ORDER_NUMBER || '').toLowerCase().includes(searchText) ||
                        (row.account_name || row.ACCOUNT_NAME || row.customer_name || row.CUSTOMER_NAME || '').toLowerCase().includes(searchText) ||
                        (row.address || row.ADDRESS || row.ship_to_location || row.SHIP_TO_LOCATION || '').toLowerCase().includes(searchText) ||
-                       (row.organization_name || row.ORGANIZATION_NAME || '').toLowerCase().includes(searchText);
+                       (row.organization_name || row.ORGANIZATION_NAME || '').toLowerCase().includes(searchText) ||
+                       (row.item_number || row.ITEM_NUMBER || '').toLowerCase().includes(searchText) ||
+                       (row.description || row.DESCRIPTION || '').toLowerCase().includes(searchText);
             });
 
             renderShipmentSummaryTable(filtered);
@@ -7086,9 +7163,10 @@ Click "Run Test" to execute the API call...
             const filtered = shipmentLinesData.filter(row => {
                 return (row.source_order_number || row.SOURCE_ORDER_NUMBER || row.order_number || row.ORDER_NUMBER || '').toLowerCase().includes(searchText) ||
                        (row.account_name || row.ACCOUNT_NAME || row.customer_name || row.CUSTOMER_NAME || '').toLowerCase().includes(searchText) ||
-                       (row.account_number || row.ACCOUNT_NUMBER || '').toLowerCase().includes(searchText) ||
+                       (row.item_number || row.ITEM_NUMBER || '').toLowerCase().includes(searchText) ||
+                       (row.description || row.DESCRIPTION || '').toLowerCase().includes(searchText) ||
                        (row.organization_name || row.ORGANIZATION_NAME || '').toLowerCase().includes(searchText) ||
-                       (row.address || row.ADDRESS || '').toLowerCase().includes(searchText);
+                       (row.line_status || row.LINE_STATUS || '').toLowerCase().includes(searchText);
             });
 
             renderShipmentDetailsTable(filtered);

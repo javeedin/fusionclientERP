@@ -550,15 +550,20 @@ namespace WMSApp
 
                 System.Diagnostics.Debug.WriteLine($"[LOGIN] Instance URLs count: {instanceUrls.Count}");
 
-                // If no LOGIN endpoints found, log warning
-                if (instanceUrls.Count == 0)
+                // If PROD or TEST URLs not found in settings, use hardcoded defaults
+                if (!instanceUrls.ContainsKey("PROD"))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[LOGIN] WARNING: No LOGIN endpoints found.");
-                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Please ensure endpoints.xml exists at: C:\\fusionclient\\ERP\\settings\\endpoints.xml");
+                    instanceUrls["PROD"] = "https://g09254cbbf8e7af-graysprod.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/wms_login";
+                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Using default PROD URL");
+                }
+                if (!instanceUrls.ContainsKey("TEST"))
+                {
+                    instanceUrls["TEST"] = "https://g09254cbbf8e7af-graystest.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/wms_login";
+                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Using default TEST URL");
                 }
 
-                // Instance dropdown is hardcoded with PROD/TEST in InitializeComponent
-                // This method just loads the URLs for those instances
+                System.Diagnostics.Debug.WriteLine($"[LOGIN] Final PROD URL: {instanceUrls["PROD"]}");
+                System.Diagnostics.Debug.WriteLine($"[LOGIN] Final TEST URL: {instanceUrls["TEST"]}");
             }
             catch (Exception ex)
             {

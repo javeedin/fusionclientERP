@@ -5706,11 +5706,12 @@ Click "Run Test" to execute the API call...
                             const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
                             if (data.requestId === requestId || data.action === 'postEndpointToApexResponse') {
                                 window.chrome.webview.removeEventListener('message', handler);
+                                console.log('[JS DEBUG] POST URL used:', data.postUrl);
                                 console.log('[JS DEBUG] Received postEndpointToApex response from C#:', JSON.stringify(data));
                                 if (data.success) {
                                     resolve({ success: true, data: data.data });
                                 } else {
-                                    resolve({ success: false, error: data.error });
+                                    resolve({ success: false, error: data.error, postUrl: data.postUrl });
                                 }
                             }
                         } catch (e) {
@@ -6562,8 +6563,9 @@ Click "Run Test" to execute the API call...
                 console.log('[JS] Endpoint saved to APEX successfully');
                 alert('Saved Successfully');
             } else {
-                console.warn('[JS] Failed to save endpoint to APEX:', apexResult.error);
-                alert('Failed to save to APEX: ' + (apexResult.error || 'Unknown error'));
+                console.warn('[JS] Failed to save endpoint to APEX. POST URL:', apexResult.postUrl);
+                console.warn('[JS] Error:', apexResult.error);
+                alert('Failed to save to APEX: ' + (apexResult.error || 'Unknown error') + '\n\nPOST URL: ' + (apexResult.postUrl || 'unknown'));
             }
         }
 

@@ -1858,6 +1858,7 @@ namespace WMSApp
                             requestId = requestId,
                             action = "postEndpointToApexResponse",
                             success = true,
+                            postUrl = postUrl,
                             data = responseBody
                         };
                         string responseJson = System.Text.Json.JsonSerializer.Serialize(response);
@@ -1870,6 +1871,7 @@ namespace WMSApp
                             requestId = requestId,
                             action = "postEndpointToApexResponse",
                             success = false,
+                            postUrl = postUrl,
                             error = $"HTTP {(int)httpResponse.StatusCode}: {responseBody}"
                         };
                         string responseJson = System.Text.Json.JsonSerializer.Serialize(response);

@@ -837,7 +837,9 @@ namespace WMSApp
         }
 
         /// <summary>
-        /// Gets the base URL for a given source type and instance name from the cached instances data
+        /// Gets the base URL for a given source type and instance name from the cached instances data.
+        /// The instances data has: instance, source, base_url fields.
+        /// We match by instance + source and return the base_url.
         /// </summary>
         private string GetBaseUrlForInstance(string sourceType, string instanceName)
         {
@@ -851,38 +853,20 @@ namespace WMSApp
 
             foreach (var inst in _instancesData)
             {
-                // Get instance name - try multiple field names
-                string instName = inst.TryGetValue("instance", out var instVal) ? instVal?.ToString() :
-                                  inst.TryGetValue("instance_name", out instVal) ? instVal?.ToString() :
-                                  inst.TryGetValue("name", out instVal) ? instVal?.ToString() : null;
+                // Get instance name from "instance" field
+                string instName = inst.TryGetValue("instance", out var instVal) ? instVal?.ToString() : null;
 
-                // Get source type - try multiple field names
-                string instSource = inst.TryGetValue("source_type", out var srcVal) ? srcVal?.ToString() :
-                                    inst.TryGetValue("source", out srcVal) ? srcVal?.ToString() : null;
+                // Get source type from "source" field
+                string instSource = inst.TryGetValue("source", out var srcVal) ? srcVal?.ToString() : null;
 
                 System.Diagnostics.Debug.WriteLine($"[EndpointEditForm]   Checking: instName={instName}, instSource={instSource}");
 
-                // Match by instance name and source type
+                // Match by instance name AND source type
                 if (string.Equals(instName, instanceName, StringComparison.OrdinalIgnoreCase) &&
                     string.Equals(instSource, sourceType, StringComparison.OrdinalIgnoreCase))
                 {
-                    // Get base URL - try source-specific URL first, then generic
-                    string baseUrl = null;
-                    if (string.Equals(sourceType, "APEX", StringComparison.OrdinalIgnoreCase))
-                    {
-                        baseUrl = inst.TryGetValue("apex_base_url", out var urlVal) ? urlVal?.ToString() : null;
-                    }
-                    else if (string.Equals(sourceType, "FUSION", StringComparison.OrdinalIgnoreCase))
-                    {
-                        baseUrl = inst.TryGetValue("fusion_base_url", out var urlVal) ? urlVal?.ToString() : null;
-                    }
-
-                    // Fallback to generic base_url or url field
-                    if (string.IsNullOrEmpty(baseUrl))
-                    {
-                        baseUrl = inst.TryGetValue("base_url", out var urlVal) ? urlVal?.ToString() :
-                                  inst.TryGetValue("url", out urlVal) ? urlVal?.ToString() : null;
-                    }
+                    // Get base_url directly from the instance record
+                    string baseUrl = inst.TryGetValue("base_url", out var urlVal) ? urlVal?.ToString() : null;
 
                     if (!string.IsNullOrEmpty(baseUrl))
                     {
@@ -897,7 +881,8 @@ namespace WMSApp
         }
 
         /// <summary>
-        /// Populates the Instance dropdown based on the selected source type
+        /// Populates the Instance dropdown based on the selected source type.
+        /// The instances data has: instance, source, base_url fields.
         /// </summary>
         private void PopulateInstanceDropdown(string sourceType, string selectedInstance = null)
         {
@@ -925,17 +910,14 @@ namespace WMSApp
             var instanceNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var inst in _instancesData)
             {
-                // Get source type from instance
-                string instSource = inst.TryGetValue("source_type", out var srcVal) ? srcVal?.ToString() :
-                                    inst.TryGetValue("source", out srcVal) ? srcVal?.ToString() : null;
+                // Get source from "source" field
+                string instSource = inst.TryGetValue("source", out var srcVal) ? srcVal?.ToString() : null;
 
                 // Match source type
                 if (string.Equals(instSource, sourceType, StringComparison.OrdinalIgnoreCase))
                 {
-                    // Get instance name
-                    string instName = inst.TryGetValue("instance", out var instVal) ? instVal?.ToString() :
-                                      inst.TryGetValue("instance_name", out instVal) ? instVal?.ToString() :
-                                      inst.TryGetValue("name", out instVal) ? instVal?.ToString() : null;
+                    // Get instance name from "instance" field
+                    string instName = inst.TryGetValue("instance", out var instVal) ? instVal?.ToString() : null;
 
                     if (!string.IsNullOrEmpty(instName))
                     {

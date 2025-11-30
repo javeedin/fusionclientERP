@@ -6411,12 +6411,33 @@ Click "Run Test" to execute the API call...
                 // Set Source dropdown
                 document.getElementById('endpointSource').value = sourceValue;
 
-                // Populate Instance dropdown based on selected Source, then set value
+                // Populate Instance dropdown based on selected Source
                 populateEndpointInstanceDropdown(sourceValue);
-                document.getElementById('endpointInstance').value = instanceValue;
+
+                // For edit mode: ensure the original value is shown even if not in LOV
+                const instanceSelect = document.getElementById('endpointInstance');
+                if (instanceValue) {
+                    // Check if the value exists in the dropdown options
+                    let optionExists = false;
+                    for (let i = 0; i < instanceSelect.options.length; i++) {
+                        if (instanceSelect.options[i].value === instanceValue) {
+                            optionExists = true;
+                            break;
+                        }
+                    }
+                    // If not found, add the original value as an option
+                    if (!optionExists) {
+                        const option = document.createElement('option');
+                        option.value = instanceValue;
+                        option.textContent = instanceValue;
+                        instanceSelect.appendChild(option);
+                        console.log('[JS DEBUG] Added original instance value to dropdown:', instanceValue);
+                    }
+                    instanceSelect.value = instanceValue;
+                }
 
                 console.log('[JS DEBUG] Source dropdown value:', document.getElementById('endpointSource').value);
-                console.log('[JS DEBUG] Instance dropdown value:', document.getElementById('endpointInstance').value);
+                console.log('[JS DEBUG] Instance dropdown value:', instanceSelect.value);
 
                 document.getElementById('endpointIntegrationCode').value = endpoint.integrationCode || '';
                 document.getElementById('endpointURL').value = endpoint.url || '';

@@ -2804,13 +2804,13 @@ namespace WMSApp
                     if (!response.IsSuccessStatusCode)
                     {
                         System.Diagnostics.Debug.WriteLine($"[C# ERROR] HTTP {response.StatusCode}: {response.ReasonPhrase}");
-                        System.Diagnostics.Debug.WriteLine($"[C# ERROR] Response body: {responseContent.Substring(0, Math.Min(500, responseContent.Length))}");
+                        System.Diagnostics.Debug.WriteLine($"[C# ERROR] Response body: {responseContent}");
                     }
 
-                    // Log first 200 chars of successful responses for debugging
+                    // Log full JSON response for debugging
                     if (response.IsSuccessStatusCode && responseContent.Length > 0)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[C#] Response preview: {responseContent.Substring(0, Math.Min(200, responseContent.Length))}...");
+                        System.Diagnostics.Debug.WriteLine($"[C#] JSON Response: {responseContent}");
                     }
 
                     var resultMessage = new
@@ -3046,8 +3046,9 @@ namespace WMSApp
 
                     string responseContent = await response.Content.ReadAsStringAsync();
 
-                    System.Diagnostics.Debug.WriteLine($"[C#] REST {method} completed. Status: {response.StatusCode}");
-                    System.Diagnostics.Debug.WriteLine($"[C#] Response: {responseContent}");
+                    System.Diagnostics.Debug.WriteLine($"[C#] REST {method} completed. Status: {response.StatusCode}, Length: {responseContent.Length}");
+                    System.Diagnostics.Debug.WriteLine($"[C#] Request Body: {message.Body}");
+                    System.Diagnostics.Debug.WriteLine($"[C#] JSON Response: {responseContent}");
 
                     var resultMessage = new
                     {
@@ -3127,13 +3128,13 @@ namespace WMSApp
                     if (!response.IsSuccessStatusCode)
                     {
                         System.Diagnostics.Debug.WriteLine($"[C# ERROR] HTTP {response.StatusCode}: {response.ReasonPhrase}");
-                        System.Diagnostics.Debug.WriteLine($"[C# ERROR] Response body: {responseContent.Substring(0, Math.Min(500, responseContent.Length))}");
+                        System.Diagnostics.Debug.WriteLine($"[C# ERROR] Response body: {responseContent}");
                     }
 
-                    // Log first 200 chars of successful responses for debugging
+                    // Log full JSON response for debugging
                     if (response.IsSuccessStatusCode && responseContent.Length > 0)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[C#] Response preview: {responseContent.Substring(0, Math.Min(200, responseContent.Length))}...");
+                        System.Diagnostics.Debug.WriteLine($"[C#] JSON Response: {responseContent}");
                     }
 
                     var resultMessage = new

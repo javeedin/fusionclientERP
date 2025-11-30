@@ -30,6 +30,7 @@ namespace WMSApp
 
                 string content = await response.Content.ReadAsStringAsync();
                 System.Diagnostics.Debug.WriteLine($"[RestApiClient] Response received: {content.Length} chars");
+                System.Diagnostics.Debug.WriteLine($"[RestApiClient] JSON Response: {content}");
 
                 return content;
             }
@@ -55,7 +56,11 @@ namespace WMSApp
                 var response = await _httpClient.SendAsync(request);
                 response.EnsureSuccessStatusCode();
 
-                return await response.Content.ReadAsStringAsync();
+                string content = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"[RestApiClient] Response received: {content.Length} chars");
+                System.Diagnostics.Debug.WriteLine($"[RestApiClient] JSON Response: {content}");
+
+                return content;
             }
             catch (Exception ex)
             {
@@ -69,12 +74,17 @@ namespace WMSApp
             try
             {
                 System.Diagnostics.Debug.WriteLine($"[RestApiClient] POST: {url}");
+                System.Diagnostics.Debug.WriteLine($"[RestApiClient] Request Body: {jsonBody}");
 
                 var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync(url, content);
                 response.EnsureSuccessStatusCode();
 
-                return await response.Content.ReadAsStringAsync();
+                string responseContent = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"[RestApiClient] Response received: {responseContent.Length} chars");
+                System.Diagnostics.Debug.WriteLine($"[RestApiClient] JSON Response: {responseContent}");
+
+                return responseContent;
             }
             catch (Exception ex)
             {
@@ -88,6 +98,7 @@ namespace WMSApp
             try
             {
                 System.Diagnostics.Debug.WriteLine($"[RestApiClient] POST (auth): {url}");
+                System.Diagnostics.Debug.WriteLine($"[RestApiClient] Request Body: {jsonBody}");
 
                 var request = new HttpRequestMessage(HttpMethod.Post, url);
                 request.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
@@ -99,7 +110,11 @@ namespace WMSApp
                 var response = await _httpClient.SendAsync(request);
                 response.EnsureSuccessStatusCode();
 
-                return await response.Content.ReadAsStringAsync();
+                string responseContent = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"[RestApiClient] Response received: {responseContent.Length} chars");
+                System.Diagnostics.Debug.WriteLine($"[RestApiClient] JSON Response: {responseContent}");
+
+                return responseContent;
             }
             catch (Exception ex)
             {

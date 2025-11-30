@@ -22,7 +22,7 @@
         /* Header */
         .header {
             background: #667eea;
-            padding: 15px 30px;
+            padding: 10px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -30,26 +30,26 @@
         }
 
         .header h1 {
-            font-size: 22px;
+            font-size: 16px;
             font-weight: 600;
             color: #fff;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
         .header h1 .module-badge {
             background: rgba(255, 255, 255, 0.2);
-            padding: 5px 12px;
+            padding: 4px 10px;
             border-radius: 5px;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .user-info {
             display: flex;
             align-items: center;
-            gap: 15px;
-            font-size: 14px;
+            gap: 12px;
+            font-size: 13px;
             color: #fff;
         }
 
@@ -2392,7 +2392,7 @@
     <header class="header">
         <h1>
             <span class="module-badge" onclick="goToHome()" style="cursor: pointer;" title="Go to Home">INV</span>
-            Inventory Management
+            <span id="toolbarTitle">Inventory Management</span>
         </h1>
         <div class="user-info">
             <div class="org-selector">
@@ -3593,7 +3593,6 @@ Click "Run Test" to execute the API call...
             } else {
                 container.innerHTML = `
                     <div style="padding: 30px;">
-                        <h2 style="color: #667eea; margin-bottom: 20px;">${item}</h2>
                         <p style="color: #666;">This feature is under development.</p>
                         <p style="color: #888; margin-top: 10px; font-size: 13px;">Task Category: ${task.charAt(0).toUpperCase() + task.slice(1)}</p>
                     </div>
@@ -3621,6 +3620,12 @@ Click "Run Test" to execute the API call...
             if (tabPanel) tabPanel.classList.add('active');
 
             activeMainTabId = tabId;
+
+            // Update toolbar title with the tab title
+            const tab = mainTabs.find(t => t.id === tabId);
+            if (tab) {
+                document.getElementById('toolbarTitle').textContent = tab.title;
+            }
         }
 
         // Close a main tab
@@ -3649,6 +3654,8 @@ Click "Run Test" to execute the API call...
                     activeMainTabId = null;
                     document.getElementById('mainTabsContainer').classList.remove('active');
                     document.getElementById('welcomeMessage').style.display = 'flex';
+                    // Reset toolbar title to default
+                    document.getElementById('toolbarTitle').textContent = 'Inventory Management';
                 }
             }
         }
@@ -3665,6 +3672,9 @@ Click "Run Test" to execute the API call...
 
             // Show welcome message (use flex to match CSS)
             document.getElementById('welcomeMessage').style.display = 'flex';
+
+            // Reset toolbar title to default
+            document.getElementById('toolbarTitle').textContent = 'Inventory Management';
 
             // Close any open panels
             closeAllPanels();
@@ -3846,11 +3856,6 @@ Click "Run Test" to execute the API call...
 
             container.innerHTML = `
                 <div style="padding: 20px; height: 100%; overflow-y: auto;">
-                    <h2 style="color: #667eea; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 24px;">&#128230;</span>
-                        Manage Item Quantities
-                    </h2>
-
                     <!-- Collapsible Parameter Section -->
                     <div class="collapsible-section" id="searchSection">
                         <div class="collapsible-header" onclick="toggleSearchSection()">
@@ -4131,11 +4136,6 @@ Click "Run Test" to execute the API call...
 
             container.innerHTML = `
                 <div style="padding: 20px; height: 100%; overflow-y: auto;">
-                    <h2 style="color: #667eea; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 24px;">&#128229;</span>
-                        Receive Expected Shipments
-                    </h2>
-
                     <!-- Collapsible Parameter Section -->
                     <div class="collapsible-section" id="poSearchSection">
                         <div class="collapsible-header" onclick="togglePoSearchSection()">
@@ -5732,7 +5732,6 @@ Click "Run Test" to execute the API call...
             contentDisplay.style.display = 'block';
             contentDisplay.innerHTML = `
                 <div style="padding: 30px;">
-                    <h2 style="color: #667eea; margin-bottom: 20px;">Report: ${reportType.charAt(0).toUpperCase() + reportType.slice(1)}</h2>
                     <p style="color: #666;">Report generation is under development.</p>
                 </div>
             `;
@@ -5756,11 +5755,6 @@ Click "Run Test" to execute the API call...
 
             container.innerHTML = `
                 <div style="padding: 20px; height: 100%; overflow-y: auto;">
-                    <h2 style="color: #667eea; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 24px;">&#128666;</span>
-                        Manage Shipments
-                    </h2>
-
                     <!-- Collapsible Parameter Section -->
                     <div class="collapsible-section" id="shipmentsSearchSection">
                         <div class="collapsible-header" onclick="toggleShipmentsSearchSection()">
@@ -6514,11 +6508,6 @@ Click "Run Test" to execute the API call...
 
             container.innerHTML = `
                 <div style="padding: 20px; height: 100%; overflow-y: auto;">
-                    <h2 style="color: #667eea; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 24px;">&#128196;</span>
-                        Manage Shipment Lines
-                    </h2>
-
                     <!-- Collapsible Parameter Section -->
                     <div class="collapsible-section" id="shipmentSearchSection">
                         <div class="collapsible-header" onclick="toggleShipmentSearchSection()">

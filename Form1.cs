@@ -1678,7 +1678,7 @@ namespace WMSApp
             {
                 // Try to load from APEX
                 string settingsPath = EndpointConfigReader.GetSettingsPath();
-                string apexUrlFilePath = System.IO.Path.Combine(settingsPath, "apexinstances.text");
+                string apexUrlFilePath = System.IO.Path.Combine(settingsPath, "apexinstances.txt");
 
                 System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] Settings Path: {settingsPath}");
                 System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] Settings Directory Exists: {System.IO.Directory.Exists(settingsPath)}");
@@ -1756,8 +1756,8 @@ namespace WMSApp
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] *** apexinstances.text NOT FOUND ***");
-                    rawJsonResponse = "ERROR: apexinstances.text not found";
+                    System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] *** apexinstances.txt NOT FOUND ***");
+                    rawJsonResponse = "ERROR: apexinstances.txt not found";
                 }
 
                 // Log each instance

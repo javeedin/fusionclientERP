@@ -169,10 +169,13 @@ namespace WMSApp
                 Font = new Font("Segoe UI", 10),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
+            // Hardcode Instance options
+            cboInstance.Items.AddRange(new object[] { "PROD", "TEST" });
+            cboInstance.SelectedIndex = 0;
             contentPanel.Controls.Add(cboInstance);
             yPosition += 65;
 
-            // Load endpoints from C:\fusionclient\ERP\settings\endpoints.xml
+            // Load endpoint URLs from C:\fusionclient\ERP\settings\endpoints.xml
             LoadEndpointsFromSettings();
 
             // Business Unit
@@ -554,19 +557,8 @@ namespace WMSApp
                     System.Diagnostics.Debug.WriteLine($"[LOGIN] Please ensure endpoints.xml exists at: C:\\fusionclient\\ERP\\settings\\endpoints.xml");
                 }
 
-                // Populate the Instance dropdown from loaded endpoints
-                if (cboInstance != null)
-                {
-                    cboInstance.Items.Clear();
-                    foreach (var instance in instanceUrls.Keys)
-                    {
-                        cboInstance.Items.Add(instance);
-                    }
-                    if (cboInstance.Items.Count > 0)
-                    {
-                        cboInstance.SelectedIndex = 0;
-                    }
-                }
+                // Instance dropdown is hardcoded with PROD/TEST in InitializeComponent
+                // This method just loads the URLs for those instances
             }
             catch (Exception ex)
             {

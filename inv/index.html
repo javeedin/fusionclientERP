@@ -6043,18 +6043,19 @@ Click "Run Test" to execute the API call...
                             window.chrome.webview.removeEventListener('message', handler);
                             if (data.success && data.instances) {
                                 // Map the raw APEX data to the format expected by the table
-                                // Show data as-is without any concatenation
+                                // Field mapping: instance_id, instance, source, base_url, username, password, no_authorization
                                 instancesData = data.instances.map(inst => ({
-                                    name: inst.instance_name || inst.name || '',
+                                    instance_id: inst.instance_id || null,
+                                    name: inst.instance || inst.instance_name || inst.name || '',
                                     source: inst.source || '',
                                     url: inst.base_url || inst.url || '',
                                     username: inst.username || '',
                                     password: inst.password || '',
-                                    noAuth: inst.no_auth === true || inst.no_auth === 'Y' || inst.noauth === true || inst.noauth === 'Y' || false
+                                    noAuth: inst.no_authorization === 'Y' || inst.no_authorization === true || inst.no_auth === 'Y' || inst.no_auth === true || false
                                 }));
                                 console.log('[APEX INSTANCES] *** SUCCESS - Loaded ' + instancesData.length + ' instances ***');
                                 instancesData.forEach((inst, idx) => {
-                                    console.log('[APEX INSTANCES]   Instance[' + idx + ']: name=' + inst.name + ', source=' + inst.source + ', url=' + inst.url);
+                                    console.log('[APEX INSTANCES]   Instance[' + idx + ']: id=' + inst.instance_id + ', name=' + inst.name + ', source=' + inst.source + ', url=' + inst.url + ', noAuth=' + inst.noAuth);
                                 });
                                 renderInstancesTable();
                             } else {

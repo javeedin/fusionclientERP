@@ -3490,6 +3490,8 @@ Click "Run Test" to execute the API call...
                 showManageItemQuantities(container);
             } else if (item === 'Receive Expected Shipments') {
                 showReceiveExpectedShipments(container);
+            } else if (item === 'Manage Shipments') {
+                showManageShipments(container);
             } else {
                 container.innerHTML = `
                     <div style="padding: 30px;">
@@ -5636,6 +5638,619 @@ Click "Run Test" to execute the API call...
                     <p style="color: #666;">Report generation is under development.</p>
                 </div>
             `;
+        }
+
+        // =============================================
+        // MANAGE SHIPMENTS PAGE
+        // =============================================
+
+        // Shipment data storage
+        let shipmentLinesData = [];
+        let filteredShipmentLinesData = [];
+        let shipmentSummaryData = [];
+        let shipmentFullscreen = false;
+        let shipmentOriginalTabParent = null;
+        let shipmentOriginalTabNextSibling = null;
+
+        function showManageShipments(container) {
+            const selectedOrgCode = localStorage.getItem('wms_org_code') || '';
+            shipmentLinesData = [];
+            filteredShipmentLinesData = [];
+            shipmentSummaryData = [];
+
+            container.innerHTML = `
+                <div style="padding: 20px; height: 100%; overflow-y: auto;">
+                    <h2 style="color: #667eea; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 24px;">&#128666;</span>
+                        Manage Shipment Lines
+                    </h2>
+
+                    <!-- Collapsible Parameter Section -->
+                    <div class="collapsible-section" id="shipmentSearchSection">
+                        <div class="collapsible-header" onclick="toggleShipmentSearchSection()">
+                            <h3><span>&#128269;</span> Search Parameters</h3>
+                            <span class="collapsible-toggle">&#9660;</span>
+                        </div>
+                        <div class="collapsible-content">
+                            <div class="param-row">
+                                <div class="param-group">
+                                    <label>Organization Name *</label>
+                                    <select id="shipmentParamOrgCode">
+                                        ${getOrgOptionsHtml(selectedOrgCode)}
+                                    </select>
+                                </div>
+                                <div class="param-group">
+                                    <label>Order Number</label>
+                                    <input type="text" id="shipmentParamOrderNumber" placeholder="Enter order number">
+                                </div>
+                                <div class="param-group">
+                                    <label>Item Description</label>
+                                    <input type="text" id="shipmentParamItemDesc" placeholder="Enter item description">
+                                </div>
+                            </div>
+                            <div class="param-row">
+                                <div class="param-group">
+                                    <label>Date From</label>
+                                    <input type="date" id="shipmentParamDateFrom">
+                                </div>
+                                <div class="param-group">
+                                    <label>Date To</label>
+                                    <input type="date" id="shipmentParamDateTo">
+                                </div>
+                                <div class="param-group" style="flex: 2;">
+                                    <!-- Empty space for alignment -->
+                                </div>
+                            </div>
+                            <div class="param-buttons">
+                                <button class="btn-search" id="btnSearchShipments" onclick="searchPendingShipments()">
+                                    <span>&#128269;</span> Search
+                                </button>
+                                <button class="btn-clear" onclick="clearShipmentParams()">Clear</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabbed Results Section -->
+                    <div class="tab-container" id="shipmentTabContainer">
+                        <div class="tab-header" id="shipmentTabHeader">
+                            <button class="tab-btn active" data-tab="shipment-tab-summary" onclick="switchShipmentTab('shipment-tab-summary')">
+                                &#128202; Summary Statistics
+                            </button>
+                            <button class="tab-btn" data-tab="shipment-tab-orders" onclick="switchShipmentTab('shipment-tab-orders')">
+                                &#128196; Shipments Summary
+                            </button>
+                            <button class="tab-btn" data-tab="shipment-tab-details" onclick="switchShipmentTab('shipment-tab-details')">
+                                &#128203; Shipment Details
+                            </button>
+                            <button class="btn-fullscreen" onclick="toggleShipmentFullscreen()" title="Fit to Page" style="margin-left: auto;">
+                                &#9974; Fit to Page
+                            </button>
+                        </div>
+
+                        <!-- Tab 1: Summary Statistics -->
+                        <div class="tab-content active" id="shipment-tab-summary">
+                            <div class="stats-grid" id="shipmentStatsGrid">
+                                <div class="stat-card">
+                                    <div class="stat-value" id="shipmentStatTotalOrders">0</div>
+                                    <div class="stat-label">Total Orders</div>
+                                </div>
+                                <div class="stat-card green">
+                                    <div class="stat-value" id="shipmentStatTotalLines">0</div>
+                                    <div class="stat-label">Total Lines</div>
+                                </div>
+                                <div class="stat-card orange">
+                                    <div class="stat-value" id="shipmentStatTotalQty">0</div>
+                                    <div class="stat-label">Total Quantity</div>
+                                </div>
+                                <div class="stat-card red">
+                                    <div class="stat-value" id="shipmentStatCustomers">0</div>
+                                    <div class="stat-label">Customers</div>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <div class="chart-card">
+                                    <h4>&#128200; Shipments by Customer (Top 10)</h4>
+                                    <div class="chart-bar-container" id="shipmentChartByCustomer">
+                                        <div style="color: #888; text-align: center; padding: 20px;">Search to view chart data</div>
+                                    </div>
+                                </div>
+                                <div class="chart-card">
+                                    <h4>&#128202; Shipments by Status</h4>
+                                    <div class="chart-bar-container" id="shipmentChartByStatus">
+                                        <div style="color: #888; text-align: center; padding: 20px;">Search to view chart data</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab 2: Shipments Summary -->
+                        <div class="tab-content" id="shipment-tab-orders">
+                            <div class="grid-header" style="margin-bottom: 10px; padding: 10px 0; border: none; background: none;">
+                                <div class="grid-title">
+                                    Pending Shipments Summary
+                                    <button class="btn-expand-collapse" onclick="expandAllShipmentGroups()" title="Expand All">&#9654; Expand All</button>
+                                    <button class="btn-expand-collapse" onclick="collapseAllShipmentGroups()" title="Collapse All">&#9660; Collapse All</button>
+                                </div>
+                                <div class="grid-search">
+                                    <input type="text" id="shipmentSummarySearchInput" placeholder="Filter results..." oninput="filterShipmentSummaryGrid()">
+                                    <span class="record-count" id="shipmentSummaryCount">0 Order(s)</span>
+                                </div>
+                            </div>
+                            <div class="table-container" style="max-height: calc(100vh - 450px);">
+                                <table class="grouped-table" id="shipmentSummaryTable">
+                                    <thead style="background: #e0e0e0; color: #333;">
+                                        <tr>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Order Number</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Customer Name</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Order Date</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Ship To Location</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Total Lines</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Total Qty</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="shipmentSummaryTableBody">
+                                        <tr><td colspan="7" class="no-data">Enter search parameters and click Search</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab 3: Shipment Details -->
+                        <div class="tab-content" id="shipment-tab-details">
+                            <div class="grid-header" style="margin-bottom: 10px; padding: 10px 0; border: none; background: none;">
+                                <div class="grid-title">
+                                    Shipment Line Details (Grouped by Order)
+                                    <button class="btn-expand-collapse" onclick="expandAllGroups('shipmentdetails')" title="Expand All">&#9654; Expand All</button>
+                                    <button class="btn-expand-collapse" onclick="collapseAllGroups('shipmentdetails')" title="Collapse All">&#9660; Collapse All</button>
+                                </div>
+                                <div class="grid-search">
+                                    <input type="text" id="shipmentDetailsSearchInput" placeholder="Filter results..." oninput="filterShipmentDetailsGrid()">
+                                    <span class="record-count" id="shipmentDetailsCount">0 Line(s)</span>
+                                </div>
+                            </div>
+                            <div class="table-container" style="max-height: calc(100vh - 450px);">
+                                <table class="grouped-table" id="shipmentDetailsTable">
+                                    <thead style="background: #e0e0e0; color: #333;">
+                                        <tr>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Order</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Line</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Item Number</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Description</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Ordered Qty</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Shipped Qty</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Pending Qty</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">UOM</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="shipmentDetailsTableBody">
+                                        <tr><td colspan="9" class="no-data">Enter search parameters and click Search</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fullscreen Overlay for Shipments -->
+                <div class="fullscreen-overlay" id="shipmentFullscreenOverlay">
+                    <div class="fullscreen-header">
+                        <h3>&#128666; Manage Shipment Lines - Full View</h3>
+                        <button class="fullscreen-close" onclick="toggleShipmentFullscreen()">
+                            &#10005; Close Full View
+                        </button>
+                    </div>
+                    <div class="fullscreen-content" id="shipmentFullscreenContent">
+                    </div>
+                </div>
+            `;
+        }
+
+        // Toggle Shipment search section
+        function toggleShipmentSearchSection() {
+            const section = document.getElementById('shipmentSearchSection');
+            section.classList.toggle('collapsed');
+        }
+
+        // Switch Shipment tabs
+        function switchShipmentTab(tabId) {
+            document.querySelectorAll('#shipmentTabContainer .tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.tab === tabId) btn.classList.add('active');
+            });
+            document.querySelectorAll('#shipmentTabContainer .tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // Toggle Shipment fullscreen
+        function toggleShipmentFullscreen() {
+            const overlay = document.getElementById('shipmentFullscreenOverlay');
+            const tabContainer = document.getElementById('shipmentTabContainer');
+            const fullscreenContent = document.getElementById('shipmentFullscreenContent');
+
+            if (!shipmentFullscreen) {
+                shipmentOriginalTabParent = tabContainer.parentNode;
+                shipmentOriginalTabNextSibling = tabContainer.nextSibling;
+                fullscreenContent.appendChild(tabContainer);
+                overlay.classList.add('active');
+                shipmentFullscreen = true;
+                const btn = tabContainer.querySelector('.btn-fullscreen');
+                if (btn) {
+                    btn.innerHTML = '&#10005; Exit Full View';
+                    btn.classList.add('exit');
+                }
+            } else {
+                if (shipmentOriginalTabParent) {
+                    if (shipmentOriginalTabNextSibling) {
+                        shipmentOriginalTabParent.insertBefore(tabContainer, shipmentOriginalTabNextSibling);
+                    } else {
+                        shipmentOriginalTabParent.appendChild(tabContainer);
+                    }
+                }
+                overlay.classList.remove('active');
+                shipmentFullscreen = false;
+                const btn = tabContainer.querySelector('.btn-fullscreen');
+                if (btn) {
+                    btn.innerHTML = '&#9974; Fit to Page';
+                    btn.classList.remove('exit');
+                }
+            }
+        }
+
+        // Clear Shipment params
+        function clearShipmentParams() {
+            document.getElementById('shipmentParamOrderNumber').value = '';
+            document.getElementById('shipmentParamItemDesc').value = '';
+            document.getElementById('shipmentParamDateFrom').value = '';
+            document.getElementById('shipmentParamDateTo').value = '';
+        }
+
+        // Get GET_PENDING_SHIPMENT_LINES endpoint
+        async function getShipmentLinesEndpoint() {
+            const instanceName = localStorage.getItem('wms_instance') || 'PROD';
+            return new Promise((resolve) => {
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'endpoint_shipment_lines_' + Date.now();
+                    const handler = function(event) {
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            if (data.requestId === requestId && data.endpoint) {
+                                resolve(data.endpoint);
+                                window.chrome.webview.removeEventListener('message', handler);
+                            }
+                        } catch (e) {}
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+                    window.chrome.webview.postMessage({
+                        action: 'getEndpoint',
+                        requestId: requestId,
+                        integrationCode: 'GET_PENDING_SHIPMENT_LINES',
+                        instanceName: instanceName
+                    });
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        resolve(null);
+                    }, 5000);
+                } else {
+                    resolve(null);
+                }
+            });
+        }
+
+        // Search pending shipments
+        async function searchPendingShipments() {
+            const orgCode = document.getElementById('shipmentParamOrgCode').value;
+            const orderNumber = document.getElementById('shipmentParamOrderNumber').value.trim();
+            const itemDesc = document.getElementById('shipmentParamItemDesc').value.trim();
+            const dateFrom = document.getElementById('shipmentParamDateFrom').value;
+            const dateTo = document.getElementById('shipmentParamDateTo').value;
+
+            if (!orgCode) {
+                alert('Please select an Organization');
+                return;
+            }
+
+            const btn = document.getElementById('btnSearchShipments');
+            btn.disabled = true;
+            btn.innerHTML = '<span>&#8987;</span> Searching...';
+
+            const summaryTbody = document.getElementById('shipmentSummaryTableBody');
+            summaryTbody.innerHTML = '<tr><td colspan="7" class="loading">Loading data...</td></tr>';
+
+            const detailsTbody = document.getElementById('shipmentDetailsTableBody');
+            detailsTbody.innerHTML = '<tr><td colspan="9" class="loading">Loading lines...</td></tr>';
+
+            try {
+                // Fetch shipment lines
+                const shipmentEndpoint = await getShipmentLinesEndpoint();
+                if (!shipmentEndpoint) {
+                    throw new Error('GET_PENDING_SHIPMENT_LINES endpoint not configured');
+                }
+
+                let url = `${shipmentEndpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                if (orderNumber) url += `&p_order_number=${encodeURIComponent(orderNumber)}`;
+                if (itemDesc) url += `&p_item_description=${encodeURIComponent(itemDesc)}`;
+                if (dateFrom) url += `&p_date_from=${encodeURIComponent(dateFrom)}`;
+                if (dateTo) url += `&p_date_to=${encodeURIComponent(dateTo)}`;
+
+                console.log('[INV] Fetching shipment lines from:', url);
+                const response = await fetchWithBridge(url);
+
+                if (response && response.items) {
+                    shipmentLinesData = response.items;
+                    filteredShipmentLinesData = [...shipmentLinesData];
+                    updateShipmentCharts(filteredShipmentLinesData);
+                    renderShipmentSummaryTable(filteredShipmentLinesData);
+                    renderShipmentDetailsTable(filteredShipmentLinesData);
+                    console.log('[INV] Loaded', shipmentLinesData.length, 'shipment lines');
+                } else {
+                    shipmentLinesData = [];
+                    filteredShipmentLinesData = [];
+                    updateShipmentCharts([]);
+                    renderShipmentSummaryTable([]);
+                    renderShipmentDetailsTable([]);
+                }
+            } catch (error) {
+                console.error('[INV] Error fetching shipment lines:', error);
+                summaryTbody.innerHTML = `<tr><td colspan="7" class="no-data" style="color: #dc3545;">Error: ${error.message}</td></tr>`;
+                detailsTbody.innerHTML = `<tr><td colspan="9" class="no-data" style="color: #dc3545;">Error: ${error.message}</td></tr>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>&#128269;</span> Search';
+            }
+        }
+
+        // Update Shipment charts
+        function updateShipmentCharts(data) {
+            if (!data || data.length === 0) {
+                document.getElementById('shipmentStatTotalOrders').textContent = '0';
+                document.getElementById('shipmentStatTotalLines').textContent = '0';
+                document.getElementById('shipmentStatTotalQty').textContent = '0';
+                document.getElementById('shipmentStatCustomers').textContent = '0';
+                document.getElementById('shipmentChartByCustomer').innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No data</div>';
+                document.getElementById('shipmentChartByStatus').innerHTML = '<div style="color: #888; text-align: center; padding: 20px;">No data</div>';
+                return;
+            }
+
+            // Calculate stats
+            const uniqueOrders = [...new Set(data.map(d => d.order_number || d.ORDER_NUMBER).filter(o => o))];
+            const totalLines = data.length;
+            const totalQty = data.reduce((sum, d) => sum + (parseFloat(d.ordered_quantity || d.ORDERED_QUANTITY || d.pending_quantity || d.PENDING_QUANTITY) || 0), 0);
+            const uniqueCustomers = [...new Set(data.map(d => d.customer_name || d.CUSTOMER_NAME).filter(c => c))];
+
+            document.getElementById('shipmentStatTotalOrders').textContent = uniqueOrders.length.toLocaleString();
+            document.getElementById('shipmentStatTotalLines').textContent = totalLines.toLocaleString();
+            document.getElementById('shipmentStatTotalQty').textContent = formatNumber(totalQty);
+            document.getElementById('shipmentStatCustomers').textContent = uniqueCustomers.length;
+
+            // Chart by Customer
+            const byCustomer = {};
+            data.forEach(d => {
+                const customer = d.customer_name || d.CUSTOMER_NAME || 'Unknown';
+                byCustomer[customer] = (byCustomer[customer] || 0) + 1;
+            });
+            const sortedCustomers = Object.entries(byCustomer).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            const maxCustomer = sortedCustomers.length > 0 ? sortedCustomers[0][1] : 1;
+
+            let customerChartHtml = '';
+            sortedCustomers.forEach(([customer, count]) => {
+                const pct = (count / maxCustomer) * 100;
+                const displayName = customer.length > 25 ? customer.substring(0, 25) + '...' : customer;
+                customerChartHtml += `
+                    <div class="chart-bar-row">
+                        <div class="chart-bar-label" title="${customer}">${displayName}</div>
+                        <div class="chart-bar-track">
+                            <div class="chart-bar-fill" style="width: ${pct}%">${count}</div>
+                        </div>
+                    </div>`;
+            });
+            document.getElementById('shipmentChartByCustomer').innerHTML = customerChartHtml || '<div style="color: #888; text-align: center; padding: 20px;">No data</div>';
+
+            // Chart by Status
+            const byStatus = {};
+            data.forEach(d => {
+                const status = d.line_status || d.LINE_STATUS || d.status || d.STATUS || 'Unknown';
+                byStatus[status] = (byStatus[status] || 0) + 1;
+            });
+            const sortedStatus = Object.entries(byStatus).sort((a, b) => b[1] - a[1]);
+            const maxStatus = sortedStatus.length > 0 ? sortedStatus[0][1] : 1;
+
+            let statusChartHtml = '';
+            sortedStatus.forEach(([status, count]) => {
+                const pct = (count / maxStatus) * 100;
+                statusChartHtml += `
+                    <div class="chart-bar-row">
+                        <div class="chart-bar-label">${status}</div>
+                        <div class="chart-bar-track">
+                            <div class="chart-bar-fill" style="width: ${pct}%">${count}</div>
+                        </div>
+                    </div>`;
+            });
+            document.getElementById('shipmentChartByStatus').innerHTML = statusChartHtml || '<div style="color: #888; text-align: center; padding: 20px;">No data</div>';
+        }
+
+        // Render Shipment Summary Table (grouped by order)
+        function renderShipmentSummaryTable(data) {
+            const tbody = document.getElementById('shipmentSummaryTableBody');
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-data">No shipment data found</td></tr>';
+                document.getElementById('shipmentSummaryCount').textContent = '0 Order(s)';
+                return;
+            }
+
+            // Group by order number
+            const grouped = {};
+            data.forEach(d => {
+                const orderNum = d.order_number || d.ORDER_NUMBER || 'Unknown';
+                if (!grouped[orderNum]) {
+                    grouped[orderNum] = {
+                        orderNumber: orderNum,
+                        customerName: d.customer_name || d.CUSTOMER_NAME || '-',
+                        orderDate: d.order_date || d.ORDER_DATE || d.creation_date || d.CREATION_DATE || '-',
+                        shipToLocation: d.ship_to_location || d.SHIP_TO_LOCATION || d.deliver_to_location || d.DELIVER_TO_LOCATION || '-',
+                        status: d.line_status || d.LINE_STATUS || d.status || d.STATUS || '-',
+                        lines: [],
+                        totalQty: 0
+                    };
+                }
+                grouped[orderNum].lines.push(d);
+                grouped[orderNum].totalQty += parseFloat(d.ordered_quantity || d.ORDERED_QUANTITY || d.pending_quantity || d.PENDING_QUANTITY) || 0;
+            });
+
+            let html = '';
+            Object.values(grouped).forEach((group, idx) => {
+                const groupId = 'shipsum_' + idx;
+                html += `<tr class="group-header" onclick="toggleGroup('${groupId}')" style="cursor: pointer; background: #f0f4ff;">
+                    <td style="padding: 10px 8px; font-size: 11px; font-weight: bold;">
+                        <span class="group-toggle" id="toggle_${groupId}">&#9654;</span>
+                        ${group.orderNumber}
+                    </td>
+                    <td style="padding: 10px 8px; font-size: 11px;">${group.customerName}</td>
+                    <td style="padding: 10px 8px; font-size: 11px;">${formatDate(group.orderDate)}</td>
+                    <td style="padding: 10px 8px; font-size: 11px;">${group.shipToLocation}</td>
+                    <td style="padding: 10px 8px; font-size: 11px; font-weight: bold;">${group.lines.length}</td>
+                    <td style="padding: 10px 8px; font-size: 11px; font-weight: bold;">${formatNumber(group.totalQty)}</td>
+                    <td style="padding: 10px 8px; font-size: 11px;">${group.status}</td>
+                </tr>`;
+            });
+
+            tbody.innerHTML = html;
+            document.getElementById('shipmentSummaryCount').textContent = Object.keys(grouped).length + ' Order(s)';
+        }
+
+        // Render Shipment Details Table (grouped by order)
+        function renderShipmentDetailsTable(data) {
+            const tbody = document.getElementById('shipmentDetailsTableBody');
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="no-data">No shipment line data found</td></tr>';
+                document.getElementById('shipmentDetailsCount').textContent = '0 Line(s)';
+                return;
+            }
+
+            // Group by order number
+            const grouped = {};
+            data.forEach(d => {
+                const orderNum = d.order_number || d.ORDER_NUMBER || 'Unknown';
+                if (!grouped[orderNum]) {
+                    grouped[orderNum] = { orderNumber: orderNum, rows: [] };
+                }
+                grouped[orderNum].rows.push(d);
+            });
+
+            let html = '';
+            let groupIdx = 0;
+            Object.values(grouped).forEach((group) => {
+                const groupId = 'shipdetail_' + groupIdx;
+                html += `<tr class="group-header" onclick="toggleGroup('${groupId}')" style="cursor: pointer; background: #f0f4ff;">
+                    <td colspan="9" style="padding: 10px 8px; font-size: 12px;">
+                        <span class="group-toggle" id="toggle_${groupId}">&#9654;</span>
+                        <strong>Order: ${group.orderNumber}</strong>
+                        <span style="color: #666; margin-left: 15px;">(${group.rows.length} line(s))</span>
+                    </td>
+                </tr>`;
+
+                group.rows.forEach(row => {
+                    const lineNum = row.line_number || row.LINE_NUMBER || '-';
+                    const itemNum = row.item_number || row.ITEM_NUMBER || row.inventory_item || row.INVENTORY_ITEM || '-';
+                    const itemDesc = row.item_description || row.ITEM_DESCRIPTION || row.description || row.DESCRIPTION || '-';
+                    const orderedQty = row.ordered_quantity || row.ORDERED_QUANTITY || 0;
+                    const shippedQty = row.shipped_quantity || row.SHIPPED_QUANTITY || 0;
+                    const pendingQty = row.pending_quantity || row.PENDING_QUANTITY || (parseFloat(orderedQty) - parseFloat(shippedQty)) || 0;
+                    const uom = row.uom || row.UOM || row.unit_of_measure || row.UNIT_OF_MEASURE || '-';
+                    const status = row.line_status || row.LINE_STATUS || row.status || row.STATUS || '-';
+
+                    html += `<tr class="group-row" data-group="${groupId}" style="display: none; font-size: 11px;">
+                        <td style="padding: 8px;">${group.orderNumber}</td>
+                        <td style="padding: 8px;">${lineNum}</td>
+                        <td style="padding: 8px;">${itemNum}</td>
+                        <td style="padding: 8px;" title="${itemDesc}">${itemDesc.length > 30 ? itemDesc.substring(0, 30) + '...' : itemDesc}</td>
+                        <td style="padding: 8px; text-align: right;">${formatNumber(orderedQty)}</td>
+                        <td style="padding: 8px; text-align: right;">${formatNumber(shippedQty)}</td>
+                        <td style="padding: 8px; text-align: right; font-weight: bold; color: #dc3545;">${formatNumber(pendingQty)}</td>
+                        <td style="padding: 8px;">${uom}</td>
+                        <td style="padding: 8px;">${status}</td>
+                    </tr>`;
+                });
+
+                groupIdx++;
+            });
+
+            tbody.innerHTML = html;
+            document.getElementById('shipmentDetailsCount').textContent = data.length + ' Line(s)';
+        }
+
+        // Format date helper
+        function formatDate(dateStr) {
+            if (!dateStr || dateStr === '-') return '-';
+            try {
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return dateStr;
+                return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
+        // Expand all shipment groups
+        function expandAllShipmentGroups() {
+            const rows = document.querySelectorAll('#shipmentSummaryTable .group-row');
+            rows.forEach(row => row.style.display = '');
+            document.querySelectorAll('#shipmentSummaryTable .group-toggle').forEach(toggle => {
+                toggle.innerHTML = '&#9660;';
+            });
+        }
+
+        // Collapse all shipment groups
+        function collapseAllShipmentGroups() {
+            const rows = document.querySelectorAll('#shipmentSummaryTable .group-row');
+            rows.forEach(row => row.style.display = 'none');
+            document.querySelectorAll('#shipmentSummaryTable .group-toggle').forEach(toggle => {
+                toggle.innerHTML = '&#9654;';
+            });
+        }
+
+        // Filter shipment summary grid
+        function filterShipmentSummaryGrid() {
+            const searchText = document.getElementById('shipmentSummarySearchInput').value.toLowerCase();
+            if (!shipmentLinesData) return;
+
+            if (!searchText) {
+                renderShipmentSummaryTable(shipmentLinesData);
+                return;
+            }
+
+            const filtered = shipmentLinesData.filter(row => {
+                return (row.order_number || row.ORDER_NUMBER || '').toLowerCase().includes(searchText) ||
+                       (row.customer_name || row.CUSTOMER_NAME || '').toLowerCase().includes(searchText) ||
+                       (row.ship_to_location || row.SHIP_TO_LOCATION || '').toLowerCase().includes(searchText);
+            });
+
+            renderShipmentSummaryTable(filtered);
+        }
+
+        // Filter shipment details grid
+        function filterShipmentDetailsGrid() {
+            const searchText = document.getElementById('shipmentDetailsSearchInput').value.toLowerCase();
+            if (!shipmentLinesData) return;
+
+            if (!searchText) {
+                renderShipmentDetailsTable(shipmentLinesData);
+                return;
+            }
+
+            const filtered = shipmentLinesData.filter(row => {
+                return (row.order_number || row.ORDER_NUMBER || '').toLowerCase().includes(searchText) ||
+                       (row.item_number || row.ITEM_NUMBER || '').toLowerCase().includes(searchText) ||
+                       (row.item_description || row.ITEM_DESCRIPTION || '').toLowerCase().includes(searchText) ||
+                       (row.customer_name || row.CUSTOMER_NAME || '').toLowerCase().includes(searchText);
+            });
+
+            renderShipmentDetailsTable(filtered);
         }
 
         // =============================================

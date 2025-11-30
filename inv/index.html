@@ -6043,11 +6043,11 @@ Click "Run Test" to execute the API call...
                             window.chrome.webview.removeEventListener('message', handler);
                             if (data.success && data.instances) {
                                 // Map the raw APEX data to the format expected by the table
-                                // Field mapping: instance_id, instance, source, base_url, username, password, no_authorization
+                                // Field mapping: instance_id, instance, source/source_type, base_url, username, password, no_authorization
                                 instancesData = data.instances.map(inst => ({
                                     instance_id: inst.instance_id || null,
                                     name: inst.instance || inst.instance_name || inst.name || '',
-                                    source: inst.source || '',
+                                    source: inst.source || inst.source_type || inst.SOURCE || inst.SOURCE_TYPE || '',
                                     url: inst.base_url || inst.url || '',
                                     username: inst.username || '',
                                     password: inst.password || '',

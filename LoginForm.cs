@@ -169,7 +169,8 @@ namespace WMSApp
                 Font = new Font("Segoe UI", 10),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
-            // Hardcode Instance options
+            // Fix: 2025-11-30 - Instance dropdown hardcoded with PROD/TEST values
+            // URLs are loaded from C:\fusionclient\ERP\settings\endpoints.xml only
             cboInstance.Items.AddRange(new object[] { "PROD", "TEST" });
             cboInstance.SelectedIndex = 0;
             contentPanel.Controls.Add(cboInstance);
@@ -550,20 +551,8 @@ namespace WMSApp
 
                 System.Diagnostics.Debug.WriteLine($"[LOGIN] Instance URLs count: {instanceUrls.Count}");
 
-                // If PROD or TEST URLs not found in settings, use hardcoded defaults
-                if (!instanceUrls.ContainsKey("PROD"))
-                {
-                    instanceUrls["PROD"] = "https://g09254cbbf8e7af-graysprod.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/wms_login";
-                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Using default PROD URL");
-                }
-                if (!instanceUrls.ContainsKey("TEST"))
-                {
-                    instanceUrls["TEST"] = "https://g09254cbbf8e7af-graystest.adb.eu-frankfurt-1.oraclecloudapps.com/ords/WKSP_GRAYSAPP/wms_login";
-                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Using default TEST URL");
-                }
-
-                System.Diagnostics.Debug.WriteLine($"[LOGIN] Final PROD URL: {instanceUrls["PROD"]}");
-                System.Diagnostics.Debug.WriteLine($"[LOGIN] Final TEST URL: {instanceUrls["TEST"]}");
+                // URLs are read from C:\fusionclient\ERP\settings\endpoints.xml only
+                // No hardcoded fallback URLs - settings file must have LOGIN endpoints configured
             }
             catch (Exception ex)
             {

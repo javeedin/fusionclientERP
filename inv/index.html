@@ -2839,10 +2839,18 @@
                         <label for="endpointSno">S.No</label>
                         <input type="number" id="endpointSno" placeholder="Auto" readonly style="background: #f5f5f5;">
                     </div>
-                    <div class="form-group" style="flex: 1;">
-                        <label for="endpointSourceInstance">Source (Instance) *</label>
-                        <select id="endpointSourceInstance" onchange="onEndpointSourceInstanceChange()">
-                            <option value="">-- Select Instance --</option>
+                    <div class="form-group" style="flex: 0 0 120px;">
+                        <label for="endpointSource">Source *</label>
+                        <select id="endpointSource" onchange="onEndpointSourceChange()">
+                            <option value="">-- Select --</option>
+                            <option value="APEX">APEX</option>
+                            <option value="FUSION">FUSION</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 0 0 150px;">
+                        <label for="endpointInstance">Instance *</label>
+                        <select id="endpointInstance" onchange="onEndpointInstanceChange()">
+                            <option value="">-- Select --</option>
                         </select>
                     </div>
                     <div class="form-group" style="flex: 1;">
@@ -6301,32 +6309,50 @@ Click "Run Test" to execute the API call...
             return maxSno + 1;
         }
 
-        // Populate source dropdown in endpoint form from instances
-        function populateEndpointSourceDropdown() {
-            console.log('[JS DEBUG] populateEndpointSourceDropdown called');
+        // Populate Instance dropdown based on selected Source
+        function populateEndpointInstanceDropdown(selectedSource) {
+            console.log('[JS DEBUG] populateEndpointInstanceDropdown called, selectedSource:', selectedSource);
             console.log('[JS DEBUG] instancesData:', JSON.stringify(instancesData));
-            const select = document.getElementById('endpointSourceInstance');
+            const select = document.getElementById('endpointInstance');
             if (!select) {
-                console.log('[JS DEBUG] endpointSourceInstance select not found!');
+                console.log('[JS DEBUG] endpointInstance select not found!');
                 return;
             }
 
-            select.innerHTML = '<option value="">-- Select Instance --</option>';
+            select.innerHTML = '<option value="">-- Select --</option>';
+
+            // Filter instances by selected source and populate dropdown
             instancesData.forEach((instance, idx) => {
-                const optionValue = `${instance.source}-${instance.name}`;
-                console.log('[JS DEBUG] Adding dropdown option[' + idx + ']:', optionValue);
-                const option = document.createElement('option');
-                option.value = optionValue;
-                option.textContent = optionValue;
-                option.dataset.url = instance.url;
-                select.appendChild(option);
+                if (!selectedSource || instance.source === selectedSource) {
+                    const optionValue = instance.name;
+                    console.log('[JS DEBUG] Adding instance option[' + idx + ']:', optionValue);
+                    const option = document.createElement('option');
+                    option.value = optionValue;
+                    option.textContent = optionValue;
+                    option.dataset.url = instance.url;
+                    option.dataset.source = instance.source;
+                    select.appendChild(option);
+                }
             });
-            console.log('[JS DEBUG] Total dropdown options:', select.options.length);
+            console.log('[JS DEBUG] Total instance dropdown options:', select.options.length);
         }
 
-        // Handle source instance change - auto-fill URL
-        function onEndpointSourceInstanceChange() {
-            const select = document.getElementById('endpointSourceInstance');
+        // Handle Source dropdown change - filter Instance dropdown
+        function onEndpointSourceChange() {
+            const sourceSelect = document.getElementById('endpointSource');
+            const selectedSource = sourceSelect.value;
+            console.log('[JS DEBUG] onEndpointSourceChange - selectedSource:', selectedSource);
+
+            // Repopulate Instance dropdown based on selected Source
+            populateEndpointInstanceDropdown(selectedSource);
+
+            // Clear URL since instance changed
+            document.getElementById('endpointURL').value = '';
+        }
+
+        // Handle Instance dropdown change - auto-fill URL
+        function onEndpointInstanceChange() {
+            const select = document.getElementById('endpointInstance');
             const urlInput = document.getElementById('endpointURL');
             const selectedOption = select.options[select.selectedIndex];
 
@@ -6344,9 +6370,6 @@ Click "Run Test" to execute the API call...
             const overlay = document.getElementById('endpointFormOverlay');
             const title = document.getElementById('endpointFormTitle');
 
-            // Populate source dropdown from instances
-            populateEndpointSourceDropdown();
-
             document.getElementById('endpointFormMode').value = mode;
             document.getElementById('endpointFormIndex').value = index !== null ? index : '';
 
@@ -6356,7 +6379,9 @@ Click "Run Test" to execute the API call...
             if (mode === 'new') {
                 title.textContent = 'New Endpoint';
                 document.getElementById('endpointSno').value = getNextSno();
-                document.getElementById('endpointSourceInstance').value = '';
+                document.getElementById('endpointSource').value = '';
+                populateEndpointInstanceDropdown(''); // Show all instances
+                document.getElementById('endpointInstance').value = '';
                 document.getElementById('endpointIntegrationCode').value = '';
                 document.getElementById('endpointURL').value = '';
                 document.getElementById('endpointPath').value = '';
@@ -6373,19 +6398,30 @@ Click "Run Test" to execute the API call...
 
                 document.getElementById('endpointSno').value = endpoint.sno || index + 1;
 
-                // Set source instance dropdown - use sourceInstance directly without concatenation
-                const sourceInstance = endpoint.sourceInstance || '';
-                console.log('[JS DEBUG] sourceInstance value to set in dropdown:', sourceInstance);
+                // Parse source and instance from sourceInstance or use separate fields
+                let sourceValue = endpoint.source || '';
+                let instanceValue = endpoint.instanceName || '';
 
-                // Log available dropdown options
-                const dropdown = document.getElementById('endpointSourceInstance');
-                console.log('[JS DEBUG] Dropdown options available:');
-                for (let i = 0; i < dropdown.options.length; i++) {
-                    console.log('[JS DEBUG]   Option', i, ':', dropdown.options[i].value);
+                // If we have sourceInstance but not separate fields, parse it
+                if (endpoint.sourceInstance && (!sourceValue || !instanceValue)) {
+                    const firstHyphen = endpoint.sourceInstance.indexOf('-');
+                    if (firstHyphen > 0) {
+                        sourceValue = endpoint.sourceInstance.substring(0, firstHyphen);
+                        instanceValue = endpoint.sourceInstance.substring(firstHyphen + 1);
+                    }
                 }
 
-                document.getElementById('endpointSourceInstance').value = sourceInstance;
-                console.log('[JS DEBUG] Dropdown value after setting:', document.getElementById('endpointSourceInstance').value);
+                console.log('[JS DEBUG] Parsed source:', sourceValue, 'instance:', instanceValue);
+
+                // Set Source dropdown
+                document.getElementById('endpointSource').value = sourceValue;
+
+                // Populate Instance dropdown based on selected Source, then set value
+                populateEndpointInstanceDropdown(sourceValue);
+                document.getElementById('endpointInstance').value = instanceValue;
+
+                console.log('[JS DEBUG] Source dropdown value:', document.getElementById('endpointSource').value);
+                console.log('[JS DEBUG] Instance dropdown value:', document.getElementById('endpointInstance').value);
 
                 document.getElementById('endpointIntegrationCode').value = endpoint.integrationCode || '';
                 document.getElementById('endpointURL').value = endpoint.url || '';
@@ -6424,7 +6460,8 @@ Click "Run Test" to execute the API call...
             console.log('[JS DEBUG] saveEndpoint called');
 
             const sno = parseInt(document.getElementById('endpointSno').value) || getNextSno();
-            const sourceInstance = document.getElementById('endpointSourceInstance').value;
+            const source = document.getElementById('endpointSource').value;
+            const instanceName = document.getElementById('endpointInstance').value;
             const integrationCode = document.getElementById('endpointIntegrationCode').value.trim();
             const url = document.getElementById('endpointURL').value.trim();
             const path = document.getElementById('endpointPath').value.trim();
@@ -6432,7 +6469,8 @@ Click "Run Test" to execute the API call...
 
             console.log('[JS DEBUG] Form values:');
             console.log('[JS DEBUG]   sno:', sno);
-            console.log('[JS DEBUG]   sourceInstance:', sourceInstance);
+            console.log('[JS DEBUG]   source:', source);
+            console.log('[JS DEBUG]   instanceName:', instanceName);
             console.log('[JS DEBUG]   integrationCode:', integrationCode);
             console.log('[JS DEBUG]   url:', url);
             console.log('[JS DEBUG]   path:', path);
@@ -6449,9 +6487,9 @@ Click "Run Test" to execute the API call...
             console.log('[JS DEBUG]   limit:', limit);
 
             // Validation
-            if (!sourceInstance || !integrationCode || !url || !path) {
+            if (!source || !instanceName || !integrationCode || !url || !path) {
                 console.log('[JS DEBUG] Validation failed - missing required fields');
-                alert('Please fill in all required fields (Source Instance, Integration Code, URL, Path).');
+                alert('Please fill in all required fields (Source, Instance, Integration Code, URL, Path).');
                 return;
             }
 
@@ -6459,13 +6497,16 @@ Click "Run Test" to execute the API call...
             const indexStr = document.getElementById('endpointFormIndex').value;
             console.log('[JS DEBUG]   mode:', mode, 'indexStr:', indexStr);
 
-            const endpointObj = { sno, sourceInstance, integrationCode, url, path, comments, parameters, offset, limit };
+            // Create endpoint object with separate source and instanceName fields
+            const endpointObj = { sno, source, instanceName, integrationCode, url, path, comments, parameters, offset, limit };
             console.log('[JS DEBUG] endpointObj to save:', JSON.stringify(endpointObj, null, 2));
 
-            // Uniqueness check: SourceInstance + IntegrationCode combination must be unique
+            // Uniqueness check: Source + InstanceName + IntegrationCode combination must be unique
             const isDuplicate = (ep) => {
-                const epSourceInstance = ep.sourceInstance || `${ep.source || ''}-${ep.instanceName || ''}`;
-                return epSourceInstance.toLowerCase() === sourceInstance.toLowerCase() &&
+                const epSource = ep.source || '';
+                const epInstanceName = ep.instanceName || '';
+                return epSource.toLowerCase() === source.toLowerCase() &&
+                       epInstanceName.toLowerCase() === instanceName.toLowerCase() &&
                        ep.integrationCode.toLowerCase() === integrationCode.toLowerCase();
             };
 
@@ -6473,7 +6514,7 @@ Click "Run Test" to execute the API call...
                 // Check for duplicate combination
                 const exists = endpointsData.some(isDuplicate);
                 if (exists) {
-                    alert('An endpoint with this Source-Instance + Integration Code combination already exists.');
+                    alert('An endpoint with this Source + Instance + Integration Code combination already exists.');
                     return;
                 }
                 endpointsData.push(endpointObj);
@@ -6484,7 +6525,7 @@ Click "Run Test" to execute the API call...
                 // Check for duplicate combination (excluding current)
                 const exists = endpointsData.some((ep, i) => i !== index && isDuplicate(ep));
                 if (exists) {
-                    alert('An endpoint with this Source-Instance + Integration Code combination already exists.');
+                    alert('An endpoint with this Source + Instance + Integration Code combination already exists.');
                     return;
                 }
                 console.log('[JS DEBUG] Updating endpoint at index:', index);

@@ -6648,27 +6648,25 @@ Click "Run Test" to execute the API call...
                         <div class="tab-content" id="shipment-tab-details">
                             <div class="grid-header" style="margin-bottom: 10px; padding: 10px 0; border: none; background: none;">
                                 <div class="grid-title">
-                                    Shipment Line Details (Grouped by Order)
-                                    <button class="btn-expand-collapse" onclick="expandAllGroups('shipmentdetails')" title="Expand All">&#9654; Expand All</button>
-                                    <button class="btn-expand-collapse" onclick="collapseAllGroups('shipmentdetails')" title="Collapse All">&#9660; Collapse All</button>
+                                    Shipment Order Details
                                 </div>
                                 <div class="grid-search">
                                     <input type="text" id="shipmentDetailsSearchInput" placeholder="Filter results..." oninput="filterShipmentDetailsGrid()">
-                                    <span class="record-count" id="shipmentDetailsCount">0 Line(s)</span>
+                                    <span class="record-count" id="shipmentDetailsCount">0 Order(s)</span>
                                 </div>
                             </div>
                             <div class="table-container" style="max-height: calc(100vh - 450px);">
                                 <table class="grouped-table" id="shipmentDetailsTable">
                                     <thead style="background: #e0e0e0; color: #333;">
                                         <tr>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Order</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Line</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Item Number</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Description</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Ordered Qty</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Shipped Qty</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Pending Qty</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">UOM</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Order #</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Order Date</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Customer</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Account #</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Organization</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Address</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Total Lines</th>
+                                            <th style="padding: 10px 8px; font-size: 11px;">Total Qty</th>
                                             <th style="padding: 10px 8px; font-size: 11px;">Status</th>
                                         </tr>
                                     </thead>
@@ -6878,21 +6876,21 @@ Click "Run Test" to execute the API call...
                 return;
             }
 
-            // Calculate stats
-            const uniqueOrders = [...new Set(data.map(d => d.order_number || d.ORDER_NUMBER).filter(o => o))];
-            const totalLines = data.length;
-            const totalQty = data.reduce((sum, d) => sum + (parseFloat(d.ordered_quantity || d.ORDERED_QUANTITY || d.pending_quantity || d.PENDING_QUANTITY) || 0), 0);
-            const uniqueCustomers = [...new Set(data.map(d => d.customer_name || d.CUSTOMER_NAME).filter(c => c))];
+            // Calculate stats - using API field names: source_order_number, account_name, total_qty, total_lines
+            const uniqueOrders = [...new Set(data.map(d => d.source_order_number || d.SOURCE_ORDER_NUMBER || d.order_number || d.ORDER_NUMBER).filter(o => o))];
+            const totalLines = data.reduce((sum, d) => sum + (parseInt(d.total_lines || d.TOTAL_LINES) || 1), 0);
+            const totalQty = data.reduce((sum, d) => sum + (parseFloat(d.total_qty || d.TOTAL_QTY || d.ordered_quantity || d.ORDERED_QUANTITY || d.pending_quantity || d.PENDING_QUANTITY) || 0), 0);
+            const uniqueCustomers = [...new Set(data.map(d => d.account_name || d.ACCOUNT_NAME || d.customer_name || d.CUSTOMER_NAME).filter(c => c))];
 
             document.getElementById('shipmentStatTotalOrders').textContent = uniqueOrders.length.toLocaleString();
             document.getElementById('shipmentStatTotalLines').textContent = totalLines.toLocaleString();
             document.getElementById('shipmentStatTotalQty').textContent = formatNumber(totalQty);
             document.getElementById('shipmentStatCustomers').textContent = uniqueCustomers.length;
 
-            // Chart by Customer
+            // Chart by Customer - using API field name: account_name
             const byCustomer = {};
             data.forEach(d => {
-                const customer = d.customer_name || d.CUSTOMER_NAME || 'Unknown';
+                const customer = d.account_name || d.ACCOUNT_NAME || d.customer_name || d.CUSTOMER_NAME || 'Unknown';
                 byCustomer[customer] = (byCustomer[customer] || 0) + 1;
             });
             const sortedCustomers = Object.entries(byCustomer).sort((a, b) => b[1] - a[1]).slice(0, 10);
@@ -6945,37 +6943,38 @@ Click "Run Test" to execute the API call...
                 return;
             }
 
-            // Group by order number
+            // Group by order number - using API field names: source_order_number, account_name, address, total_qty, total_lines
             const grouped = {};
             data.forEach(d => {
-                const orderNum = d.order_number || d.ORDER_NUMBER || 'Unknown';
+                const orderNum = d.source_order_number || d.SOURCE_ORDER_NUMBER || d.order_number || d.ORDER_NUMBER || 'Unknown';
                 if (!grouped[orderNum]) {
                     grouped[orderNum] = {
                         orderNumber: orderNum,
-                        customerName: d.customer_name || d.CUSTOMER_NAME || '-',
+                        customerName: d.account_name || d.ACCOUNT_NAME || d.customer_name || d.CUSTOMER_NAME || '-',
                         orderDate: d.order_date || d.ORDER_DATE || d.creation_date || d.CREATION_DATE || '-',
-                        shipToLocation: d.ship_to_location || d.SHIP_TO_LOCATION || d.deliver_to_location || d.DELIVER_TO_LOCATION || '-',
+                        shipToLocation: d.address || d.ADDRESS || d.ship_to_location || d.SHIP_TO_LOCATION || d.deliver_to_location || d.DELIVER_TO_LOCATION || '-',
                         status: d.line_status || d.LINE_STATUS || d.status || d.STATUS || '-',
                         lines: [],
-                        totalQty: 0
+                        totalQty: 0,
+                        totalLines: 0
                     };
                 }
                 grouped[orderNum].lines.push(d);
-                grouped[orderNum].totalQty += parseFloat(d.ordered_quantity || d.ORDERED_QUANTITY || d.pending_quantity || d.PENDING_QUANTITY) || 0;
+                grouped[orderNum].totalQty += parseFloat(d.total_qty || d.TOTAL_QTY || d.ordered_quantity || d.ORDERED_QUANTITY || d.pending_quantity || d.PENDING_QUANTITY) || 0;
+                grouped[orderNum].totalLines += parseInt(d.total_lines || d.TOTAL_LINES) || 1;
             });
 
             let html = '';
             Object.values(grouped).forEach((group, idx) => {
                 const groupId = 'shipsum_' + idx;
-                html += `<tr class="group-header" onclick="toggleGroup('${groupId}')" style="cursor: pointer; background: #f0f4ff;">
+                html += `<tr class="group-header" style="cursor: default; background: #f0f4ff;">
                     <td style="padding: 10px 8px; font-size: 11px; font-weight: bold;">
-                        <span class="group-toggle" id="toggle_${groupId}">&#9654;</span>
                         ${group.orderNumber}
                     </td>
                     <td style="padding: 10px 8px; font-size: 11px;">${group.customerName}</td>
                     <td style="padding: 10px 8px; font-size: 11px;">${formatDate(group.orderDate)}</td>
                     <td style="padding: 10px 8px; font-size: 11px;">${group.shipToLocation}</td>
-                    <td style="padding: 10px 8px; font-size: 11px; font-weight: bold;">${group.lines.length}</td>
+                    <td style="padding: 10px 8px; font-size: 11px; font-weight: bold;">${group.totalLines}</td>
                     <td style="padding: 10px 8px; font-size: 11px; font-weight: bold;">${formatNumber(group.totalQty)}</td>
                     <td style="padding: 10px 8px; font-size: 11px;">${group.status}</td>
                 </tr>`;
@@ -6985,66 +6984,43 @@ Click "Run Test" to execute the API call...
             document.getElementById('shipmentSummaryCount').textContent = Object.keys(grouped).length + ' Order(s)';
         }
 
-        // Render Shipment Details Table (grouped by order)
+        // Render Shipment Details Table (flat order-level view)
         function renderShipmentDetailsTable(data) {
             const tbody = document.getElementById('shipmentDetailsTableBody');
 
             if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="no-data">No shipment line data found</td></tr>';
-                document.getElementById('shipmentDetailsCount').textContent = '0 Line(s)';
+                tbody.innerHTML = '<tr><td colspan="9" class="no-data">No shipment data found</td></tr>';
+                document.getElementById('shipmentDetailsCount').textContent = '0 Order(s)';
                 return;
             }
 
-            // Group by order number
-            const grouped = {};
-            data.forEach(d => {
-                const orderNum = d.order_number || d.ORDER_NUMBER || 'Unknown';
-                if (!grouped[orderNum]) {
-                    grouped[orderNum] = { orderNumber: orderNum, rows: [] };
-                }
-                grouped[orderNum].rows.push(d);
-            });
-
             let html = '';
-            let groupIdx = 0;
-            Object.values(grouped).forEach((group) => {
-                const groupId = 'shipdetail_' + groupIdx;
-                html += `<tr class="group-header" onclick="toggleGroup('${groupId}')" style="cursor: pointer; background: #f0f4ff;">
-                    <td colspan="9" style="padding: 10px 8px; font-size: 12px;">
-                        <span class="group-toggle" id="toggle_${groupId}">&#9654;</span>
-                        <strong>Order: ${group.orderNumber}</strong>
-                        <span style="color: #666; margin-left: 15px;">(${group.rows.length} line(s))</span>
-                    </td>
+            data.forEach(row => {
+                const orderNum = row.source_order_number || row.SOURCE_ORDER_NUMBER || row.order_number || row.ORDER_NUMBER || '-';
+                const orderDate = row.order_date || row.ORDER_DATE || '-';
+                const customerName = row.account_name || row.ACCOUNT_NAME || row.customer_name || row.CUSTOMER_NAME || '-';
+                const accountNum = row.account_number || row.ACCOUNT_NUMBER || '-';
+                const orgName = row.organization_name || row.ORGANIZATION_NAME || '-';
+                const address = row.address || row.ADDRESS || row.ship_to_location || row.SHIP_TO_LOCATION || '-';
+                const totalLines = row.total_lines || row.TOTAL_LINES || 0;
+                const totalQty = row.total_qty || row.TOTAL_QTY || 0;
+                const status = row.line_status || row.LINE_STATUS || row.status || row.STATUS || '-';
+
+                html += `<tr style="font-size: 11px;">
+                    <td style="padding: 8px; font-weight: bold;">${orderNum}</td>
+                    <td style="padding: 8px;">${formatDate(orderDate)}</td>
+                    <td style="padding: 8px;" title="${customerName}">${customerName.length > 25 ? customerName.substring(0, 25) + '...' : customerName}</td>
+                    <td style="padding: 8px;">${accountNum}</td>
+                    <td style="padding: 8px;">${orgName}</td>
+                    <td style="padding: 8px;" title="${address}">${address.length > 25 ? address.substring(0, 25) + '...' : address}</td>
+                    <td style="padding: 8px; text-align: right; font-weight: bold;">${totalLines}</td>
+                    <td style="padding: 8px; text-align: right; font-weight: bold;">${formatNumber(totalQty)}</td>
+                    <td style="padding: 8px;">${status}</td>
                 </tr>`;
-
-                group.rows.forEach(row => {
-                    const lineNum = row.line_number || row.LINE_NUMBER || '-';
-                    const itemNum = row.item_number || row.ITEM_NUMBER || row.inventory_item || row.INVENTORY_ITEM || '-';
-                    const itemDesc = row.item_description || row.ITEM_DESCRIPTION || row.description || row.DESCRIPTION || '-';
-                    const orderedQty = row.ordered_quantity || row.ORDERED_QUANTITY || 0;
-                    const shippedQty = row.shipped_quantity || row.SHIPPED_QUANTITY || 0;
-                    const pendingQty = row.pending_quantity || row.PENDING_QUANTITY || (parseFloat(orderedQty) - parseFloat(shippedQty)) || 0;
-                    const uom = row.uom || row.UOM || row.unit_of_measure || row.UNIT_OF_MEASURE || '-';
-                    const status = row.line_status || row.LINE_STATUS || row.status || row.STATUS || '-';
-
-                    html += `<tr class="group-row" data-group="${groupId}" style="display: none; font-size: 11px;">
-                        <td style="padding: 8px;">${group.orderNumber}</td>
-                        <td style="padding: 8px;">${lineNum}</td>
-                        <td style="padding: 8px;">${itemNum}</td>
-                        <td style="padding: 8px;" title="${itemDesc}">${itemDesc.length > 30 ? itemDesc.substring(0, 30) + '...' : itemDesc}</td>
-                        <td style="padding: 8px; text-align: right;">${formatNumber(orderedQty)}</td>
-                        <td style="padding: 8px; text-align: right;">${formatNumber(shippedQty)}</td>
-                        <td style="padding: 8px; text-align: right; font-weight: bold; color: #dc3545;">${formatNumber(pendingQty)}</td>
-                        <td style="padding: 8px;">${uom}</td>
-                        <td style="padding: 8px;">${status}</td>
-                    </tr>`;
-                });
-
-                groupIdx++;
             });
 
             tbody.innerHTML = html;
-            document.getElementById('shipmentDetailsCount').textContent = data.length + ' Line(s)';
+            document.getElementById('shipmentDetailsCount').textContent = data.length + ' Order(s)';
         }
 
         // Format date helper
@@ -7077,7 +7053,7 @@ Click "Run Test" to execute the API call...
             });
         }
 
-        // Filter shipment summary grid
+        // Filter shipment summary grid - using API field names
         function filterShipmentSummaryGrid() {
             const searchText = document.getElementById('shipmentSummarySearchInput').value.toLowerCase();
             if (!shipmentLinesData) return;
@@ -7088,15 +7064,16 @@ Click "Run Test" to execute the API call...
             }
 
             const filtered = shipmentLinesData.filter(row => {
-                return (row.order_number || row.ORDER_NUMBER || '').toLowerCase().includes(searchText) ||
-                       (row.customer_name || row.CUSTOMER_NAME || '').toLowerCase().includes(searchText) ||
-                       (row.ship_to_location || row.SHIP_TO_LOCATION || '').toLowerCase().includes(searchText);
+                return (row.source_order_number || row.SOURCE_ORDER_NUMBER || row.order_number || row.ORDER_NUMBER || '').toLowerCase().includes(searchText) ||
+                       (row.account_name || row.ACCOUNT_NAME || row.customer_name || row.CUSTOMER_NAME || '').toLowerCase().includes(searchText) ||
+                       (row.address || row.ADDRESS || row.ship_to_location || row.SHIP_TO_LOCATION || '').toLowerCase().includes(searchText) ||
+                       (row.organization_name || row.ORGANIZATION_NAME || '').toLowerCase().includes(searchText);
             });
 
             renderShipmentSummaryTable(filtered);
         }
 
-        // Filter shipment details grid
+        // Filter shipment details grid - using API field names
         function filterShipmentDetailsGrid() {
             const searchText = document.getElementById('shipmentDetailsSearchInput').value.toLowerCase();
             if (!shipmentLinesData) return;
@@ -7107,10 +7084,11 @@ Click "Run Test" to execute the API call...
             }
 
             const filtered = shipmentLinesData.filter(row => {
-                return (row.order_number || row.ORDER_NUMBER || '').toLowerCase().includes(searchText) ||
-                       (row.item_number || row.ITEM_NUMBER || '').toLowerCase().includes(searchText) ||
-                       (row.item_description || row.ITEM_DESCRIPTION || '').toLowerCase().includes(searchText) ||
-                       (row.customer_name || row.CUSTOMER_NAME || '').toLowerCase().includes(searchText);
+                return (row.source_order_number || row.SOURCE_ORDER_NUMBER || row.order_number || row.ORDER_NUMBER || '').toLowerCase().includes(searchText) ||
+                       (row.account_name || row.ACCOUNT_NAME || row.customer_name || row.CUSTOMER_NAME || '').toLowerCase().includes(searchText) ||
+                       (row.account_number || row.ACCOUNT_NUMBER || '').toLowerCase().includes(searchText) ||
+                       (row.organization_name || row.ORGANIZATION_NAME || '').toLowerCase().includes(searchText) ||
+                       (row.address || row.ADDRESS || '').toLowerCase().includes(searchText);
             });
 
             renderShipmentDetailsTable(filtered);

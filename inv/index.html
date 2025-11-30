@@ -6560,9 +6560,10 @@ Click "Run Test" to execute the API call...
             console.log('[JS DEBUG] postEndpointToApex result:', JSON.stringify(apexResult));
             if (apexResult.success) {
                 console.log('[JS] Endpoint saved to APEX successfully');
+                alert('Saved Successfully');
             } else {
                 console.warn('[JS] Failed to save endpoint to APEX:', apexResult.error);
-                // Don't show alert - local save was successful
+                alert('Failed to save to APEX: ' + (apexResult.error || 'Unknown error'));
             }
         }
 

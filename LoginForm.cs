@@ -311,10 +311,22 @@ namespace WMSApp
                 // Get selected instance
                 string selectedInstance = cboInstance.SelectedItem.ToString();
 
-                // Get base URL for the selected instance
-                if (!instanceUrls.TryGetValue(selectedInstance, out string baseUrl))
+                // Fix: 2025-11-30 - Case-insensitive lookup for instance URL
+                string baseUrl = null;
+                foreach (var kvp in instanceUrls)
                 {
-                    ShowError("Invalid instance selected");
+                    if (kvp.Key.Equals(selectedInstance, StringComparison.OrdinalIgnoreCase))
+                    {
+                        baseUrl = kvp.Value;
+                        break;
+                    }
+                }
+
+                if (string.IsNullOrEmpty(baseUrl))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[LOGIN] ERROR: No URL found for instance '{selectedInstance}'");
+                    System.Diagnostics.Debug.WriteLine($"[LOGIN] Available instances: {string.Join(", ", instanceUrls.Keys)}");
+                    ShowError($"No LOGIN endpoint configured for '{selectedInstance}'. Check C:\\fusionclient\\ERP\\settings\\endpoints.xml");
                     SetControlsEnabled(true);
                     btnLogin.Text = "🔐 Login";
                     return;

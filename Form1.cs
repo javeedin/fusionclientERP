@@ -1782,6 +1782,11 @@ namespace WMSApp
                 };
 
                 string responseJson = System.Text.Json.JsonSerializer.Serialize(responseObj);
+
+                System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] ====== RESPONSE JSON TO FRONTEND ======");
+                System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] {responseJson}");
+                System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] =====================================");
+
                 wv.CoreWebView2.PostWebMessageAsString(responseJson);
 
                 System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] *** COMPLETE - Returned {instances?.Count ?? 0} instances (source: {dataSource}) ***");
@@ -1845,10 +1850,10 @@ namespace WMSApp
                     {
                         var instance = new Dictionary<string, object>();
 
-                        // Map all fields dynamically - preserve original field names
+                        // Map all fields dynamically - preserve ORIGINAL field names (not lowercase)
                         foreach (var prop in item.EnumerateObject())
                         {
-                            string key = prop.Name.ToLower();
+                            string key = prop.Name; // Keep original case
                             object value = prop.Value.ValueKind switch
                             {
                                 System.Text.Json.JsonValueKind.String => prop.Value.GetString(),

@@ -1681,8 +1681,26 @@ namespace WMSApp
                 string apexUrlFilePath = System.IO.Path.Combine(settingsPath, "apexinstances.text");
 
                 System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] Settings Path: {settingsPath}");
+                System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] Settings Directory Exists: {System.IO.Directory.Exists(settingsPath)}");
                 System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] APEX URL File: {apexUrlFilePath}");
                 System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] File Exists: {System.IO.File.Exists(apexUrlFilePath)}");
+
+                // List all files in settings directory for debugging
+                if (System.IO.Directory.Exists(settingsPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] Files in settings directory:");
+                    try
+                    {
+                        foreach (var file in System.IO.Directory.GetFiles(settingsPath))
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES]   -> {System.IO.Path.GetFileName(file)}");
+                        }
+                    }
+                    catch (Exception dirEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[APEX INSTANCES] Error listing directory: {dirEx.Message}");
+                    }
+                }
 
                 if (System.IO.File.Exists(apexUrlFilePath))
                 {

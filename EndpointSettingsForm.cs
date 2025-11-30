@@ -773,9 +773,10 @@ namespace WMSApp
                 Location = new Point(fieldLeft, yPos),
                 Width = 150,
                 Font = new Font("Segoe UI", 10),
-                DropDownStyle = ComboBoxStyle.DropDown
+                DropDownStyle = ComboBoxStyle.DropDownList
             };
             cboInstanceName.Items.AddRange(new object[] { "PROD", "TEST", "DEV" });
+            cboInstanceName.SelectedIndex = 0;  // Default to PROD for new endpoints
             this.Controls.Add(cboInstanceName);
             yPos += rowHeight;
 
@@ -878,8 +879,9 @@ namespace WMSApp
             txtSno.Text = Endpoint.Sno.ToString();
             cboSource.SelectedItem = Endpoint.Source ?? "APEX";
             txtIntegrationCode.Text = Endpoint.IntegrationCode ?? "";
-            // Show Instance exactly as in data grid - no default
-            cboInstanceName.Text = Endpoint.InstanceName ?? "";
+            // Select matching instance from dropdown, default to PROD if not found
+            int instanceIndex = cboInstanceName.Items.IndexOf(Endpoint.InstanceName ?? "");
+            cboInstanceName.SelectedIndex = instanceIndex >= 0 ? instanceIndex : 0;
             txtBaseUrl.Text = Endpoint.BaseUrl ?? "";
             txtEndpoint.Text = Endpoint.Endpoint ?? "";
             txtComments.Text = Endpoint.Comments ?? "";
@@ -928,7 +930,7 @@ namespace WMSApp
             Endpoint.Sno = int.Parse(txtSno.Text);
             Endpoint.Source = cboSource.SelectedItem?.ToString() ?? "APEX";
             Endpoint.IntegrationCode = txtIntegrationCode.Text.Trim();
-            Endpoint.InstanceName = cboInstanceName.Text.Trim();
+            Endpoint.InstanceName = cboInstanceName.SelectedItem?.ToString() ?? "PROD";
             Endpoint.BaseUrl = txtBaseUrl.Text.Trim();
             Endpoint.Endpoint = txtEndpoint.Text.Trim();
             Endpoint.Comments = txtComments.Text.Trim();

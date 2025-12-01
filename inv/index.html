@@ -2252,10 +2252,12 @@
         .fullscreen-content {
             flex: 1;
             overflow: auto;
+            width: 100%;
         }
 
         .fullscreen-content .tab-container {
             height: 100%;
+            width: 100%;
             display: flex;
             flex-direction: column;
         }
@@ -2263,10 +2265,18 @@
         .fullscreen-content .tab-content {
             flex: 1;
             overflow: auto;
+            width: 100%;
         }
 
         .fullscreen-content .table-container {
             max-height: calc(100vh - 200px) !important;
+            width: 100%;
+        }
+
+        .fullscreen-content #shipmentsDataGrid,
+        .fullscreen-content #shipmentLinesDataGrid {
+            height: calc(100vh - 280px) !important;
+            width: 100% !important;
         }
 
         /* Tasks Panel on Main Page */
@@ -4065,9 +4075,6 @@ Click "Run Test" to execute the API call...
                 <div class="fullscreen-overlay" id="fullscreenOverlay">
                     <div class="fullscreen-header">
                         <h3>&#128230; Manage Item Quantities - Full View</h3>
-                        <button class="fullscreen-close" onclick="toggleFullscreen()">
-                            &#10005; Close Full View
-                        </button>
                     </div>
                     <div class="fullscreen-content" id="fullscreenContent">
                         <!-- Tab container will be moved here -->
@@ -4318,9 +4325,6 @@ Click "Run Test" to execute the API call...
                 <div class="fullscreen-overlay" id="poFullscreenOverlay">
                     <div class="fullscreen-header">
                         <h3>&#128229; Receive Expected Shipments - Full View</h3>
-                        <button class="fullscreen-close" onclick="togglePoFullscreen()">
-                            &#10005; Close Full View
-                        </button>
                     </div>
                     <div class="fullscreen-content" id="poFullscreenContent">
                     </div>
@@ -5923,9 +5927,6 @@ Click "Run Test" to execute the API call...
                 <div class="fullscreen-overlay" id="shipmentsFullscreenOverlay">
                     <div class="fullscreen-header">
                         <h3>&#128666; Manage Shipments - Full View</h3>
-                        <button class="fullscreen-close" onclick="toggleShipmentsFullscreen()">
-                            &#10005; Close Full View
-                        </button>
                     </div>
                     <div class="fullscreen-content" id="shipmentsFullscreenContent">
                     </div>
@@ -6263,6 +6264,14 @@ Click "Run Test" to execute the API call...
                 allowColumnResizing: true,
                 columnResizingMode: 'widget',
                 hoverStateEnabled: true,
+                width: '100%',
+
+                // Scrolling
+                scrolling: {
+                    mode: 'standard',
+                    showScrollbar: 'always',
+                    useNative: true
+                },
 
                 // Paging
                 paging: {
@@ -6751,13 +6760,10 @@ Click "Run Test" to execute the API call...
                     </div>
                 </div>
 
-                <!-- Fullscreen Overlay for Shipments -->
+                <!-- Fullscreen Overlay for Shipment Lines -->
                 <div class="fullscreen-overlay" id="shipmentFullscreenOverlay">
                     <div class="fullscreen-header">
                         <h3>&#128666; Manage Shipment Lines - Full View</h3>
-                        <button class="fullscreen-close" onclick="toggleShipmentFullscreen()">
-                            &#10005; Close Full View
-                        </button>
                     </div>
                     <div class="fullscreen-content" id="shipmentFullscreenContent">
                     </div>
@@ -7172,6 +7178,14 @@ Click "Run Test" to execute the API call...
                 allowColumnResizing: true,
                 columnResizingMode: 'widget',
                 hoverStateEnabled: true,
+                width: '100%',
+
+                // Scrolling
+                scrolling: {
+                    mode: 'standard',
+                    showScrollbar: 'always',
+                    useNative: true
+                },
 
                 // Paging
                 paging: {

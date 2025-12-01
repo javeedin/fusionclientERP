@@ -2413,7 +2413,7 @@
     <!-- Header -->
     <header class="header">
         <h1>
-            <span class="module-badge" onclick="goToHome()" style="cursor: pointer;" title="Go to Home">INV</span>
+            <span class="module-badge" onclick="goToMainHome()" style="cursor: pointer;" title="Go to Main Home">INV</span>
             <span id="toolbarTitle">Inventory Management</span>
         </h1>
         <div class="user-info">
@@ -3682,7 +3682,7 @@ Click "Run Test" to execute the API call...
             }
         }
 
-        // Go to Home page - keep tabs but show welcome message
+        // Go to Module Home page - keep tabs but show welcome message
         function goToHome() {
             // Deactivate all tabs visually (but don't remove them)
             document.querySelectorAll('.main-tab').forEach(tab => tab.classList.remove('active'));
@@ -3703,6 +3703,12 @@ Click "Run Test" to execute the API call...
 
             // Update home analytics with any existing data
             updateHomeAnalytics();
+        }
+
+        // Go to Main ERP Home page
+        function goToMainHome() {
+            console.log('[INV] Navigating to main home...');
+            window.location.href = '../main/home.html';
         }
 
         // Update home analytics from retrieved data
@@ -9025,15 +9031,27 @@ Click "Run Test" to execute the API call...
 
         // Logout
         function logout() {
+            // Clear WMS session data
             localStorage.removeItem('wms_username');
             localStorage.removeItem('wms_password');
             localStorage.removeItem('wms_instance');
+
+            // Clear ERP session data
+            localStorage.removeItem('erp_loggedIn');
+            localStorage.removeItem('erp_username');
+            localStorage.removeItem('erp_instanceName');
+            localStorage.removeItem('erp_loginTime');
+            localStorage.removeItem('erp_userId');
+            localStorage.removeItem('erp_fullName');
+            localStorage.removeItem('erp_userEmail');
+            localStorage.removeItem('erp_currentModule');
 
             if (window.chrome && window.chrome.webview) {
                 window.chrome.webview.postMessage({ type: 'logout' });
             }
 
-            alert('Logged out successfully');
+            // Redirect to main login page
+            window.location.href = '../main/login.html';
         }
     </script>
 </body>

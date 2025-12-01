@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - FusionClientERP</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f6fa;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-logo {
+            font-size: 28px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+
+        .header h1 span {
+            font-weight: 300;
+            opacity: 0.9;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 13px;
+            color: #fff;
+        }
+
+        .user-info .divider {
+            width: 1px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .user-info .username {
+            font-weight: 600;
+        }
+
+        .instance-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-icon {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-icon:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .btn-logout {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Welcome Section */
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .welcome-section h2 {
+            font-size: 32px;
+            font-weight: 300;
+            color: #2d3561;
+            margin-bottom: 10px;
+        }
+
+        .welcome-section h2 strong {
+            font-weight: 600;
+        }
+
+        .welcome-section p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        /* Modules Section */
+        .modules-section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(to right, #ddd, transparent);
+        }
+
+        /* Module Grid */
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 24px;
+        }
+
+        /* Module Card */
+        .module-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .module-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .module-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+
+        .module-card:hover::before {
+            opacity: 1;
+        }
+
+        .module-card.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .module-card.disabled:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: transparent;
+        }
+
+        .module-card.disabled::before {
+            opacity: 0;
+        }
+
+        .module-card.active {
+            border-color: #667eea;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.15);
+        }
+
+        .module-card.active::before {
+            opacity: 1;
+        }
+
+        .module-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin: 0 auto 18px;
+            transition: all 0.3s;
+        }
+
+        .module-card:hover .module-icon {
+            transform: scale(1.1);
+        }
+
+        .module-card.disabled:hover .module-icon {
+            transform: none;
+        }
+
+        /* Module-specific colors */
+        .module-gl .module-icon { background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%); color: white; }
+        .module-ar .module-icon { background: linear-gradient(135deg, #2196F3 0%, #1565C0 100%); color: white; }
+        .module-ap .module-icon { background: linear-gradient(135deg, #FF9800 0%, #EF6C00 100%); color: white; }
+        .module-po .module-icon { background: linear-gradient(135deg, #9C27B0 0%, #6A1B9A 100%); color: white; }
+        .module-inv .module-icon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .module-om .module-icon { background: linear-gradient(135deg, #00BCD4 0%, #00838F 100%); color: white; }
+        .module-fa .module-icon { background: linear-gradient(135deg, #795548 0%, #4E342E 100%); color: white; }
+        .module-rpt .module-icon { background: linear-gradient(135deg, #607D8B 0%, #37474F 100%); color: white; }
+
+        .module-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .module-desc {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .module-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            font-size: 9px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-coming-soon {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        /* Quick Stats */
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .stat-info h4 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .stat-info p {
+            font-size: 13px;
+            color: #888;
+        }
+
+        /* Settings Modal */
+        .settings-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .settings-overlay.active {
+            display: flex;
+        }
+
+        .settings-modal {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .settings-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+
+        .settings-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .settings-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .settings-close:hover {
+            opacity: 1;
+        }
+
+        .settings-content {
+            padding: 24px;
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-item-label {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .settings-item-value {
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+            font-size: 12px;
+            margin-top: 40px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 12px 16px;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .welcome-section h2 {
+                font-size: 24px;
+            }
+
+            .modules-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px;
+            }
+
+            .module-card {
+                padding: 20px 15px;
+            }
+
+            .module-icon {
+                width: 56px;
+                height: 56px;
+                font-size: 26px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .modules-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading Animation */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="header-logo">&#9889;</div>
+            <h1>FusionClientERP <span>| Home</span></h1>
+        </div>
+        <div class="user-info">
+            <span>Welcome, <span class="username" id="usernameDisplay">User</span></span>
+            <div class="divider"></div>
+            <span class="instance-badge" id="instanceDisplay">PROD</span>
+            <div class="divider"></div>
+            <button class="btn-icon" onclick="openSettings()" title="Settings">
+                &#9881;
+            </button>
+            <button class="btn-logout" onclick="logout()">
+                <span>&#128682;</span> Logout
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <h2>Welcome back, <strong id="welcomeName">User</strong></h2>
+            <p>Select a module to get started</p>
+        </div>
+
+        <!-- Modules Section -->
+        <section class="modules-section">
+            <div class="section-title">Applications</div>
+            <div class="modules-grid">
+                <!-- General Ledger -->
+                <div class="module-card module-gl disabled" onclick="navigateToModule('gl')" title="Coming Soon">
+                    <span class="module-badge badge-coming-soon">Coming Soon</span>
+                    <div class="module-icon">&#128209;</div>
+                    <div class="module-name">General Ledger</div>
+                    <div class="module-desc">Financial accounting</div>
+                </div>
+
+                <!-- Accounts Receivable -->
+                <div class="module-card module-ar disabled" onclick="navigateToModule('ar')" title="Coming Soon">
+                    <span class="module-badge badge-coming-soon">Coming Soon</span>
+                    <div class="module-icon">&#128181;</div>
+                    <div class="module-name">Accounts Receivable</div>
+                    <div class="module-desc">Customer payments</div>
+                </div>
+
+                <!-- Accounts Payable -->
+                <div class="module-card module-ap disabled" onclick="navigateToModule('ap')" title="Coming Soon">
+                    <span class="module-badge badge-coming-soon">Coming Soon</span>
+                    <div class="module-icon">&#128179;</div>
+                    <div class="module-name">Accounts Payable</div>
+                    <div class="module-desc">Vendor payments</div>
+                </div>
+
+                <!-- Purchasing -->
+                <div class="module-card module-po disabled" onclick="navigateToModule('po')" title="Coming Soon">
+                    <span class="module-badge badge-coming-soon">Coming Soon</span>
+                    <div class="module-icon">&#128722;</div>
+                    <div class="module-name">Purchasing</div>
+                    <div class="module-desc">Procurement management</div>
+                </div>
+
+                <!-- Inventory (Active) -->
+                <div class="module-card module-inv active" onclick="navigateToModule('inv')">
+                    <span class="module-badge badge-active">Active</span>
+                    <div class="module-icon">&#128230;</div>
+                    <div class="module-name">Inventory</div>
+                    <div class="module-desc">Stock management</div>
+                </div>
+
+                <!-- Order Management -->
+                <div class="module-card module-om disabled" onclick="navigateToModule('om')" title="Coming Soon">
+                    <span class="module-badge badge-coming-soon">Coming Soon</span>
+                    <div class="module-icon">&#128666;</div>
+                    <div class="module-name">Order Management</div>
+                    <div class="module-desc">Sales orders</div>
+                </div>
+
+                <!-- Fixed Assets -->
+                <div class="module-card module-fa disabled" onclick="navigateToModule('fa')" title="Coming Soon">
+                    <span class="module-badge badge-coming-soon">Coming Soon</span>
+                    <div class="module-icon">&#127970;</div>
+                    <div class="module-name">Fixed Assets</div>
+                    <div class="module-desc">Asset tracking</div>
+                </div>
+
+                <!-- Reports & Analytics -->
+                <div class="module-card module-rpt disabled" onclick="navigateToModule('reports')" title="Coming Soon">
+                    <span class="module-badge badge-coming-soon">Coming Soon</span>
+                    <div class="module-icon">&#128202;</div>
+                    <div class="module-name">Reports & Analytics</div>
+                    <div class="module-desc">Business insights</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Stats -->
+        <section class="quick-stats" id="quickStats">
+            <div class="stat-card">
+                <div class="stat-icon">&#128197;</div>
+                <div class="stat-info">
+                    <h4 id="loginTime">--</h4>
+                    <p>Login Time</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">&#127760;</div>
+                <div class="stat-info">
+                    <h4 id="instanceInfo">--</h4>
+                    <p>Connected Instance</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">&#128100;</div>
+                <div class="stat-info">
+                    <h4 id="sessionInfo">Active</h4>
+                    <p>Session Status</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        FusionClientERP v2025.12.01 | Gray's Enterprise Resource Planning
+    </footer>
+
+    <!-- Settings Modal -->
+    <div class="settings-overlay" id="settingsOverlay" onclick="closeSettingsOnOverlay(event)">
+        <div class="settings-modal">
+            <div class="settings-header">
+                <h3>&#9881; Settings</h3>
+                <button class="settings-close" onclick="closeSettings()">&times;</button>
+            </div>
+            <div class="settings-content">
+                <div class="settings-item">
+                    <span class="settings-item-label">Username</span>
+                    <span class="settings-item-value" id="settingsUsername">--</span>
+                </div>
+                <div class="settings-item">
+                    <span class="settings-item-label">Instance</span>
+                    <span class="settings-item-value" id="settingsInstance">--</span>
+                </div>
+                <div class="settings-item">
+                    <span class="settings-item-label">Login Time</span>
+                    <span class="settings-item-value" id="settingsLoginTime">--</span>
+                </div>
+                <div class="settings-item">
+                    <span class="settings-item-label">Session Duration</span>
+                    <span class="settings-item-value" id="settingsSessionDuration">--</span>
+                </div>
+                <div class="settings-item">
+                    <span class="settings-item-label">Version</span>
+                    <span class="settings-item-value">v2025.12.01</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <script>
+        // Debug logging
+        function log(msg) {
+            console.log('[ERP-HOME] ' + msg);
+        }
+
+        log('========================================');
+        log('FusionClientERP Home page loaded');
+
+        // Check if running in WebView2
+        const isWebView2 = !!(window.chrome && window.chrome.webview);
+        log('WebView2 available: ' + isWebView2);
+
+        // Module paths
+        const modulePaths = {
+            'gl': '../gl/index.html',
+            'ar': '../ar/index.html',
+            'ap': '../ap/index.html',
+            'po': '../po/index.html',
+            'inv': '../inv/index.html',
+            'om': '../om/index.html',
+            'fa': '../fa/index.html',
+            'reports': '../reports/index.html'
+        };
+
+        // Active modules (only inventory for now)
+        const activeModules = ['inv'];
+
+        // Navigate to module
+        function navigateToModule(moduleCode) {
+            log('Navigating to module: ' + moduleCode);
+
+            if (!activeModules.includes(moduleCode)) {
+                showToast('This module is coming soon!', 'info');
+                return;
+            }
+
+            const path = modulePaths[moduleCode];
+            if (path) {
+                showLoading(true);
+
+                // Store current module for breadcrumb
+                localStorage.setItem('erp_currentModule', moduleCode);
+
+                // Navigate to the module
+                setTimeout(function() {
+                    window.location.href = path;
+                }, 300);
+            }
+        }
+
+        // Show loading overlay
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            if (show) {
+                overlay.classList.add('active');
+            } else {
+                overlay.classList.remove('active');
+            }
+        }
+
+        // Show toast notification
+        function showToast(message, type) {
+            // Simple alert for now, can be replaced with a proper toast library
+            alert(message);
+        }
+
+        // Open settings modal
+        function openSettings() {
+            document.getElementById('settingsOverlay').classList.add('active');
+            updateSettingsInfo();
+        }
+
+        // Close settings modal
+        function closeSettings() {
+            document.getElementById('settingsOverlay').classList.remove('active');
+        }
+
+        // Close settings on overlay click
+        function closeSettingsOnOverlay(event) {
+            if (event.target.id === 'settingsOverlay') {
+                closeSettings();
+            }
+        }
+
+        // Update settings info
+        function updateSettingsInfo() {
+            const username = localStorage.getItem('erp_username') || '--';
+            const instance = localStorage.getItem('erp_instanceName') || '--';
+            const loginTime = localStorage.getItem('erp_loginTime');
+
+            document.getElementById('settingsUsername').textContent = username;
+            document.getElementById('settingsInstance').textContent = instance;
+
+            if (loginTime) {
+                const loginDate = new Date(loginTime);
+                document.getElementById('settingsLoginTime').textContent = loginDate.toLocaleString();
+
+                // Calculate session duration
+                const now = new Date();
+                const duration = Math.floor((now - loginDate) / 1000 / 60);
+                const hours = Math.floor(duration / 60);
+                const minutes = duration % 60;
+                document.getElementById('settingsSessionDuration').textContent =
+                    hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+            }
+        }
+
+        // Logout function
+        function logout() {
+            log('Logging out...');
+
+            // Clear session data
+            localStorage.removeItem('erp_loggedIn');
+            localStorage.removeItem('erp_username');
+            localStorage.removeItem('erp_instanceName');
+            localStorage.removeItem('erp_loginTime');
+            localStorage.removeItem('erp_userId');
+            localStorage.removeItem('erp_fullName');
+            localStorage.removeItem('erp_userEmail');
+            localStorage.removeItem('erp_currentModule');
+
+            // Notify C# backend if available
+            if (isWebView2) {
+                window.chrome.webview.postMessage({ type: 'logout' });
+            }
+
+            // Redirect to login page
+            window.location.href = 'login.html';
+        }
+
+        // Initialize page
+        function initPage() {
+            log('Initializing home page...');
+
+            // Check login status
+            const loggedIn = localStorage.getItem('erp_loggedIn');
+            if (loggedIn !== 'true') {
+                log('Not logged in, redirecting to login...');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Get user info
+            const username = localStorage.getItem('erp_username') || 'User';
+            const instance = localStorage.getItem('erp_instanceName') || 'PROD';
+            const loginTime = localStorage.getItem('erp_loginTime');
+
+            // Update UI
+            document.getElementById('usernameDisplay').textContent = username;
+            document.getElementById('welcomeName').textContent = username;
+            document.getElementById('instanceDisplay').textContent = instance;
+            document.getElementById('instanceInfo').textContent = instance;
+
+            // Update login time
+            if (loginTime) {
+                const loginDate = new Date(loginTime);
+                const timeStr = loginDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                document.getElementById('loginTime').textContent = timeStr;
+            }
+
+            log('Home page initialized for user: ' + username);
+        }
+
+        // Listen for messages from C# backend
+        if (isWebView2) {
+            window.chrome.webview.addEventListener('message', function(event) {
+                const message = event.data;
+                log('Received message from C#: ' + JSON.stringify(message));
+
+                if (message.type === 'logoutComplete') {
+                    window.location.href = 'login.html';
+                }
+            });
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // ESC to close settings
+            if (e.key === 'Escape') {
+                closeSettings();
+            }
+        });
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', initPage);
+
+        log('FusionClientERP Home page ready');
+        log('========================================');
+    </script>
+</body>
+</html>

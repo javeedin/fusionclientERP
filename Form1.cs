@@ -167,7 +167,7 @@ namespace WMSApp
                 }
 
                 // Folders to copy
-                string[] folders = { "wms", "gl", "sync", "ar", "ap", "om", "fa", "ca", "pos" };
+                string[] folders = { "main", "inv", "wms", "gl", "sync", "ar", "ap", "om", "fa", "ca", "pos" };
 
                 foreach (string folder in folders)
                 {
@@ -785,6 +785,35 @@ namespace WMSApp
 
             // Create context menu for modules dropdown
             modulesContextMenu = new ContextMenuStrip();
+
+            // Home menu item - navigates to main home page
+            modulesContextMenu.Items.Add("Home").Click += (s, e) =>
+            {
+                string repoRoot = GetWebFilesBasePath();
+                string homePath = Path.GetFullPath(Path.Combine(repoRoot, "main", "home.html"));
+                if (File.Exists(homePath))
+                {
+                    string fileUrl = "file:///" + homePath.Replace("\\", "/");
+                    Navigate(fileUrl);
+                }
+            };
+
+            modulesContextMenu.Items.Add("-"); // Separator
+
+            // INV - Inventory Management
+            modulesContextMenu.Items.Add("INV - Inventory Management").Click += (s, e) =>
+            {
+                string repoRoot = GetWebFilesBasePath();
+                string indexPath = Path.GetFullPath(Path.Combine(repoRoot, "inv", "index.html"));
+                if (File.Exists(indexPath))
+                {
+                    string fileUrl = "file:///" + indexPath.Replace("\\", "/");
+                    Navigate(fileUrl);
+                }
+            };
+
+            modulesContextMenu.Items.Add("-"); // Separator
+
             modulesContextMenu.Items.Add("WMS - Warehouse Management").Click += (s, e) =>
             {
                 string repoRoot = GetWebFilesBasePath();
@@ -1068,8 +1097,19 @@ namespace WMSApp
             this.Controls.Add(navPanel);
             this.Controls.Add(titleBarPanel);
 
-            // Create initial tab
-            AddNewTab("https://www.google.com");
+            // Create initial tab with main login page
+            string basePath = GetWebFilesBasePath();
+            string loginPath = Path.GetFullPath(Path.Combine(basePath, "main", "login.html"));
+            if (File.Exists(loginPath))
+            {
+                string fileUrl = "file:///" + loginPath.Replace("\\", "/");
+                AddNewTab(fileUrl);
+            }
+            else
+            {
+                // Fallback to Google if login page not found
+                AddNewTab("https://www.google.com");
+            }
         }
 
         private void LogDebug(string message)

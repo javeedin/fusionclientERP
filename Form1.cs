@@ -365,10 +365,12 @@ namespace WMSApp
                 System.Diagnostics.Debug.WriteLine($"[VALIDATE LOGIN] BaseUrl from IntegrationCode: {baseUrl}");
 
                 // Call the login endpoint with credentials
+                // The baseUrl already includes the full path to the Login module (e.g., .../FUSIONCLIENTERP/Login)
+                // So we just append query parameters directly, not another /login path segment
                 string encodedUsername = Uri.EscapeDataString(username);
                 string encodedPassword = Uri.EscapeDataString(password);
-                string apiUrl = $"{baseUrl}/login?username={encodedUsername}&password={encodedPassword}";
-                System.Diagnostics.Debug.WriteLine($"[VALIDATE LOGIN] Calling login API: {baseUrl}/login?username={encodedUsername}&password=***");
+                string apiUrl = $"{baseUrl}?username={encodedUsername}&password={encodedPassword}";
+                System.Diagnostics.Debug.WriteLine($"[VALIDATE LOGIN] Calling login API: {baseUrl}?username={encodedUsername}&password=***");
 
                 using (var client = new HttpClient())
                 {

@@ -4406,8 +4406,10 @@ Click "Run Test" to execute the API call...
             const tbody = document.getElementById('poOrdersTableBody');
             tbody.innerHTML = '<tr><td colspan="12" class="loading">Loading data...</td></tr>';
 
-            const linesTbody = document.getElementById('poLinesTableBody');
-            linesTbody.innerHTML = '<tr><td colspan="7" class="loading">Loading lines...</td></tr>';
+            // Show loading state in DevExpress DataGrid for PO Lines
+            if (poLinesGridInstance) {
+                poLinesGridInstance.option('dataSource', []);
+            }
 
             try {
                 // Fetch PO receipts
@@ -4477,8 +4479,9 @@ Click "Run Test" to execute the API call...
                 }
             } catch (error) {
                 console.error('[INV] Error fetching PO lines:', error);
-                const linesTbody = document.getElementById('poLinesTableBody');
-                linesTbody.innerHTML = `<tr><td colspan="7" class="no-data" style="color: #dc3545;">Error: ${error.message}</td></tr>`;
+                poReceiptsLinesData = [];
+                filteredPoLinesData = [];
+                renderPoLinesTable([]);
             }
         }
 

@@ -9604,6 +9604,17 @@ Click "Run Test" to execute the API call...
 
             const filteredEndpoints = getFilteredEndpoints();
 
+            // Debug: Log first endpoint's keys and API_TYPE variations
+            if (filteredEndpoints.length > 0) {
+                const firstEp = filteredEndpoints[0].endpoint;
+                console.log('[DEBUG RENDER] First endpoint ALL KEYS:', Object.keys(firstEp));
+                console.log('[DEBUG RENDER] First endpoint FULL OBJECT:', JSON.stringify(firstEp, null, 2));
+                console.log('[DEBUG RENDER] apiType:', firstEp.apiType);
+                console.log('[DEBUG RENDER] API_TYPE:', firstEp.API_TYPE);
+                console.log('[DEBUG RENDER] ApiType:', firstEp.ApiType);
+                console.log('[DEBUG RENDER] api_type:', firstEp.api_type);
+            }
+
             if (filteredEndpoints.length === 0) {
                 const message = endpointSearchFilter
                     ? 'No endpoints match your search criteria.'

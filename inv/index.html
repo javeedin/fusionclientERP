@@ -2841,6 +2841,7 @@
                                     <th style="width: 50px;">S.No</th>
                                     <th style="width: 80px;">Source</th>
                                     <th style="width: 100px;">Instance</th>
+                                    <th style="width: 80px;">API Type</th>
                                     <th>Integration Code</th>
                                     <th>URL</th>
                                     <th>Path</th>
@@ -2989,6 +2990,18 @@
                         <label for="endpointInstance">Instance *</label>
                         <select id="endpointInstance" onchange="onEndpointInstanceChange()">
                             <option value="">-- Select --</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 0 0 120px;">
+                        <label for="endpointApiType">API Type</label>
+                        <select id="endpointApiType">
+                            <option value="">-- Select --</option>
+                            <option value="REST">REST</option>
+                            <option value="SOAP">SOAP</option>
+                            <option value="EXCEL">EXCEL</option>
+                            <option value="CSV">CSV</option>
+                            <option value="JSON">JSON</option>
+                            <option value="XML">XML</option>
                         </select>
                     </div>
                     <div class="form-group" style="flex: 1;">
@@ -9594,7 +9607,7 @@ Click "Run Test" to execute the API call...
                 const message = endpointSearchFilter
                     ? 'No endpoints match your search criteria.'
                     : 'No endpoints configured. Click "New" to add one.';
-                tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 30px; color: #888;">${message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 30px; color: #888;">${message}</td></tr>`;
                 return;
             }
 
@@ -9602,6 +9615,7 @@ Click "Run Test" to execute the API call...
                 // Use separate source and instanceName fields directly
                 const sourceType = endpoint.source || '';
                 const instanceName = endpoint.instanceName || '';
+                const apiType = endpoint.apiType || '';
                 // Parameters count
                 const paramCount = (endpoint.parameters && endpoint.parameters.length) || 0;
                 const paramBadge = paramCount > 0 ? `<span style="background: #667eea; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px;">${paramCount}</span>` : '<span style="color: #999;">0</span>';
@@ -9611,6 +9625,7 @@ Click "Run Test" to execute the API call...
                     <td>${endpoint.sno || originalIndex + 1}</td>
                     <td>${escapeHtml(sourceType)}</td>
                     <td>${escapeHtml(instanceName)}</td>
+                    <td>${escapeHtml(apiType)}</td>
                     <td>${escapeHtml(endpoint.integrationCode)}</td>
                     <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(endpoint.url)}">${escapeHtml(endpoint.url)}</td>
                     <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(endpoint.path)}">${escapeHtml(endpoint.path)}</td>
@@ -9778,6 +9793,7 @@ Click "Run Test" to execute the API call...
                 document.getElementById('endpointSource').value = '';
                 populateEndpointInstanceDropdown(''); // Show all instances
                 document.getElementById('endpointInstance').value = '';
+                document.getElementById('endpointApiType').value = '';
                 document.getElementById('endpointIntegrationCode').value = '';
                 document.getElementById('endpointURL').value = '';
                 document.getElementById('endpointPath').value = '';
@@ -9840,6 +9856,7 @@ Click "Run Test" to execute the API call...
                 console.log('[JS DEBUG] Source dropdown value:', document.getElementById('endpointSource').value);
                 console.log('[JS DEBUG] Instance dropdown value:', instanceSelect.value);
 
+                document.getElementById('endpointApiType').value = endpoint.apiType || '';
                 document.getElementById('endpointIntegrationCode').value = endpoint.integrationCode || '';
                 document.getElementById('endpointURL').value = endpoint.url || '';
                 document.getElementById('endpointPath').value = endpoint.path || '';
@@ -9879,6 +9896,7 @@ Click "Run Test" to execute the API call...
             const sno = parseInt(document.getElementById('endpointSno').value) || getNextSno();
             const source = document.getElementById('endpointSource').value;
             const instanceName = document.getElementById('endpointInstance').value;
+            const apiType = document.getElementById('endpointApiType').value;
             const integrationCode = document.getElementById('endpointIntegrationCode').value.trim();
             const url = document.getElementById('endpointURL').value.trim();
             const path = document.getElementById('endpointPath').value.trim();
@@ -9888,6 +9906,7 @@ Click "Run Test" to execute the API call...
             console.log('[JS DEBUG]   sno:', sno);
             console.log('[JS DEBUG]   source:', source);
             console.log('[JS DEBUG]   instanceName:', instanceName);
+            console.log('[JS DEBUG]   apiType:', apiType);
             console.log('[JS DEBUG]   integrationCode:', integrationCode);
             console.log('[JS DEBUG]   url:', url);
             console.log('[JS DEBUG]   path:', path);
@@ -9915,7 +9934,7 @@ Click "Run Test" to execute the API call...
             console.log('[JS DEBUG]   mode:', mode, 'indexStr:', indexStr);
 
             // Create endpoint object with separate source and instanceName fields
-            const endpointObj = { sno, source, instanceName, integrationCode, url, path, comments, parameters, offset, limit };
+            const endpointObj = { sno, source, instanceName, apiType, integrationCode, url, path, comments, parameters, offset, limit };
             console.log('[JS DEBUG] endpointObj to save:', JSON.stringify(endpointObj, null, 2));
 
             // Uniqueness check: Source + InstanceName + IntegrationCode combination must be unique

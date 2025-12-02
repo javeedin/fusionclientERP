@@ -3550,6 +3550,7 @@ Click "Run Test" to execute the API call...
         let filteredPoLinesData = [];
         let selectedPoReceipts = new Set();
         let poLinesGridInstance = null;
+        let poOrdersGridInstance = null;
 
         // Main tabs management
         let mainTabs = [];
@@ -4267,42 +4268,7 @@ Click "Run Test" to execute the API call...
 
                         <!-- Tab 2: By Purchase Orders -->
                         <div class="tab-content" id="po-tab-orders">
-                            <div class="grid-header" style="margin-bottom: 10px; padding: 10px 0; border: none; background: none;">
-                                <div class="grid-title">
-                                    Expected Purchase Orders
-                                    <button class="btn-expand-collapse" onclick="selectAllPoReceipts()" title="Select All">&#9745; Select All</button>
-                                    <button class="btn-expand-collapse" onclick="deselectAllPoReceipts()" title="Deselect All">&#9744; Deselect All</button>
-                                </div>
-                                <div class="grid-search">
-                                    <input type="text" id="poGridSearchInput" placeholder="Filter results..." oninput="filterPoReceiptsGrid()">
-                                    <span class="record-count" id="poRecordCount">0 Order(s)</span>
-                                </div>
-                            </div>
-                            <div class="table-container" style="max-height: calc(100vh - 450px);">
-                                <table class="data-table" id="poOrdersTable">
-                                    <thead style="background: #e0e0e0; color: #333;">
-                                        <tr>
-                                            <th style="padding: 10px 8px; font-size: 11px; width: 40px;">
-                                                <input type="checkbox" id="poSelectAllCheckbox" onchange="toggleAllPoCheckboxes(this)">
-                                            </th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Document Number</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Picker Name</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">To Org Code</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">From Org Name</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">From Org Code</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Items</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Doc Type</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Vendor Name</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Vendor Site</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Destination</th>
-                                            <th style="padding: 10px 8px; font-size: 11px;">Ship To Location</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="poOrdersTableBody">
-                                        <tr><td colspan="12" class="no-data">Enter search parameters and click Search</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                            <div id="poOrdersDataGrid" style="height: calc(100vh - 400px); min-height: 400px;"></div>
                             <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px; display: flex; gap: 10px; align-items: center;">
                                 <span id="poSelectedCount" style="font-size: 12px; color: #666;">0 selected</span>
                                 <button class="btn-search" onclick="receiveSelectedOrders()" style="padding: 8px 15px; font-size: 12px;">
@@ -4403,10 +4369,10 @@ Click "Run Test" to execute the API call...
             btn.disabled = true;
             btn.innerHTML = '<span>&#8987;</span> Searching...';
 
-            const tbody = document.getElementById('poOrdersTableBody');
-            tbody.innerHTML = '<tr><td colspan="12" class="loading">Loading data...</td></tr>';
-
-            // Show loading state in DevExpress DataGrid for PO Lines
+            // Show loading state in DevExpress DataGrids
+            if (poOrdersGridInstance) {
+                poOrdersGridInstance.option('dataSource', []);
+            }
             if (poLinesGridInstance) {
                 poLinesGridInstance.option('dataSource', []);
             }
@@ -4443,7 +4409,7 @@ Click "Run Test" to execute the API call...
                 await fetchPoReceiptsLines(orgCode);
             } catch (error) {
                 console.error('[INV] Error fetching PO receipts:', error);
-                tbody.innerHTML = `<tr><td colspan="12" class="no-data" style="color: #dc3545;">Error: ${error.message}</td></tr>`;
+                alert('Error fetching PO receipts: ' + error.message);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '<span>&#128269;</span> Search';
@@ -4620,43 +4586,444 @@ Click "Run Test" to execute the API call...
             document.getElementById('poChartByDestination').innerHTML = destChartHtml || '<div style="color: #888; text-align: center;">No data</div>';
         }
 
-        // Render PO receipts table
+        // Render PO receipts table using DevExpress DataGrid with master-detail
         function renderPoReceiptsTable(data) {
-            const tbody = document.getElementById('poOrdersTableBody');
-            if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="12" class="no-data">No data found</td></tr>';
-                document.getElementById('poRecordCount').textContent = '0 Order(s)';
-                return;
+            // Normalize data for the grid
+            const gridData = (data || []).map((row, idx) => ({
+                _index: idx,
+                document_number: row.document_number || row.DOCUMENT_NUMBER || '-',
+                vendor_name: row.vendor_name || row.VENDOR_NAME || '-',
+                vendor_site_code: row.vendor_site_code || row.VENDOR_SITE_CODE || '-',
+                ship_to_location: row.ship_to_location || row.SHIP_TO_LOCATION || '-',
+                to_organization_code: row.to_organization_code || row.TO_ORGANIZATION_CODE || '-',
+                no_of_items: row.no_of_items || row.NO_OF_ITEMS || 0,
+                picker_name: row.picker_name || row.PICKER_NAME || '-',
+                from_organization_name: row.from_organization_name || row.FROM_ORGANIZATION_NAME || '-',
+                from_organization_code: row.from_organization_code || row.FROM_ORGANIZATION_CODE || '-',
+                document_type: row.document_type || row.DOCUMENT_TYPE || '-',
+                destination_type: row.destination_type || row.DESTINATION_TYPE || '-',
+                _originalData: row
+            }));
+
+            // Build unique values for filters
+            const uniqueDocNumbers = [...new Set(gridData.map(r => r.document_number).filter(v => v && v !== '-'))];
+            const uniqueVendors = [...new Set(gridData.map(r => r.vendor_name).filter(v => v && v !== '-'))];
+
+            // Destroy existing grid instance if exists
+            if (poOrdersGridInstance) {
+                poOrdersGridInstance.dispose();
+                poOrdersGridInstance = null;
             }
 
-            let html = '';
-            data.forEach((row, idx) => {
-                const docNum = row.document_number || row.DOCUMENT_NUMBER || '-';
-                const isSelected = selectedPoReceipts.has(docNum);
+            // Initialize DevExpress DataGrid with master-detail
+            poOrdersGridInstance = $('#poOrdersDataGrid').dxDataGrid({
+                dataSource: gridData,
+                showBorders: true,
+                showRowLines: true,
+                showColumnLines: true,
+                rowAlternationEnabled: true,
+                columnAutoWidth: true,
+                wordWrapEnabled: false,
+                allowColumnResizing: true,
+                columnResizingMode: 'widget',
+                hoverStateEnabled: true,
+                width: '100%',
+                height: '100%',
 
-                html += `
-                    <tr style="font-size: 11px;">
-                        <td style="padding: 6px 8px;">
-                            <input type="checkbox" class="po-checkbox" data-doc="${docNum}"
-                                ${isSelected ? 'checked' : ''} onchange="togglePoSelection('${docNum}', this)">
-                        </td>
-                        <td style="padding: 6px 8px;"><strong>${docNum}</strong></td>
-                        <td style="padding: 6px 8px;">${row.picker_name || row.PICKER_NAME || '-'}</td>
-                        <td style="padding: 6px 8px;">${row.to_organization_code || row.TO_ORGANIZATION_CODE || '-'}</td>
-                        <td style="padding: 6px 8px;">${row.from_organization_name || row.FROM_ORGANIZATION_NAME || '-'}</td>
-                        <td style="padding: 6px 8px;">${row.from_organization_code || row.FROM_ORGANIZATION_CODE || '-'}</td>
-                        <td style="padding: 6px 8px;">${row.no_of_items || row.NO_OF_ITEMS || '-'}</td>
-                        <td style="padding: 6px 8px;">${row.document_type || row.DOCUMENT_TYPE || '-'}</td>
-                        <td style="padding: 6px 8px;">${row.vendor_name || row.VENDOR_NAME || '-'}</td>
-                        <td style="padding: 6px 8px;">${row.vendor_site_code || row.VENDOR_SITE_CODE || '-'}</td>
-                        <td style="padding: 6px 8px;">${row.destination_type || row.DESTINATION_TYPE || '-'}</td>
-                        <td style="padding: 6px 8px;">${row.ship_to_location || row.SHIP_TO_LOCATION || '-'}</td>
-                    </tr>
-                `;
-            });
+                // Scrolling
+                scrolling: {
+                    mode: 'standard',
+                    showScrollbar: 'always',
+                    useNative: true
+                },
 
-            tbody.innerHTML = html;
-            document.getElementById('poRecordCount').textContent = data.length + ' Order(s)';
+                // Paging
+                paging: {
+                    enabled: true,
+                    pageSize: 25
+                },
+                pager: {
+                    visible: true,
+                    showPageSizeSelector: true,
+                    allowedPageSizes: [10, 25, 50, 100],
+                    showInfo: true,
+                    infoText: '{2} Order(s)'
+                },
+
+                // Sorting
+                sorting: {
+                    mode: 'multiple'
+                },
+
+                // Filtering
+                filterRow: {
+                    visible: true,
+                    applyFilter: 'auto'
+                },
+                headerFilter: {
+                    visible: true
+                },
+
+                // Search Panel
+                searchPanel: {
+                    visible: true,
+                    width: 240,
+                    placeholder: 'Search orders...'
+                },
+
+                // Grouping configuration
+                grouping: {
+                    autoExpandAll: false,
+                    contextMenuEnabled: true,
+                    expandMode: 'rowClick'
+                },
+                groupPanel: {
+                    visible: false
+                },
+
+                // Export to Excel
+                export: {
+                    enabled: true,
+                    allowExportSelectedData: true,
+                    fileName: 'PO_Orders_Export'
+                },
+                onExporting: function(e) {
+                    const workbook = new ExcelJS.Workbook();
+                    const worksheet = workbook.addWorksheet('PO Orders');
+
+                    DevExpress.excelExporter.exportDataGrid({
+                        component: e.component,
+                        worksheet: worksheet,
+                        autoFilterEnabled: true,
+                        topLeftCell: { row: 1, column: 1 }
+                    }).then(function() {
+                        workbook.xlsx.writeBuffer().then(function(buffer) {
+                            saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'PO_Orders_Export.xlsx');
+                        });
+                    });
+                    e.cancel = true;
+                },
+
+                // Selection
+                selection: {
+                    mode: 'multiple',
+                    showCheckBoxesMode: 'always'
+                },
+                onSelectionChanged: function(e) {
+                    selectedPoReceipts.clear();
+                    e.selectedRowsData.forEach(row => {
+                        if (row.document_number && row.document_number !== '-') {
+                            selectedPoReceipts.add(row.document_number);
+                        }
+                    });
+                    updatePoSelectedCount();
+                },
+
+                // Columns - Group by Document Number
+                columns: [
+                    {
+                        dataField: 'document_number',
+                        caption: 'Document Number',
+                        width: 150,
+                        groupIndex: 0,
+                        sortOrder: 'asc',
+                        groupCellTemplate: function(container, options) {
+                            // Get all items in this group to show group summary
+                            const groupData = options.data.items || options.data.collapsedItems || [];
+                            const firstItem = groupData[0] || {};
+
+                            const $content = $('<div>')
+                                .css({
+                                    'display': 'flex',
+                                    'align-items': 'center',
+                                    'gap': '20px',
+                                    'padding': '8px 0',
+                                    'font-size': '12px'
+                                });
+
+                            $('<span>')
+                                .css({ 'font-weight': '700', 'color': '#667eea', 'min-width': '140px' })
+                                .text('PO: ' + options.value)
+                                .appendTo($content);
+
+                            $('<span>')
+                                .css({ 'color': '#333' })
+                                .html('<strong>Vendor:</strong> ' + (firstItem.vendor_name || '-'))
+                                .appendTo($content);
+
+                            $('<span>')
+                                .css({ 'color': '#333' })
+                                .html('<strong>Site:</strong> ' + (firstItem.vendor_site_code || '-'))
+                                .appendTo($content);
+
+                            $('<span>')
+                                .css({ 'color': '#333' })
+                                .html('<strong>Ship To:</strong> ' + (firstItem.ship_to_location || '-'))
+                                .appendTo($content);
+
+                            $('<span>')
+                                .css({ 'color': '#333' })
+                                .html('<strong>Org:</strong> ' + (firstItem.to_organization_code || '-'))
+                                .appendTo($content);
+
+                            $('<span>')
+                                .css({ 'color': '#28a745', 'font-weight': '600' })
+                                .html('<strong>Items:</strong> ' + (firstItem.no_of_items || groupData.length))
+                                .appendTo($content);
+
+                            container.append($content);
+                        },
+                        lookup: {
+                            dataSource: uniqueDocNumbers,
+                            allowClearing: true
+                        }
+                    },
+                    {
+                        dataField: 'vendor_name',
+                        caption: 'Vendor Name',
+                        minWidth: 150,
+                        lookup: {
+                            dataSource: uniqueVendors,
+                            allowClearing: true
+                        }
+                    },
+                    {
+                        dataField: 'vendor_site_code',
+                        caption: 'Vendor Site',
+                        width: 120
+                    },
+                    {
+                        dataField: 'ship_to_location',
+                        caption: 'Ship To Location',
+                        minWidth: 130
+                    },
+                    {
+                        dataField: 'to_organization_code',
+                        caption: 'To Org Code',
+                        width: 100,
+                        alignment: 'center'
+                    },
+                    {
+                        dataField: 'no_of_items',
+                        caption: 'No of Items',
+                        width: 90,
+                        alignment: 'center',
+                        dataType: 'number'
+                    },
+                    {
+                        dataField: 'picker_name',
+                        caption: 'Picker Name',
+                        width: 120,
+                        visible: false
+                    },
+                    {
+                        dataField: 'from_organization_name',
+                        caption: 'From Org Name',
+                        minWidth: 130,
+                        visible: false
+                    },
+                    {
+                        dataField: 'from_organization_code',
+                        caption: 'From Org Code',
+                        width: 100,
+                        visible: false
+                    },
+                    {
+                        dataField: 'document_type',
+                        caption: 'Doc Type',
+                        width: 100,
+                        visible: false
+                    },
+                    {
+                        dataField: 'destination_type',
+                        caption: 'Destination',
+                        width: 100,
+                        visible: false
+                    }
+                ],
+
+                // Master-Detail for showing lines when expanded
+                masterDetail: {
+                    enabled: true,
+                    template: function(container, options) {
+                        const docNumber = options.data.document_number;
+
+                        // Filter lines for this specific document
+                        const linesForDoc = (poReceiptsLinesData || []).filter(line => {
+                            const lineDocNum = line.document_number || line.DOCUMENT_NUMBER;
+                            return lineDocNum === docNumber;
+                        }).map((line, idx) => ({
+                            _index: idx,
+                            line_number: line.line_number || line.LINE_NUMBER || '-',
+                            item_number: line.item_number || line.ITEM_NUMBER || '-',
+                            item_description: line.item_description || line.ITEM_DESCRIPTION || '-',
+                            quantity: line.quantity || line.QUANTITY || 0,
+                            uom: line.uom || line.UOM || line.unit_of_measure || '-',
+                            vendor_name: line.vendor_name || line.VENDOR_NAME || '-',
+                            _originalData: line
+                        }));
+
+                        // Build unique items for filter
+                        const uniqueItems = [...new Set(linesForDoc.map(r => r.item_number).filter(v => v && v !== '-'))];
+
+                        $('<div>')
+                            .css({
+                                'padding': '15px',
+                                'background': '#f8f9fa',
+                                'border-radius': '6px'
+                            })
+                            .dxDataGrid({
+                                dataSource: linesForDoc,
+                                showBorders: true,
+                                showRowLines: true,
+                                rowAlternationEnabled: true,
+                                columnAutoWidth: true,
+                                hoverStateEnabled: true,
+
+                                // Filtering for detail grid
+                                filterRow: {
+                                    visible: true,
+                                    applyFilter: 'auto'
+                                },
+                                headerFilter: {
+                                    visible: true
+                                },
+
+                                // Paging for detail
+                                paging: {
+                                    enabled: true,
+                                    pageSize: 10
+                                },
+                                pager: {
+                                    visible: true,
+                                    showInfo: true,
+                                    infoText: '{2} Line(s)'
+                                },
+
+                                columns: [
+                                    {
+                                        dataField: 'line_number',
+                                        caption: 'Line #',
+                                        width: 70,
+                                        alignment: 'center'
+                                    },
+                                    {
+                                        dataField: 'item_number',
+                                        caption: 'Item Number',
+                                        width: 140,
+                                        lookup: {
+                                            dataSource: uniqueItems,
+                                            allowClearing: true
+                                        },
+                                        cellTemplate: function(cellContainer, cellOptions) {
+                                            $('<div>')
+                                                .css({ 'font-weight': '500', 'color': '#333' })
+                                                .text(cellOptions.value)
+                                                .appendTo(cellContainer);
+                                        }
+                                    },
+                                    {
+                                        dataField: 'item_description',
+                                        caption: 'Description',
+                                        minWidth: 200
+                                    },
+                                    {
+                                        dataField: 'quantity',
+                                        caption: 'Quantity',
+                                        width: 100,
+                                        alignment: 'right',
+                                        dataType: 'number',
+                                        format: {
+                                            type: 'fixedPoint',
+                                            precision: 0
+                                        }
+                                    },
+                                    {
+                                        dataField: 'uom',
+                                        caption: 'UOM',
+                                        width: 80,
+                                        alignment: 'center'
+                                    }
+                                ],
+
+                                // Summary for detail grid
+                                summary: {
+                                    totalItems: [
+                                        {
+                                            column: 'line_number',
+                                            summaryType: 'count',
+                                            displayFormat: 'Total: {0} Line(s)'
+                                        },
+                                        {
+                                            column: 'quantity',
+                                            summaryType: 'sum',
+                                            displayFormat: 'Total Qty: {0}',
+                                            valueFormat: {
+                                                type: 'fixedPoint',
+                                                precision: 0
+                                            }
+                                        }
+                                    ]
+                                }
+                            }).appendTo(container);
+                    }
+                },
+
+                // Summary for main grid
+                summary: {
+                    groupItems: [
+                        {
+                            summaryType: 'count',
+                            displayFormat: '{0} row(s)'
+                        }
+                    ],
+                    totalItems: [
+                        {
+                            column: 'document_number',
+                            summaryType: 'count',
+                            displayFormat: 'Total: {0} Order(s)'
+                        }
+                    ]
+                },
+
+                // Column chooser
+                columnChooser: {
+                    enabled: true,
+                    mode: 'select'
+                },
+
+                // Toolbar
+                toolbar: {
+                    items: [
+                        {
+                            location: 'before',
+                            widget: 'dxButton',
+                            options: {
+                                text: 'Expand All',
+                                icon: 'chevrondown',
+                                onClick: function() {
+                                    poOrdersGridInstance.expandAll(-1);
+                                }
+                            }
+                        },
+                        {
+                            location: 'before',
+                            widget: 'dxButton',
+                            options: {
+                                text: 'Collapse All',
+                                icon: 'chevronup',
+                                onClick: function() {
+                                    poOrdersGridInstance.collapseAll(-1);
+                                }
+                            }
+                        },
+                        'exportButton',
+                        'columnChooserButton',
+                        'searchPanel'
+                    ]
+                }
+            }).dxDataGrid('instance');
+
             updatePoSelectedCount();
         }
 
@@ -4891,66 +5258,36 @@ Click "Run Test" to execute the API call...
             updatePoSelectedCount();
         }
 
-        // Toggle all PO checkboxes
-        function toggleAllPoCheckboxes(masterCheckbox) {
-            const checkboxes = document.querySelectorAll('.po-checkbox');
-            checkboxes.forEach(cb => {
-                cb.checked = masterCheckbox.checked;
-                const docNum = cb.dataset.doc;
-                if (masterCheckbox.checked) {
-                    selectedPoReceipts.add(docNum);
-                } else {
-                    selectedPoReceipts.delete(docNum);
-                }
-            });
-            updatePoSelectedCount();
-        }
-
-        // Select all PO receipts
+        // Select all PO orders in DevExpress grid
         function selectAllPoReceipts() {
-            const checkboxes = document.querySelectorAll('.po-checkbox');
-            checkboxes.forEach(cb => {
-                cb.checked = true;
-                selectedPoReceipts.add(cb.dataset.doc);
-            });
-            document.getElementById('poSelectAllCheckbox').checked = true;
-            updatePoSelectedCount();
+            if (poOrdersGridInstance) {
+                poOrdersGridInstance.selectAll();
+            }
         }
 
-        // Deselect all PO receipts
+        // Deselect all PO orders in DevExpress grid
         function deselectAllPoReceipts() {
-            const checkboxes = document.querySelectorAll('.po-checkbox');
-            checkboxes.forEach(cb => {
-                cb.checked = false;
-            });
+            if (poOrdersGridInstance) {
+                poOrdersGridInstance.deselectAll();
+            }
             selectedPoReceipts.clear();
-            document.getElementById('poSelectAllCheckbox').checked = false;
             updatePoSelectedCount();
         }
 
         // Update selected count
         function updatePoSelectedCount() {
             const count = selectedPoReceipts.size;
-            document.getElementById('poSelectedCount').textContent = count + ' selected';
+            const countEl = document.getElementById('poSelectedCount');
+            if (countEl) {
+                countEl.textContent = count + ' selected';
+            }
         }
 
-        // Filter PO receipts grid
-        function filterPoReceiptsGrid() {
-            const searchText = document.getElementById('poGridSearchInput').value.toLowerCase();
-            if (!poReceiptsData) return;
-
-            if (!searchText) {
-                renderPoReceiptsTable(poReceiptsData);
-                return;
+        // Filter PO receipts grid - DevExpress handles filtering natively
+        function filterPoReceiptsGrid(searchText) {
+            if (poOrdersGridInstance && searchText !== undefined) {
+                poOrdersGridInstance.searchByText(searchText);
             }
-
-            const filtered = poReceiptsData.filter(row => {
-                return (row.document_number || row.DOCUMENT_NUMBER || '').toLowerCase().includes(searchText) ||
-                       (row.vendor_name || row.VENDOR_NAME || '').toLowerCase().includes(searchText) ||
-                       (row.destination_type || row.DESTINATION_TYPE || '').toLowerCase().includes(searchText);
-            });
-
-            renderPoReceiptsTable(filtered);
         }
 
         // Filter PO lines grid - DevExpress handles filtering natively via searchPanel and filterRow

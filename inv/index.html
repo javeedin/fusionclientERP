@@ -5511,7 +5511,13 @@ Click "Run Test" to execute the API call...
                 const shipToLocation = header.ship_to_location || header.SHIP_TO_LOCATION || '-';
                 const toOrgCode = header.to_organization_code || header.TO_ORGANIZATION_CODE || '-';
                 const noOfItems = header.no_of_items || header.NO_OF_ITEMS || items.length;
-                const creationDate = header.creation_date || header.CREATION_DATE || header.created_date || header.CREATED_DATE || '-';
+                const creationDate = header.CREATION_DATE || header.creation_date || header.created_date || header.CREATED_DATE || '-';
+
+                // Debug: Log first row's keys to see available fields
+                if (idx === 0) {
+                    console.log('[INV] PO Header fields:', Object.keys(header));
+                    console.log('[INV] CREATION_DATE value:', header.CREATION_DATE);
+                }
 
                 html += `
                     <div class="po-html-group" data-doc="${docNum}" style="border-bottom: 1px solid #e0e0e0;">
@@ -5777,7 +5783,7 @@ Click "Run Test" to execute the API call...
             if (poData) {
                 // Populate header details
                 document.getElementById('poDetailDocNumber').textContent = docNum;
-                document.getElementById('poDetailCreationDate').textContent = poData.creation_date || poData.CREATION_DATE || poData.created_date || poData.CREATED_DATE || '-';
+                document.getElementById('poDetailCreationDate').textContent = poData.CREATION_DATE || poData.creation_date || poData.created_date || poData.CREATED_DATE || '-';
                 document.getElementById('poDetailVendorName').textContent = poData.vendor_name || poData.VENDOR_NAME || '-';
                 document.getElementById('poDetailVendorSite').textContent = poData.vendor_site_code || poData.VENDOR_SITE_CODE || '-';
                 document.getElementById('poDetailShipTo').textContent = poData.ship_to_location || poData.SHIP_TO_LOCATION || '-';

@@ -2596,6 +2596,9 @@
                     <div class="task-group-card">
                         <div class="task-group-header">&#128230; Inventory</div>
                         <div class="task-group-items">
+                            <div class="task-item-main" onclick="handleMenuItem('Manage Inventory Items')">
+                                <span class="task-icon">&#128451;</span> Manage Inventory Items
+                            </div>
                             <div class="task-item-main" onclick="handleMenuItem('Manage Item Quantities')">
                                 <span class="task-icon">&#128230;</span> Manage Item Quantities
                             </div>
@@ -2722,6 +2725,7 @@
             <!-- Inventory Menu Items -->
             <div class="task-menu-section" id="taskMenu-inventory">
                 <div class="menu-items">
+                    <div class="menu-item" onclick="openMenuItem('inventory', 'Manage Inventory Items')"><span class="icon">&#128451;</span> Manage Inventory Items</div>
                     <div class="menu-item" onclick="openMenuItem('inventory', 'Manage Item Quantities')"><span class="icon">&#128230;</span> Manage Item Quantities</div>
                     <div class="menu-item" onclick="openMenuItem('inventory', 'Create Miscellaneous Transaction')"><span class="icon">&#128221;</span> Create Miscellaneous Transaction</div>
                     <div class="menu-item" onclick="openMenuItem('inventory', 'Create Subinventory Transfer')"><span class="icon">&#8644;</span> Create Subinventory Transfer</div>
@@ -3132,6 +3136,7 @@ Click "Run Test" to execute the API call...
                     {
                         name: '',
                         items: [
+                            { name: 'Manage Inventory Items', icon: '&#128451;' },
                             { name: 'Manage Item Quantities', icon: '&#128230;' },
                             { name: 'Create Miscellaneous Transaction', icon: '&#128221;' },
                             { name: 'Create Subinventory Transfer', icon: '&#8644;' },
@@ -3624,7 +3629,9 @@ Click "Run Test" to execute the API call...
 
         // Render tab content based on menu item
         function renderTabContent(container, item, task) {
-            if (item === 'Manage Item Quantities') {
+            if (item === 'Manage Inventory Items') {
+                showManageInventoryItems(container);
+            } else if (item === 'Manage Item Quantities') {
                 showManageItemQuantities(container);
             } else if (item === 'Receive Expected Shipments') {
                 showReceiveExpectedShipments(container);
@@ -3896,6 +3903,295 @@ Click "Run Test" to execute the API call...
         // Dynamic tabs for serial numbers
         let serialTabs = [];
         let activeTabId = 'tab-charts';
+
+        // ============================================
+        // Manage Inventory Items Page
+        // ============================================
+        let inventoryItemsData = [];
+        let filteredInventoryItemsData = [];
+
+        function showManageInventoryItems(container) {
+            const selectedOrgCode = localStorage.getItem('wms_org_code') || '';
+
+            container.innerHTML = `
+                <div style="padding: 20px; height: 100%; overflow-y: auto;">
+                    <!-- Collapsible Parameter Section -->
+                    <div class="collapsible-section" id="invItemsSearchSection">
+                        <div class="collapsible-header" onclick="toggleInvItemsSearchSection()">
+                            <h3><span>&#128269;</span> Search Parameters</h3>
+                            <span class="collapsible-toggle">&#9660;</span>
+                        </div>
+                        <div class="collapsible-content">
+                            <div class="param-row">
+                                <div class="param-group">
+                                    <label>Organization Code *</label>
+                                    <select id="invItemsParamOrgCode">
+                                        ${getOrgOptionsHtml(selectedOrgCode)}
+                                    </select>
+                                </div>
+                                <div class="param-group">
+                                    <label>Item Number</label>
+                                    <input type="text" id="invItemsParamItemNumber" placeholder="Enter item number">
+                                </div>
+                                <div class="param-group">
+                                    <label>Item Description</label>
+                                    <input type="text" id="invItemsParamItemDesc" placeholder="Enter item description">
+                                </div>
+                            </div>
+                            <div class="param-buttons">
+                                <button class="btn-search" id="btnSearchInvItems" onclick="searchInventoryItems()">
+                                    <span>&#128269;</span> Search
+                                </button>
+                                <button class="btn-clear" onclick="clearInvItemsParams()">Clear</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results Section -->
+                    <div class="tab-container" id="invItemsTabContainer">
+                        <div class="tab-header">
+                            <button class="tab-btn active" data-tab="inv-items-tab-list">
+                                &#128451; Items List
+                            </button>
+                            <button class="btn-fullscreen" onclick="toggleInvItemsFullscreen()" title="Fit to Page" style="margin-left: auto;">
+                                &#9974; Fit to Page
+                            </button>
+                        </div>
+
+                        <!-- Items List Tab -->
+                        <div class="tab-content active" id="inv-items-tab-list">
+                            <div class="grid-header" style="margin-bottom: 10px; padding: 10px 0; border: none; background: none;">
+                                <div class="grid-title">
+                                    Inventory Items
+                                </div>
+                                <div class="grid-search">
+                                    <input type="text" id="invItemsGridSearch" placeholder="Filter results..." oninput="filterInventoryItemsGrid()">
+                                    <span class="record-count" id="invItemsRecordCount">0 Item(s)</span>
+                                </div>
+                            </div>
+                            <div id="invItemsDataGrid" style="height: calc(100vh - 420px); min-height: 400px;">
+                                <div style="padding: 40px; text-align: center; color: #888;">
+                                    Enter search parameters and click Search to view items
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fullscreen Overlay -->
+                <div class="fullscreen-overlay" id="invItemsFullscreenOverlay">
+                    <div class="fullscreen-header">
+                        <h3>&#128451; Manage Inventory Items - Full View</h3>
+                    </div>
+                    <div class="fullscreen-content" id="invItemsFullscreenContent">
+                    </div>
+                </div>
+            `;
+        }
+
+        // Toggle Inventory Items search section
+        function toggleInvItemsSearchSection() {
+            const section = document.getElementById('invItemsSearchSection');
+            section.classList.toggle('collapsed');
+        }
+
+        // Clear Inventory Items parameters
+        function clearInvItemsParams() {
+            document.getElementById('invItemsParamItemNumber').value = '';
+            document.getElementById('invItemsParamItemDesc').value = '';
+        }
+
+        // Search Inventory Items
+        async function searchInventoryItems() {
+            const orgCode = document.getElementById('invItemsParamOrgCode').value;
+            const itemNumber = document.getElementById('invItemsParamItemNumber').value.trim();
+            const itemDesc = document.getElementById('invItemsParamItemDesc').value.trim();
+
+            if (!orgCode) {
+                alert('Please select an Organization Code');
+                return;
+            }
+
+            const btn = document.getElementById('btnSearchInvItems');
+            btn.disabled = true;
+            btn.innerHTML = '<span>&#8987;</span> Searching...';
+
+            const container = document.getElementById('invItemsDataGrid');
+            container.innerHTML = '<div style="padding: 40px; text-align: center; color: #888;">Loading items...</div>';
+
+            try {
+                // Get inventory items endpoint
+                const endpoint = await getInventoryItemsEndpoint();
+                if (!endpoint) {
+                    throw new Error('INVENTORY_ITEMS endpoint not configured');
+                }
+
+                let url = `${endpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                if (itemNumber) url += `&p_item_number=${encodeURIComponent(itemNumber)}`;
+                if (itemDesc) url += `&p_item_description=${encodeURIComponent(itemDesc)}`;
+
+                console.log('[INV] Fetching inventory items from:', url);
+                const response = await fetchWithBridge(url);
+
+                if (response && response.items) {
+                    inventoryItemsData = response.items;
+                    filteredInventoryItemsData = [...inventoryItemsData];
+                    renderInventoryItemsGrid(filteredInventoryItemsData);
+                    console.log('[INV] Loaded', inventoryItemsData.length, 'inventory items');
+                } else {
+                    inventoryItemsData = [];
+                    filteredInventoryItemsData = [];
+                    renderInventoryItemsGrid([]);
+                }
+            } catch (error) {
+                console.error('[INV] Error fetching inventory items:', error);
+                container.innerHTML = `<div style="padding: 40px; text-align: center; color: #dc3545;">Error: ${error.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>&#128269;</span> Search';
+            }
+        }
+
+        // Get INVENTORY_ITEMS endpoint
+        async function getInventoryItemsEndpoint() {
+            const instanceName = localStorage.getItem('wms_instance') || 'PROD';
+            return new Promise((resolve) => {
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'endpoint_inv_items_' + Date.now();
+                    const handler = function(event) {
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            if (data.requestId === requestId && data.endpoint) {
+                                resolve(data.endpoint);
+                                window.chrome.webview.removeEventListener('message', handler);
+                            }
+                        } catch (e) {}
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+                    window.chrome.webview.postMessage({
+                        action: 'getEndpoint',
+                        requestId: requestId,
+                        integrationCode: 'INVENTORY_ITEMS',
+                        instanceName: instanceName
+                    });
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        resolve(null);
+                    }, 5000);
+                } else {
+                    resolve(null);
+                }
+            });
+        }
+
+        // Render Inventory Items Grid
+        function renderInventoryItemsGrid(data) {
+            const container = document.getElementById('invItemsDataGrid');
+            const countEl = document.getElementById('invItemsRecordCount');
+
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: #888;">No items found</div>';
+                if (countEl) countEl.textContent = '0 Item(s)';
+                return;
+            }
+
+            if (countEl) countEl.textContent = data.length + ' Item(s)';
+
+            let html = `
+                <div style="overflow-x: auto; max-height: calc(100vh - 450px);">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead style="position: sticky; top: 0; background: #f0f0f0; z-index: 10;">
+                            <tr>
+                                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">Item Number</th>
+                                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">Description</th>
+                                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">Organization</th>
+                                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">Primary UOM</th>
+                                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">Item Type</th>
+                                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            data.forEach((item, idx) => {
+                const itemNumber = item.item_number || item.ITEM_NUMBER || item.segment1 || item.SEGMENT1 || '-';
+                const description = item.description || item.DESCRIPTION || item.item_description || item.ITEM_DESCRIPTION || '-';
+                const orgCode = item.organization_code || item.ORGANIZATION_CODE || '-';
+                const primaryUom = item.primary_uom_code || item.PRIMARY_UOM_CODE || item.uom || item.UOM || '-';
+                const itemType = item.item_type || item.ITEM_TYPE || '-';
+                const status = item.inventory_item_status_code || item.INVENTORY_ITEM_STATUS_CODE || item.status || item.STATUS || '-';
+
+                html += `
+                    <tr style="background: ${idx % 2 === 0 ? '#fff' : '#fafafa'}; border-bottom: 1px solid #eee;">
+                        <td style="padding: 10px; font-weight: 500; color: #667eea;">${itemNumber}</td>
+                        <td style="padding: 10px;">${description}</td>
+                        <td style="padding: 10px;">${orgCode}</td>
+                        <td style="padding: 10px; text-align: center;">${primaryUom}</td>
+                        <td style="padding: 10px;">${itemType}</td>
+                        <td style="padding: 10px;">
+                            <span style="padding: 2px 8px; border-radius: 10px; font-size: 11px; background: ${status === 'Active' ? '#d4edda' : '#f8d7da'}; color: ${status === 'Active' ? '#155724' : '#721c24'};">${status}</span>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Filter Inventory Items Grid
+        function filterInventoryItemsGrid() {
+            const searchText = (document.getElementById('invItemsGridSearch')?.value || '').toLowerCase().trim();
+
+            if (!searchText) {
+                renderInventoryItemsGrid(inventoryItemsData);
+                return;
+            }
+
+            const filtered = inventoryItemsData.filter(item => {
+                const itemNumber = (item.item_number || item.ITEM_NUMBER || item.segment1 || item.SEGMENT1 || '').toLowerCase();
+                const description = (item.description || item.DESCRIPTION || item.item_description || item.ITEM_DESCRIPTION || '').toLowerCase();
+                const orgCode = (item.organization_code || item.ORGANIZATION_CODE || '').toLowerCase();
+
+                return itemNumber.includes(searchText) || description.includes(searchText) || orgCode.includes(searchText);
+            });
+
+            renderInventoryItemsGrid(filtered);
+        }
+
+        // Toggle Inventory Items fullscreen
+        let invItemsFullscreen = false;
+        let invItemsOriginalParent = null;
+        let invItemsOriginalNextSibling = null;
+
+        function toggleInvItemsFullscreen() {
+            const overlay = document.getElementById('invItemsFullscreenOverlay');
+            const tabContainer = document.getElementById('invItemsTabContainer');
+            const fullscreenContent = document.getElementById('invItemsFullscreenContent');
+
+            if (!invItemsFullscreen) {
+                invItemsOriginalParent = tabContainer.parentNode;
+                invItemsOriginalNextSibling = tabContainer.nextSibling;
+                fullscreenContent.appendChild(tabContainer);
+                overlay.classList.add('active');
+                invItemsFullscreen = true;
+            } else {
+                if (invItemsOriginalParent) {
+                    if (invItemsOriginalNextSibling) {
+                        invItemsOriginalParent.insertBefore(tabContainer, invItemsOriginalNextSibling);
+                    } else {
+                        invItemsOriginalParent.appendChild(tabContainer);
+                    }
+                }
+                overlay.classList.remove('active');
+                invItemsFullscreen = false;
+            }
+        }
 
         function showManageItemQuantities(container) {
             const selectedOrgCode = localStorage.getItem('wms_org_code') || '';

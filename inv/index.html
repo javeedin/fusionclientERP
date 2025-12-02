@@ -4291,21 +4291,18 @@ Click "Run Test" to execute the API call...
                             <div class="po-html-filters" style="display: flex; gap: 15px; margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; flex-wrap: wrap; align-items: center;">
                                 <div style="display: flex; flex-direction: column; gap: 4px;">
                                     <label style="font-size: 11px; font-weight: 600; color: #555;">Document Number</label>
-                                    <select id="poHtmlFilterDocNumber" onchange="filterPoHtmlGrid()" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; min-width: 150px;">
-                                        <option value="">All Documents</option>
-                                    </select>
+                                    <input type="text" id="poHtmlFilterDocNumber" list="poHtmlDocNumberList" oninput="filterPoHtmlGrid()" placeholder="Type or select..." style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; min-width: 150px;">
+                                    <datalist id="poHtmlDocNumberList"></datalist>
                                 </div>
                                 <div style="display: flex; flex-direction: column; gap: 4px;">
                                     <label style="font-size: 11px; font-weight: 600; color: #555;">Vendor</label>
-                                    <select id="poHtmlFilterVendor" onchange="filterPoHtmlGrid()" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; min-width: 180px;">
-                                        <option value="">All Vendors</option>
-                                    </select>
+                                    <input type="text" id="poHtmlFilterVendor" list="poHtmlVendorList" oninput="filterPoHtmlGrid()" placeholder="Type or select..." style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; min-width: 180px;">
+                                    <datalist id="poHtmlVendorList"></datalist>
                                 </div>
                                 <div style="display: flex; flex-direction: column; gap: 4px;">
                                     <label style="font-size: 11px; font-weight: 600; color: #555;">Item</label>
-                                    <select id="poHtmlFilterItem" onchange="filterPoHtmlGrid()" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; min-width: 180px;">
-                                        <option value="">All Items</option>
-                                    </select>
+                                    <input type="text" id="poHtmlFilterItem" list="poHtmlItemList" oninput="filterPoHtmlGrid()" placeholder="Type or select..." style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; min-width: 180px;">
+                                    <datalist id="poHtmlItemList"></datalist>
                                 </div>
                                 <div style="display: flex; gap: 8px; margin-left: auto; align-items: flex-end;">
                                     <button onclick="expandAllPoHtmlGroups()" style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
@@ -4358,6 +4355,7 @@ Click "Run Test" to execute the API call...
                             <div id="poDetailsHeaderContent" style="padding: 0 20px 15px 20px;">
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 12px;">
                                     <div><strong>Document Number:</strong> <span id="poDetailDocNumber">-</span></div>
+                                    <div><strong>Creation Date:</strong> <span id="poDetailCreationDate">-</span></div>
                                     <div><strong>Vendor Name:</strong> <span id="poDetailVendorName">-</span></div>
                                     <div><strong>Vendor Site:</strong> <span id="poDetailVendorSite">-</span></div>
                                     <div><strong>Ship To Location:</strong> <span id="poDetailShipTo">-</span></div>
@@ -5513,6 +5511,7 @@ Click "Run Test" to execute the API call...
                 const shipToLocation = header.ship_to_location || header.SHIP_TO_LOCATION || '-';
                 const toOrgCode = header.to_organization_code || header.TO_ORGANIZATION_CODE || '-';
                 const noOfItems = header.no_of_items || header.NO_OF_ITEMS || items.length;
+                const creationDate = header.creation_date || header.CREATION_DATE || header.created_date || header.CREATED_DATE || '-';
 
                 html += `
                     <div class="po-html-group" data-doc="${docNum}" style="border-bottom: 1px solid #e0e0e0;">
@@ -5533,6 +5532,7 @@ Click "Run Test" to execute the API call...
                                     <strong style="color: #667eea;">PO: ${docNum}</strong>
                                     <button onclick="event.stopPropagation(); openPoDetailsDialog('${docNum}')" title="View PO Details" style="background: none; border: none; cursor: pointer; color: #667eea; font-size: 14px; padding: 0 5px; vertical-align: middle;">&#9998;</button>
                                 </span>
+                                <span><strong>Date:</strong> ${creationDate}</span>
                                 <span><strong>Vendor:</strong> ${vendorName}</span>
                                 <span><strong>Site:</strong> ${vendorSite}</span>
                                 <span><strong>Ship To:</strong> ${shipToLocation}</span>
@@ -5608,37 +5608,31 @@ Click "Run Test" to execute the API call...
             return html;
         }
 
-        // Populate filter dropdowns
+        // Populate filter datalists (type + select)
         function populatePoHtmlFilters(docNumbers, vendors, items) {
-            const docSelect = document.getElementById('poHtmlFilterDocNumber');
-            const vendorSelect = document.getElementById('poHtmlFilterVendor');
-            const itemSelect = document.getElementById('poHtmlFilterItem');
+            const docDatalist = document.getElementById('poHtmlDocNumberList');
+            const vendorDatalist = document.getElementById('poHtmlVendorList');
+            const itemDatalist = document.getElementById('poHtmlItemList');
 
-            if (docSelect) {
-                const currentVal = docSelect.value;
-                docSelect.innerHTML = '<option value="">All Documents</option>';
+            if (docDatalist) {
+                docDatalist.innerHTML = '';
                 (docNumbers || []).sort().forEach(doc => {
-                    docSelect.innerHTML += `<option value="${doc}">${doc}</option>`;
+                    docDatalist.innerHTML += `<option value="${doc}">`;
                 });
-                docSelect.value = currentVal;
             }
 
-            if (vendorSelect) {
-                const currentVal = vendorSelect.value;
-                vendorSelect.innerHTML = '<option value="">All Vendors</option>';
+            if (vendorDatalist) {
+                vendorDatalist.innerHTML = '';
                 (vendors || []).sort().forEach(vendor => {
-                    vendorSelect.innerHTML += `<option value="${vendor}">${vendor}</option>`;
+                    vendorDatalist.innerHTML += `<option value="${vendor}">`;
                 });
-                vendorSelect.value = currentVal;
             }
 
-            if (itemSelect) {
-                const currentVal = itemSelect.value;
-                itemSelect.innerHTML = '<option value="">All Items</option>';
+            if (itemDatalist) {
+                itemDatalist.innerHTML = '';
                 (items || []).sort().forEach(item => {
-                    itemSelect.innerHTML += `<option value="${item}">${item}</option>`;
+                    itemDatalist.innerHTML += `<option value="${item}">`;
                 });
-                itemSelect.value = currentVal;
             }
         }
 
@@ -5678,36 +5672,36 @@ Click "Run Test" to execute the API call...
             });
         }
 
-        // Filter the HTML grid
+        // Filter the HTML grid (supports partial matching for typed input)
         function filterPoHtmlGrid() {
-            const docFilter = document.getElementById('poHtmlFilterDocNumber')?.value || '';
-            const vendorFilter = document.getElementById('poHtmlFilterVendor')?.value || '';
-            const itemFilter = document.getElementById('poHtmlFilterItem')?.value || '';
+            const docFilter = (document.getElementById('poHtmlFilterDocNumber')?.value || '').toLowerCase().trim();
+            const vendorFilter = (document.getElementById('poHtmlFilterVendor')?.value || '').toLowerCase().trim();
+            const itemFilter = (document.getElementById('poHtmlFilterItem')?.value || '').toLowerCase().trim();
 
             let filtered = [...(poReceiptsData || [])];
 
-            // Filter by document number
+            // Filter by document number (partial match)
             if (docFilter) {
                 filtered = filtered.filter(row => {
-                    const docNum = row.document_number || row.DOCUMENT_NUMBER || '';
-                    return docNum === docFilter;
+                    const docNum = (row.document_number || row.DOCUMENT_NUMBER || '').toLowerCase();
+                    return docNum.includes(docFilter);
                 });
             }
 
-            // Filter by vendor
+            // Filter by vendor (partial match)
             if (vendorFilter) {
                 filtered = filtered.filter(row => {
-                    const vendor = row.vendor_name || row.VENDOR_NAME || '';
-                    return vendor === vendorFilter;
+                    const vendor = (row.vendor_name || row.VENDOR_NAME || '').toLowerCase();
+                    return vendor.includes(vendorFilter);
                 });
             }
 
-            // Filter by item (need to check if PO has that item in its lines)
+            // Filter by item (partial match - check if PO has that item in its lines)
             if (itemFilter) {
                 const docsWithItem = new Set();
                 (poReceiptsLinesData || []).forEach(line => {
-                    const itemNum = line.item_number || line.ITEM_NUMBER;
-                    if (itemNum === itemFilter) {
+                    const itemNum = (line.item_number || line.ITEM_NUMBER || '').toLowerCase();
+                    if (itemNum.includes(itemFilter)) {
                         const docNum = line.document_number || line.DOCUMENT_NUMBER;
                         docsWithItem.add(docNum);
                     }
@@ -5783,6 +5777,7 @@ Click "Run Test" to execute the API call...
             if (poData) {
                 // Populate header details
                 document.getElementById('poDetailDocNumber').textContent = docNum;
+                document.getElementById('poDetailCreationDate').textContent = poData.creation_date || poData.CREATION_DATE || poData.created_date || poData.CREATED_DATE || '-';
                 document.getElementById('poDetailVendorName').textContent = poData.vendor_name || poData.VENDOR_NAME || '-';
                 document.getElementById('poDetailVendorSite').textContent = poData.vendor_site_code || poData.VENDOR_SITE_CODE || '-';
                 document.getElementById('poDetailShipTo').textContent = poData.ship_to_location || poData.SHIP_TO_LOCATION || '-';

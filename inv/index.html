@@ -4225,6 +4225,9 @@ Click "Run Test" to execute the API call...
                             <button class="tab-btn" data-tab="po-tab-details" onclick="switchPoTab('po-tab-details')">
                                 &#128203; By PO Details
                             </button>
+                            <button class="tab-btn" data-tab="po-tab-orders-html" onclick="switchPoTab('po-tab-orders-html')">
+                                &#128195; By Purchase Orders (HTML)
+                            </button>
                             <button class="btn-fullscreen" onclick="togglePoFullscreen()" title="Fit to Page" style="margin-left: auto;">
                                 &#9974; Fit to Page
                             </button>
@@ -4280,6 +4283,59 @@ Click "Run Test" to execute the API call...
                         <!-- Tab 3: By PO Details (Lines) - DevExpress DataGrid -->
                         <div class="tab-content" id="po-tab-details">
                             <div id="poLinesDataGrid" style="height: calc(100vh - 400px); min-height: 400px;"></div>
+                        </div>
+
+                        <!-- Tab 4: By Purchase Orders (HTML) - Custom HTML Grouping -->
+                        <div class="tab-content" id="po-tab-orders-html">
+                            <!-- Filter Section -->
+                            <div class="po-html-filters" style="display: flex; gap: 15px; margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; flex-wrap: wrap; align-items: center;">
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <label style="font-size: 11px; font-weight: 600; color: #555;">Document Number</label>
+                                    <select id="poHtmlFilterDocNumber" onchange="filterPoHtmlGrid()" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; min-width: 150px;">
+                                        <option value="">All Documents</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <label style="font-size: 11px; font-weight: 600; color: #555;">Vendor</label>
+                                    <select id="poHtmlFilterVendor" onchange="filterPoHtmlGrid()" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; min-width: 180px;">
+                                        <option value="">All Vendors</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <label style="font-size: 11px; font-weight: 600; color: #555;">Item</label>
+                                    <select id="poHtmlFilterItem" onchange="filterPoHtmlGrid()" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; min-width: 180px;">
+                                        <option value="">All Items</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; gap: 8px; margin-left: auto; align-items: flex-end;">
+                                    <button onclick="expandAllPoHtmlGroups()" style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
+                                        &#9660; Expand All
+                                    </button>
+                                    <button onclick="collapseAllPoHtmlGroups()" style="padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
+                                        &#9650; Collapse All
+                                    </button>
+                                    <button onclick="clearPoHtmlFilters()" style="padding: 6px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
+                                        &#10005; Clear Filters
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Grouped Data Container -->
+                            <div class="po-html-container" style="max-height: calc(100vh - 480px); overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px;">
+                                <div id="poHtmlGroupedData" style="padding: 0;">
+                                    <div style="padding: 40px; text-align: center; color: #888;">
+                                        Enter search parameters and click Search to view data
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Footer with selection info -->
+                            <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px; display: flex; gap: 10px; align-items: center;">
+                                <span id="poHtmlSelectedCount" style="font-size: 12px; color: #666;">0 selected</span>
+                                <button class="btn-search" onclick="receiveSelectedHtmlOrders()" style="padding: 8px 15px; font-size: 12px;">
+                                    &#128229; Receive Selected
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -4425,6 +4481,7 @@ Click "Run Test" to execute the API call...
                     poReceiptsLinesData = [];
                     filteredPoLinesData = [];
                     renderPoLinesTable([]);
+                    renderPoHtmlGroupedView(poReceiptsData); // Render HTML view
                     return;
                 }
 
@@ -4436,18 +4493,21 @@ Click "Run Test" to execute the API call...
                     poReceiptsLinesData = response.items;
                     filteredPoLinesData = [...poReceiptsLinesData];
                     renderPoLinesTable(filteredPoLinesData);
+                    renderPoHtmlGroupedView(poReceiptsData); // Render HTML view
                     updateHomeAnalytics();
                     console.log('[INV] Loaded', poReceiptsLinesData.length, 'PO lines');
                 } else {
                     poReceiptsLinesData = [];
                     filteredPoLinesData = [];
                     renderPoLinesTable([]);
+                    renderPoHtmlGroupedView(poReceiptsData); // Render HTML view
                 }
             } catch (error) {
                 console.error('[INV] Error fetching PO lines:', error);
                 poReceiptsLinesData = [];
                 filteredPoLinesData = [];
                 renderPoLinesTable([]);
+                renderPoHtmlGroupedView(poReceiptsData); // Render HTML view
             }
         }
 
@@ -5305,6 +5365,318 @@ Click "Run Test" to execute the API call...
             }
             const selectedDocs = Array.from(selectedPoReceipts);
             console.log('[INV] Receiving orders:', selectedDocs);
+            alert('Receiving ' + selectedDocs.length + ' order(s):\n' + selectedDocs.join('\n') + '\n\nThis feature is under development.');
+        }
+
+        // ============================================
+        // HTML-Based PO Orders View Functions
+        // ============================================
+
+        let selectedPoHtmlReceipts = new Set();
+        let poHtmlFilteredData = [];
+
+        // Render HTML grouped PO view
+        function renderPoHtmlGroupedView(data) {
+            const container = document.getElementById('poHtmlGroupedData');
+            if (!container) return;
+
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: #888;">No data found</div>';
+                populatePoHtmlFilters([], []);
+                return;
+            }
+
+            // Group data by document_number
+            const groupedData = {};
+            data.forEach(row => {
+                const docNum = row.document_number || row.DOCUMENT_NUMBER || '-';
+                if (!groupedData[docNum]) {
+                    groupedData[docNum] = {
+                        header: row,
+                        items: []
+                    };
+                }
+            });
+
+            // Get lines for each document
+            const allDocNumbers = Object.keys(groupedData);
+            const allItems = new Set();
+
+            (poReceiptsLinesData || []).forEach(line => {
+                const lineDocNum = line.document_number || line.DOCUMENT_NUMBER;
+                if (groupedData[lineDocNum]) {
+                    groupedData[lineDocNum].items.push(line);
+                    const itemNum = line.item_number || line.ITEM_NUMBER;
+                    if (itemNum && itemNum !== '-') {
+                        allItems.add(itemNum);
+                    }
+                }
+            });
+
+            // Populate filters
+            const uniqueVendors = [...new Set(data.map(r => r.vendor_name || r.VENDOR_NAME).filter(v => v && v !== '-'))];
+            populatePoHtmlFilters(allDocNumbers, uniqueVendors, [...allItems]);
+
+            // Store for filtering
+            poHtmlFilteredData = data;
+
+            // Build HTML
+            let html = '';
+            Object.keys(groupedData).forEach((docNum, idx) => {
+                const group = groupedData[docNum];
+                const header = group.header;
+                const items = group.items;
+                const isSelected = selectedPoHtmlReceipts.has(docNum);
+
+                const vendorName = header.vendor_name || header.VENDOR_NAME || '-';
+                const vendorSite = header.vendor_site_code || header.VENDOR_SITE_CODE || '-';
+                const shipToLocation = header.ship_to_location || header.SHIP_TO_LOCATION || '-';
+                const toOrgCode = header.to_organization_code || header.TO_ORGANIZATION_CODE || '-';
+                const noOfItems = header.no_of_items || header.NO_OF_ITEMS || items.length;
+
+                html += \`
+                    <div class="po-html-group" data-doc="\${docNum}" style="border-bottom: 1px solid #e0e0e0;">
+                        <!-- Group Header -->
+                        <div class="po-html-group-header" onclick="togglePoHtmlGroup('\${docNum}')"
+                            style="display: flex; align-items: center; padding: 12px 15px; background: \${idx % 2 === 0 ? '#fff' : '#fafafa'}; cursor: pointer; transition: background 0.2s;"
+                            onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background='\${idx % 2 === 0 ? '#fff' : '#fafafa'}'">
+
+                            <input type="checkbox" class="po-html-checkbox" data-doc="\${docNum}"
+                                \${isSelected ? 'checked' : ''}
+                                onclick="event.stopPropagation(); togglePoHtmlSelection('\${docNum}', this)"
+                                style="margin-right: 12px; width: 16px; height: 16px; cursor: pointer;">
+
+                            <span class="po-html-expand-icon" id="poHtmlIcon_\${docNum}" style="margin-right: 10px; font-size: 10px; color: #667eea;">&#9654;</span>
+
+                            <div style="display: flex; flex-wrap: wrap; gap: 20px; flex: 1; font-size: 12px;">
+                                <span style="min-width: 140px;"><strong style="color: #667eea;">PO: \${docNum}</strong></span>
+                                <span><strong>Vendor:</strong> \${vendorName}</span>
+                                <span><strong>Site:</strong> \${vendorSite}</span>
+                                <span><strong>Ship To:</strong> \${shipToLocation}</span>
+                                <span><strong>Org:</strong> \${toOrgCode}</span>
+                                <span style="color: #28a745; font-weight: 600;"><strong>Items:</strong> \${noOfItems}</span>
+                            </div>
+                        </div>
+
+                        <!-- Group Lines (Collapsible) -->
+                        <div class="po-html-group-lines" id="poHtmlLines_\${docNum}" style="display: none; padding: 0 15px 15px 45px; background: #f8f9fa;">
+                            \${renderPoHtmlLines(items)}
+                        </div>
+                    </div>
+                \`;
+            });
+
+            container.innerHTML = html;
+            updatePoHtmlSelectedCount();
+        }
+
+        // Render lines table for a group
+        function renderPoHtmlLines(items) {
+            if (!items || items.length === 0) {
+                return '<div style="padding: 15px; color: #888; font-style: italic;">No lines available for this PO</div>';
+            }
+
+            let html = \`
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px;">
+                    <thead>
+                        <tr style="background: #e9ecef;">
+                            <th style="padding: 8px 10px; text-align: left; border: 1px solid #dee2e6; font-weight: 600;">Line #</th>
+                            <th style="padding: 8px 10px; text-align: left; border: 1px solid #dee2e6; font-weight: 600;">Item Number</th>
+                            <th style="padding: 8px 10px; text-align: left; border: 1px solid #dee2e6; font-weight: 600;">Description</th>
+                            <th style="padding: 8px 10px; text-align: right; border: 1px solid #dee2e6; font-weight: 600;">Quantity</th>
+                            <th style="padding: 8px 10px; text-align: center; border: 1px solid #dee2e6; font-weight: 600;">UOM</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            \`;
+
+            let totalQty = 0;
+            items.forEach((line, idx) => {
+                const lineNum = line.line_number || line.LINE_NUMBER || '-';
+                const itemNum = line.item_number || line.ITEM_NUMBER || '-';
+                const itemDesc = line.item_description || line.ITEM_DESCRIPTION || '-';
+                const qty = parseFloat(line.quantity || line.QUANTITY || 0);
+                const uom = line.uom || line.UOM || line.unit_of_measure || '-';
+                totalQty += qty;
+
+                html += \`
+                    <tr style="background: \${idx % 2 === 0 ? '#fff' : '#f8f9fa'};">
+                        <td style="padding: 6px 10px; border: 1px solid #dee2e6;">\${lineNum}</td>
+                        <td style="padding: 6px 10px; border: 1px solid #dee2e6; font-weight: 500;">\${itemNum}</td>
+                        <td style="padding: 6px 10px; border: 1px solid #dee2e6;">\${itemDesc}</td>
+                        <td style="padding: 6px 10px; border: 1px solid #dee2e6; text-align: right;">\${qty.toLocaleString()}</td>
+                        <td style="padding: 6px 10px; border: 1px solid #dee2e6; text-align: center;">\${uom}</td>
+                    </tr>
+                \`;
+            });
+
+            html += \`
+                    </tbody>
+                    <tfoot>
+                        <tr style="background: #e9ecef; font-weight: 600;">
+                            <td colspan="3" style="padding: 8px 10px; border: 1px solid #dee2e6;">Total: \${items.length} Line(s)</td>
+                            <td style="padding: 8px 10px; border: 1px solid #dee2e6; text-align: right;">\${totalQty.toLocaleString()}</td>
+                            <td style="padding: 8px 10px; border: 1px solid #dee2e6;"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            \`;
+
+            return html;
+        }
+
+        // Populate filter dropdowns
+        function populatePoHtmlFilters(docNumbers, vendors, items) {
+            const docSelect = document.getElementById('poHtmlFilterDocNumber');
+            const vendorSelect = document.getElementById('poHtmlFilterVendor');
+            const itemSelect = document.getElementById('poHtmlFilterItem');
+
+            if (docSelect) {
+                const currentVal = docSelect.value;
+                docSelect.innerHTML = '<option value="">All Documents</option>';
+                (docNumbers || []).sort().forEach(doc => {
+                    docSelect.innerHTML += \`<option value="\${doc}">\${doc}</option>\`;
+                });
+                docSelect.value = currentVal;
+            }
+
+            if (vendorSelect) {
+                const currentVal = vendorSelect.value;
+                vendorSelect.innerHTML = '<option value="">All Vendors</option>';
+                (vendors || []).sort().forEach(vendor => {
+                    vendorSelect.innerHTML += \`<option value="\${vendor}">\${vendor}</option>\`;
+                });
+                vendorSelect.value = currentVal;
+            }
+
+            if (itemSelect) {
+                const currentVal = itemSelect.value;
+                itemSelect.innerHTML = '<option value="">All Items</option>';
+                (items || []).sort().forEach(item => {
+                    itemSelect.innerHTML += \`<option value="\${item}">\${item}</option>\`;
+                });
+                itemSelect.value = currentVal;
+            }
+        }
+
+        // Toggle a single group
+        function togglePoHtmlGroup(docNum) {
+            const linesDiv = document.getElementById('poHtmlLines_' + docNum);
+            const icon = document.getElementById('poHtmlIcon_' + docNum);
+
+            if (linesDiv && icon) {
+                if (linesDiv.style.display === 'none') {
+                    linesDiv.style.display = 'block';
+                    icon.innerHTML = '&#9660;'; // Down arrow
+                } else {
+                    linesDiv.style.display = 'none';
+                    icon.innerHTML = '&#9654;'; // Right arrow
+                }
+            }
+        }
+
+        // Expand all groups
+        function expandAllPoHtmlGroups() {
+            document.querySelectorAll('.po-html-group-lines').forEach(div => {
+                div.style.display = 'block';
+            });
+            document.querySelectorAll('.po-html-expand-icon').forEach(icon => {
+                icon.innerHTML = '&#9660;';
+            });
+        }
+
+        // Collapse all groups
+        function collapseAllPoHtmlGroups() {
+            document.querySelectorAll('.po-html-group-lines').forEach(div => {
+                div.style.display = 'none';
+            });
+            document.querySelectorAll('.po-html-expand-icon').forEach(icon => {
+                icon.innerHTML = '&#9654;';
+            });
+        }
+
+        // Filter the HTML grid
+        function filterPoHtmlGrid() {
+            const docFilter = document.getElementById('poHtmlFilterDocNumber')?.value || '';
+            const vendorFilter = document.getElementById('poHtmlFilterVendor')?.value || '';
+            const itemFilter = document.getElementById('poHtmlFilterItem')?.value || '';
+
+            let filtered = [...(poReceiptsData || [])];
+
+            // Filter by document number
+            if (docFilter) {
+                filtered = filtered.filter(row => {
+                    const docNum = row.document_number || row.DOCUMENT_NUMBER || '';
+                    return docNum === docFilter;
+                });
+            }
+
+            // Filter by vendor
+            if (vendorFilter) {
+                filtered = filtered.filter(row => {
+                    const vendor = row.vendor_name || row.VENDOR_NAME || '';
+                    return vendor === vendorFilter;
+                });
+            }
+
+            // Filter by item (need to check if PO has that item in its lines)
+            if (itemFilter) {
+                const docsWithItem = new Set();
+                (poReceiptsLinesData || []).forEach(line => {
+                    const itemNum = line.item_number || line.ITEM_NUMBER;
+                    if (itemNum === itemFilter) {
+                        const docNum = line.document_number || line.DOCUMENT_NUMBER;
+                        docsWithItem.add(docNum);
+                    }
+                });
+                filtered = filtered.filter(row => {
+                    const docNum = row.document_number || row.DOCUMENT_NUMBER || '';
+                    return docsWithItem.has(docNum);
+                });
+            }
+
+            renderPoHtmlGroupedView(filtered);
+        }
+
+        // Clear all filters
+        function clearPoHtmlFilters() {
+            const docSelect = document.getElementById('poHtmlFilterDocNumber');
+            const vendorSelect = document.getElementById('poHtmlFilterVendor');
+            const itemSelect = document.getElementById('poHtmlFilterItem');
+
+            if (docSelect) docSelect.value = '';
+            if (vendorSelect) vendorSelect.value = '';
+            if (itemSelect) itemSelect.value = '';
+
+            renderPoHtmlGroupedView(poReceiptsData);
+        }
+
+        // Toggle selection for a single PO
+        function togglePoHtmlSelection(docNum, checkbox) {
+            if (checkbox.checked) {
+                selectedPoHtmlReceipts.add(docNum);
+            } else {
+                selectedPoHtmlReceipts.delete(docNum);
+            }
+            updatePoHtmlSelectedCount();
+        }
+
+        // Update selected count display
+        function updatePoHtmlSelectedCount() {
+            const countEl = document.getElementById('poHtmlSelectedCount');
+            if (countEl) {
+                countEl.textContent = selectedPoHtmlReceipts.size + ' selected';
+            }
+        }
+
+        // Receive selected orders from HTML view
+        function receiveSelectedHtmlOrders() {
+            if (selectedPoHtmlReceipts.size === 0) {
+                alert('Please select at least one order to receive');
+                return;
+            }
+            const selectedDocs = Array.from(selectedPoHtmlReceipts);
+            console.log('[INV] Receiving HTML orders:', selectedDocs);
             alert('Receiving ' + selectedDocs.length + ' order(s):\n' + selectedDocs.join('\n') + '\n\nThis feature is under development.');
         }
 

@@ -3947,6 +3947,15 @@ Click "Run Test" to execute the API call...
                         </div>
                     </div>
 
+                    <!-- Data Source Selector -->
+                    <div class="source-selector" style="display: flex; align-items: center; gap: 15px; padding: 12px 15px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 8px; margin-bottom: 15px; border: 1px solid #dee2e6;">
+                        <span style="font-weight: 600; color: #333; font-size: 13px;">&#128268; Query Source:</span>
+                        <select id="invItemsSourceSelect" onchange="onInvItemsSourceChange()" style="padding: 8px 15px; border: 1px solid #ccc; border-radius: 6px; font-size: 12px; min-width: 180px; background: #fff; cursor: pointer;">
+                            <option value="APEX">From APEX</option>
+                            <option value="FUSION">From Fusion</option>
+                        </select>
+                    </div>
+
                     <!-- Results Section -->
                     <div class="tab-container" id="invItemsTabContainer">
                         <div class="tab-header">
@@ -4001,11 +4010,33 @@ Click "Run Test" to execute the API call...
             document.getElementById('invItemsParamItemDesc').value = '';
         }
 
+        // Get current inventory items source
+        function getInvItemsSource() {
+            const select = document.getElementById('invItemsSourceSelect');
+            return select ? select.value : 'APEX';
+        }
+
+        // Handle source change
+        function onInvItemsSourceChange() {
+            const source = getInvItemsSource();
+            console.log('[INV] Source changed to:', source);
+            // Clear existing results when source changes
+            inventoryItemsData = [];
+            filteredInventoryItemsData = [];
+            const container = document.getElementById('invItemsDataGrid');
+            if (container) {
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: #888;">Enter search parameters and click Search to view items</div>';
+            }
+            const countEl = document.getElementById('invItemsRecordCount');
+            if (countEl) countEl.textContent = '0 Item(s)';
+        }
+
         // Search Inventory Items
         async function searchInventoryItems() {
             const orgCode = document.getElementById('invItemsParamOrgCode').value;
             const itemNumber = document.getElementById('invItemsParamItemNumber').value.trim();
             const itemDesc = document.getElementById('invItemsParamItemDesc').value.trim();
+            const source = getInvItemsSource();
 
             if (!orgCode) {
                 alert('Please select an Organization Code');
@@ -4017,27 +4048,37 @@ Click "Run Test" to execute the API call...
             btn.innerHTML = '<span>&#8987;</span> Searching...';
 
             const container = document.getElementById('invItemsDataGrid');
-            container.innerHTML = '<div style="padding: 40px; text-align: center; color: #888;">Loading items...</div>';
+            container.innerHTML = '<div style="padding: 40px; text-align: center; color: #888;">Loading items from ' + source + '...</div>';
 
             try {
-                // Get inventory items endpoint
-                const endpoint = await getInventoryItemsEndpoint();
+                let endpoint;
+                let integrationCode;
+
+                // Determine which endpoint to use based on source
+                if (source === 'APEX') {
+                    integrationCode = 'APEX_ITEM_MASTER';
+                    endpoint = await getInventoryItemsEndpointByCode(integrationCode);
+                } else {
+                    integrationCode = 'INVENTORY_ITEMS';
+                    endpoint = await getInventoryItemsEndpointByCode(integrationCode);
+                }
+
                 if (!endpoint) {
-                    throw new Error('INVENTORY_ITEMS endpoint not configured');
+                    throw new Error(integrationCode + ' endpoint not configured');
                 }
 
                 let url = `${endpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
                 if (itemNumber) url += `&p_item_number=${encodeURIComponent(itemNumber)}`;
                 if (itemDesc) url += `&p_item_description=${encodeURIComponent(itemDesc)}`;
 
-                console.log('[INV] Fetching inventory items from:', url);
+                console.log('[INV] Fetching inventory items from ' + source + ':', url);
                 const response = await fetchWithBridge(url);
 
                 if (response && response.items) {
                     inventoryItemsData = response.items;
                     filteredInventoryItemsData = [...inventoryItemsData];
                     renderInventoryItemsGrid(filteredInventoryItemsData);
-                    console.log('[INV] Loaded', inventoryItemsData.length, 'inventory items');
+                    console.log('[INV] Loaded', inventoryItemsData.length, 'inventory items from', source);
                 } else {
                     inventoryItemsData = [];
                     filteredInventoryItemsData = [];
@@ -4050,6 +4091,38 @@ Click "Run Test" to execute the API call...
                 btn.disabled = false;
                 btn.innerHTML = '<span>&#128269;</span> Search';
             }
+        }
+
+        // Get endpoint by integration code (supports both APEX_ITEM_MASTER and INVENTORY_ITEMS)
+        async function getInventoryItemsEndpointByCode(integrationCode) {
+            const instanceName = localStorage.getItem('wms_instance') || 'PROD';
+            return new Promise((resolve) => {
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'endpoint_' + integrationCode + '_' + Date.now();
+                    const handler = function(event) {
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            if (data.requestId === requestId && data.endpoint) {
+                                resolve(data.endpoint);
+                                window.chrome.webview.removeEventListener('message', handler);
+                            }
+                        } catch (e) {}
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+                    window.chrome.webview.postMessage({
+                        action: 'getEndpoint',
+                        requestId: requestId,
+                        integrationCode: integrationCode,
+                        instanceName: instanceName
+                    });
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        resolve(null);
+                    }, 5000);
+                } else {
+                    resolve(null);
+                }
+            });
         }
 
         // Get INVENTORY_ITEMS endpoint

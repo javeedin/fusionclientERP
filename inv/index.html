@@ -3938,22 +3938,20 @@ Click "Run Test" to execute the API call...
                                     <input type="text" id="invItemsParamItemDesc" placeholder="Enter item description">
                                 </div>
                             </div>
-                            <div class="param-buttons">
+                            <div class="param-buttons" style="display: flex; align-items: center; gap: 15px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <label style="font-weight: 600; color: #333; font-size: 12px; white-space: nowrap;">Query Source:</label>
+                                    <select id="invItemsSourceSelect" onchange="onInvItemsSourceChange()" style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; min-width: 140px; background: #fff; cursor: pointer;">
+                                        <option value="APEX">From APEX</option>
+                                        <option value="FUSION">From Fusion</option>
+                                    </select>
+                                </div>
                                 <button class="btn-search" id="btnSearchInvItems" onclick="searchInventoryItems()">
                                     <span>&#128269;</span> Search
                                 </button>
                                 <button class="btn-clear" onclick="clearInvItemsParams()">Clear</button>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Data Source Selector -->
-                    <div class="source-selector" style="display: flex; align-items: center; gap: 15px; padding: 12px 15px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 8px; margin-bottom: 15px; border: 1px solid #dee2e6;">
-                        <span style="font-weight: 600; color: #333; font-size: 13px;">&#128268; Query Source:</span>
-                        <select id="invItemsSourceSelect" onchange="onInvItemsSourceChange()" style="padding: 8px 15px; border: 1px solid #ccc; border-radius: 6px; font-size: 12px; min-width: 180px; background: #fff; cursor: pointer;">
-                            <option value="APEX">From APEX</option>
-                            <option value="FUSION">From Fusion</option>
-                        </select>
                     </div>
 
                     <!-- Results Section -->

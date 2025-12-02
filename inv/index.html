@@ -6006,6 +6006,8 @@ Click "Run Test" to execute the API call...
                 const vendorSite = header.vendor_site_code || header.VENDOR_SITE_CODE || '-';
                 const shipToLocation = header.ship_to_location || header.SHIP_TO_LOCATION || '-';
                 const toOrgCode = header.to_organization_code || header.TO_ORGANIZATION_CODE || '-';
+                const currencyCode = header.currency_code || header.CURRENCY_CODE || '-';
+                const poRevisionNum = header.po_revision_number !== undefined ? header.po_revision_number : (header.PO_REVISION_NUMBER !== undefined ? header.PO_REVISION_NUMBER : '-');
                 // Use priority: explicit field > lines count > header row count
                 const noOfItems = header.no_of_items || header.NO_OF_ITEMS || items.length || group.headerRowCount || 0;
 
@@ -6069,11 +6071,13 @@ Click "Run Test" to execute the API call...
                                     <strong style="color: #667eea;">PO: ${docNum}</strong>
                                     <button onclick="event.stopPropagation(); openPoDetailsDialog('${docNum}')" title="View PO Details" style="background: none; border: none; cursor: pointer; color: #667eea; font-size: 14px; padding: 0 5px; vertical-align: middle;">&#9998;</button>
                                 </span>
+                                <span><strong>Rev:</strong> ${poRevisionNum}</span>
                                 <span><strong>Date:</strong> ${creationDate}</span>
                                 <span><strong>Vendor:</strong> ${vendorName}</span>
                                 <span><strong>Site:</strong> ${vendorSite}</span>
                                 <span><strong>Ship To:</strong> ${shipToLocation}</span>
                                 <span><strong>Org:</strong> ${toOrgCode}</span>
+                                <span><strong>Curr:</strong> ${currencyCode}</span>
                                 <span style="color: #28a745; font-weight: 600;"><strong>Items:</strong> ${noOfItems}</span>
                             </div>
                         </div>
@@ -6100,40 +6104,43 @@ Click "Run Test" to execute the API call...
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px;">
                     <thead>
                         <tr style="background: #e9ecef;">
-                            <th style="padding: 8px 10px; text-align: left; border: 1px solid #dee2e6; font-weight: 600;">Line #</th>
+                            <th style="padding: 8px 10px; text-align: center; border: 1px solid #dee2e6; font-weight: 600;">Line #</th>
                             <th style="padding: 8px 10px; text-align: left; border: 1px solid #dee2e6; font-weight: 600;">Item Number</th>
                             <th style="padding: 8px 10px; text-align: left; border: 1px solid #dee2e6; font-weight: 600;">Description</th>
-                            <th style="padding: 8px 10px; text-align: right; border: 1px solid #dee2e6; font-weight: 600;">Quantity</th>
-                            <th style="padding: 8px 10px; text-align: center; border: 1px solid #dee2e6; font-weight: 600;">UOM Code</th>
+                            <th style="padding: 8px 10px; text-align: right; border: 1px solid #dee2e6; font-weight: 600;">Ordered Qty</th>
                             <th style="padding: 8px 10px; text-align: right; border: 1px solid #dee2e6; font-weight: 600;">Available Qty</th>
+                            <th style="padding: 8px 10px; text-align: center; border: 1px solid #dee2e6; font-weight: 600;">UOM</th>
                             <th style="padding: 8px 10px; text-align: left; border: 1px solid #dee2e6; font-weight: 600;">Routing</th>
+                            <th style="padding: 8px 10px; text-align: left; border: 1px solid #dee2e6; font-weight: 600;">Dest Type</th>
                         </tr>
                     </thead>
                     <tbody>
             `;
 
-            let totalQty = 0;
+            let totalOrderedQty = 0;
             let totalAvailQty = 0;
             items.forEach((line, idx) => {
-                const lineNum = line.line_number || line.LINE_NUMBER || '-';
+                const docLineNum = line.document_line_number || line.DOCUMENT_LINE_NUMBER || line.line_number || line.LINE_NUMBER || '-';
                 const itemNum = line.item_number || line.ITEM_NUMBER || '-';
                 const itemDesc = line.item_description || line.ITEM_DESCRIPTION || '-';
-                const qty = parseFloat(line.quantity || line.QUANTITY || 0);
-                const uomCode = line.uom_code || line.UOM_CODE || line.uom || line.UOM || line.unit_of_measure || '-';
+                const orderedQty = parseFloat(line.ordered_quantity || line.ORDERED_QUANTITY || 0);
                 const availQty = parseFloat(line.available_quantity || line.AVAILABLE_QUANTITY || 0);
+                const uomCode = line.uom_code || line.UOM_CODE || line.uom || line.UOM || line.unit_of_measure || '-';
                 const routing = line.routing || line.ROUTING || line.routing_name || line.ROUTING_NAME || '-';
-                totalQty += qty;
+                const destTypeCode = line.destination_type_code || line.DESTINATION_TYPE_CODE || line.destination_type || line.DESTINATION_TYPE || '-';
+                totalOrderedQty += orderedQty;
                 totalAvailQty += availQty;
 
                 html += `
                     <tr style="background: ${idx % 2 === 0 ? '#fff' : '#f8f9fa'};">
-                        <td style="padding: 6px 10px; border: 1px solid #dee2e6;">${lineNum}</td>
+                        <td style="padding: 6px 10px; border: 1px solid #dee2e6; text-align: center;">${docLineNum}</td>
                         <td style="padding: 6px 10px; border: 1px solid #dee2e6; font-weight: 500;">${itemNum}</td>
                         <td style="padding: 6px 10px; border: 1px solid #dee2e6;">${itemDesc}</td>
-                        <td style="padding: 6px 10px; border: 1px solid #dee2e6; text-align: right;">${qty.toLocaleString()}</td>
-                        <td style="padding: 6px 10px; border: 1px solid #dee2e6; text-align: center;">${uomCode}</td>
+                        <td style="padding: 6px 10px; border: 1px solid #dee2e6; text-align: right;">${orderedQty.toLocaleString()}</td>
                         <td style="padding: 6px 10px; border: 1px solid #dee2e6; text-align: right;">${availQty > 0 ? availQty.toLocaleString() : '-'}</td>
+                        <td style="padding: 6px 10px; border: 1px solid #dee2e6; text-align: center;">${uomCode}</td>
                         <td style="padding: 6px 10px; border: 1px solid #dee2e6;">${routing}</td>
+                        <td style="padding: 6px 10px; border: 1px solid #dee2e6;">${destTypeCode}</td>
                     </tr>
                 `;
             });
@@ -6143,10 +6150,9 @@ Click "Run Test" to execute the API call...
                     <tfoot>
                         <tr style="background: #e9ecef; font-weight: 600;">
                             <td colspan="3" style="padding: 8px 10px; border: 1px solid #dee2e6;">Total: ${items.length} Line(s)</td>
-                            <td style="padding: 8px 10px; border: 1px solid #dee2e6; text-align: right;">${totalQty.toLocaleString()}</td>
-                            <td style="padding: 8px 10px; border: 1px solid #dee2e6;"></td>
+                            <td style="padding: 8px 10px; border: 1px solid #dee2e6; text-align: right;">${totalOrderedQty.toLocaleString()}</td>
                             <td style="padding: 8px 10px; border: 1px solid #dee2e6; text-align: right;">${totalAvailQty > 0 ? totalAvailQty.toLocaleString() : ''}</td>
-                            <td style="padding: 8px 10px; border: 1px solid #dee2e6;"></td>
+                            <td colspan="3" style="padding: 8px 10px; border: 1px solid #dee2e6;"></td>
                         </tr>
                     </tfoot>
                 </table>

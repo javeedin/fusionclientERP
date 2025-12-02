@@ -9615,7 +9615,7 @@ Click "Run Test" to execute the API call...
                 // Use separate source and instanceName fields directly
                 const sourceType = endpoint.source || '';
                 const instanceName = endpoint.instanceName || '';
-                const apiType = endpoint.apiType || '';
+                const apiType = endpoint.apiType || endpoint.API_TYPE || '';
                 // Parameters count
                 const paramCount = (endpoint.parameters && endpoint.parameters.length) || 0;
                 const paramBadge = paramCount > 0 ? `<span style="background: #667eea; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px;">${paramCount}</span>` : '<span style="color: #999;">0</span>';
@@ -9856,7 +9856,7 @@ Click "Run Test" to execute the API call...
                 console.log('[JS DEBUG] Source dropdown value:', document.getElementById('endpointSource').value);
                 console.log('[JS DEBUG] Instance dropdown value:', instanceSelect.value);
 
-                document.getElementById('endpointApiType').value = endpoint.apiType || '';
+                document.getElementById('endpointApiType').value = endpoint.apiType || endpoint.API_TYPE || '';
                 document.getElementById('endpointIntegrationCode').value = endpoint.integrationCode || '';
                 document.getElementById('endpointURL').value = endpoint.url || '';
                 document.getElementById('endpointPath').value = endpoint.path || '';

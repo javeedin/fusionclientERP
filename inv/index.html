@@ -5434,36 +5434,36 @@ Click "Run Test" to execute the API call...
                 const toOrgCode = header.to_organization_code || header.TO_ORGANIZATION_CODE || '-';
                 const noOfItems = header.no_of_items || header.NO_OF_ITEMS || items.length;
 
-                html += \`
-                    <div class="po-html-group" data-doc="\${docNum}" style="border-bottom: 1px solid #e0e0e0;">
+                html += `
+                    <div class="po-html-group" data-doc="${docNum}" style="border-bottom: 1px solid #e0e0e0;">
                         <!-- Group Header -->
-                        <div class="po-html-group-header" onclick="togglePoHtmlGroup('\${docNum}')"
-                            style="display: flex; align-items: center; padding: 12px 15px; background: \${idx % 2 === 0 ? '#fff' : '#fafafa'}; cursor: pointer; transition: background 0.2s;"
-                            onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background='\${idx % 2 === 0 ? '#fff' : '#fafafa'}'">
+                        <div class="po-html-group-header" onclick="togglePoHtmlGroup('${docNum}')"
+                            style="display: flex; align-items: center; padding: 12px 15px; background: ${idx % 2 === 0 ? '#fff' : '#fafafa'}; cursor: pointer; transition: background 0.2s;"
+                            onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background='${idx % 2 === 0 ? '#fff' : '#fafafa'}'">
 
-                            <input type="checkbox" class="po-html-checkbox" data-doc="\${docNum}"
-                                \${isSelected ? 'checked' : ''}
-                                onclick="event.stopPropagation(); togglePoHtmlSelection('\${docNum}', this)"
+                            <input type="checkbox" class="po-html-checkbox" data-doc="${docNum}"
+                                ${isSelected ? 'checked' : ''}
+                                onclick="event.stopPropagation(); togglePoHtmlSelection('${docNum}', this)"
                                 style="margin-right: 12px; width: 16px; height: 16px; cursor: pointer;">
 
-                            <span class="po-html-expand-icon" id="poHtmlIcon_\${docNum}" style="margin-right: 10px; font-size: 10px; color: #667eea;">&#9654;</span>
+                            <span class="po-html-expand-icon" id="poHtmlIcon_${docNum}" style="margin-right: 10px; font-size: 10px; color: #667eea;">&#9654;</span>
 
                             <div style="display: flex; flex-wrap: wrap; gap: 20px; flex: 1; font-size: 12px;">
-                                <span style="min-width: 140px;"><strong style="color: #667eea;">PO: \${docNum}</strong></span>
-                                <span><strong>Vendor:</strong> \${vendorName}</span>
-                                <span><strong>Site:</strong> \${vendorSite}</span>
-                                <span><strong>Ship To:</strong> \${shipToLocation}</span>
-                                <span><strong>Org:</strong> \${toOrgCode}</span>
-                                <span style="color: #28a745; font-weight: 600;"><strong>Items:</strong> \${noOfItems}</span>
+                                <span style="min-width: 140px;"><strong style="color: #667eea;">PO: ${docNum}</strong></span>
+                                <span><strong>Vendor:</strong> ${vendorName}</span>
+                                <span><strong>Site:</strong> ${vendorSite}</span>
+                                <span><strong>Ship To:</strong> ${shipToLocation}</span>
+                                <span><strong>Org:</strong> ${toOrgCode}</span>
+                                <span style="color: #28a745; font-weight: 600;"><strong>Items:</strong> ${noOfItems}</span>
                             </div>
                         </div>
 
                         <!-- Group Lines (Collapsible) -->
-                        <div class="po-html-group-lines" id="poHtmlLines_\${docNum}" style="display: none; padding: 0 15px 15px 45px; background: #f8f9fa;">
-                            \${renderPoHtmlLines(items)}
+                        <div class="po-html-group-lines" id="poHtmlLines_${docNum}" style="display: none; padding: 0 15px 15px 45px; background: #f8f9fa;">
+                            ${renderPoHtmlLines(items)}
                         </div>
                     </div>
-                \`;
+                `;
             });
 
             container.innerHTML = html;
@@ -5476,7 +5476,7 @@ Click "Run Test" to execute the API call...
                 return '<div style="padding: 15px; color: #888; font-style: italic;">No lines available for this PO</div>';
             }
 
-            let html = \`
+            let html = `
                 <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px;">
                     <thead>
                         <tr style="background: #e9ecef;">
@@ -5488,7 +5488,7 @@ Click "Run Test" to execute the API call...
                         </tr>
                     </thead>
                     <tbody>
-            \`;
+            `;
 
             let totalQty = 0;
             items.forEach((line, idx) => {
@@ -5499,28 +5499,28 @@ Click "Run Test" to execute the API call...
                 const uom = line.uom || line.UOM || line.unit_of_measure || '-';
                 totalQty += qty;
 
-                html += \`
-                    <tr style="background: \${idx % 2 === 0 ? '#fff' : '#f8f9fa'};">
-                        <td style="padding: 6px 10px; border: 1px solid #dee2e6;">\${lineNum}</td>
-                        <td style="padding: 6px 10px; border: 1px solid #dee2e6; font-weight: 500;">\${itemNum}</td>
-                        <td style="padding: 6px 10px; border: 1px solid #dee2e6;">\${itemDesc}</td>
-                        <td style="padding: 6px 10px; border: 1px solid #dee2e6; text-align: right;">\${qty.toLocaleString()}</td>
-                        <td style="padding: 6px 10px; border: 1px solid #dee2e6; text-align: center;">\${uom}</td>
+                html += `
+                    <tr style="background: ${idx % 2 === 0 ? '#fff' : '#f8f9fa'};">
+                        <td style="padding: 6px 10px; border: 1px solid #dee2e6;">${lineNum}</td>
+                        <td style="padding: 6px 10px; border: 1px solid #dee2e6; font-weight: 500;">${itemNum}</td>
+                        <td style="padding: 6px 10px; border: 1px solid #dee2e6;">${itemDesc}</td>
+                        <td style="padding: 6px 10px; border: 1px solid #dee2e6; text-align: right;">${qty.toLocaleString()}</td>
+                        <td style="padding: 6px 10px; border: 1px solid #dee2e6; text-align: center;">${uom}</td>
                     </tr>
-                \`;
+                `;
             });
 
-            html += \`
+            html += `
                     </tbody>
                     <tfoot>
                         <tr style="background: #e9ecef; font-weight: 600;">
-                            <td colspan="3" style="padding: 8px 10px; border: 1px solid #dee2e6;">Total: \${items.length} Line(s)</td>
-                            <td style="padding: 8px 10px; border: 1px solid #dee2e6; text-align: right;">\${totalQty.toLocaleString()}</td>
+                            <td colspan="3" style="padding: 8px 10px; border: 1px solid #dee2e6;">Total: ${items.length} Line(s)</td>
+                            <td style="padding: 8px 10px; border: 1px solid #dee2e6; text-align: right;">${totalQty.toLocaleString()}</td>
                             <td style="padding: 8px 10px; border: 1px solid #dee2e6;"></td>
                         </tr>
                     </tfoot>
                 </table>
-            \`;
+            `;
 
             return html;
         }
@@ -5535,7 +5535,7 @@ Click "Run Test" to execute the API call...
                 const currentVal = docSelect.value;
                 docSelect.innerHTML = '<option value="">All Documents</option>';
                 (docNumbers || []).sort().forEach(doc => {
-                    docSelect.innerHTML += \`<option value="\${doc}">\${doc}</option>\`;
+                    docSelect.innerHTML += `<option value="${doc}">${doc}</option>`;
                 });
                 docSelect.value = currentVal;
             }
@@ -5544,7 +5544,7 @@ Click "Run Test" to execute the API call...
                 const currentVal = vendorSelect.value;
                 vendorSelect.innerHTML = '<option value="">All Vendors</option>';
                 (vendors || []).sort().forEach(vendor => {
-                    vendorSelect.innerHTML += \`<option value="\${vendor}">\${vendor}</option>\`;
+                    vendorSelect.innerHTML += `<option value="${vendor}">${vendor}</option>`;
                 });
                 vendorSelect.value = currentVal;
             }
@@ -5553,7 +5553,7 @@ Click "Run Test" to execute the API call...
                 const currentVal = itemSelect.value;
                 itemSelect.innerHTML = '<option value="">All Items</option>';
                 (items || []).sort().forEach(item => {
-                    itemSelect.innerHTML += \`<option value="\${item}">\${item}</option>\`;
+                    itemSelect.innerHTML += `<option value="${item}">${item}</option>`;
                 });
                 itemSelect.value = currentVal;
             }

@@ -18,6 +18,7 @@ namespace WMSApp
         public string BaseUrl { get; set; }
         public string Endpoint { get; set; }
         public string Comments { get; set; }
+        public string ApiType { get; set; }  // REST, SOAP, EXCEL, CSV, JSON, XML
 
         public string FullUrl => $"{BaseUrl?.TrimEnd('/')}{Endpoint}";
     }
@@ -203,6 +204,7 @@ namespace WMSApp
                     foreach (var ep in endpoints)
                     {
                         writer.WriteStartElement("Endpoint");
+                        writer.WriteElementString("API_TYPE", ep.ApiType ?? "");
                         writer.WriteElementString("Sno", ep.Sno.ToString());
                         writer.WriteElementString("Source", ep.Source ?? "");
                         writer.WriteElementString("IntegrationCode", ep.IntegrationCode ?? "");
@@ -241,12 +243,13 @@ namespace WMSApp
 
             var lines = new List<string>
             {
-                "Sno,Source,IntegrationCode,InstanceName,URL,Endpoint,Comments"
+                "API_TYPE,Sno,Source,IntegrationCode,InstanceName,URL,Endpoint,Comments"
             };
 
             foreach (var ep in endpoints)
             {
                 string line = string.Join(",",
+                    EscapeCsvField(ep.ApiType),
                     ep.Sno,
                     EscapeCsvField(ep.Source),
                     EscapeCsvField(ep.IntegrationCode),
@@ -310,7 +313,8 @@ namespace WMSApp
                             InstanceName = node.SelectSingleNode("InstanceName")?.InnerText ?? "",
                             BaseUrl = node.SelectSingleNode("URL")?.InnerText ?? "",
                             Endpoint = endpointPath,
-                            Comments = node.SelectSingleNode("Comments")?.InnerText ?? ""
+                            Comments = node.SelectSingleNode("Comments")?.InnerText ?? "",
+                            ApiType = node.SelectSingleNode("API_TYPE")?.InnerText ?? node.SelectSingleNode("ApiType")?.InnerText ?? ""
                         };
 
                         // Only add valid endpoints (must have at least IntegrationCode or URL)
@@ -345,18 +349,39 @@ namespace WMSApp
             {
                 var lines = File.ReadAllLines(csvPath);
                 bool isHeader = true;
+                bool hasApiTypeColumn = false;
 
                 foreach (var line in lines)
                 {
                     if (isHeader)
                     {
+                        // Check if header has API_TYPE column
+                        hasApiTypeColumn = line.StartsWith("API_TYPE", StringComparison.OrdinalIgnoreCase);
                         isHeader = false;
                         continue;
                     }
 
                     var parts = ParseCsvLine(line);
-                    if (parts.Length >= 6)
+
+                    if (hasApiTypeColumn && parts.Length >= 7)
                     {
+                        // New format: API_TYPE, Sno, Source, IntegrationCode, InstanceName, URL, Endpoint, Comments
+                        var endpoint = new EndpointConfig
+                        {
+                            ApiType = parts[0],
+                            Sno = int.TryParse(parts[1], out int sno) ? sno : 0,
+                            Source = parts[2],
+                            IntegrationCode = parts[3],
+                            InstanceName = parts[4],
+                            BaseUrl = parts[5],
+                            Endpoint = parts[6],
+                            Comments = parts.Length > 7 ? parts[7] : ""
+                        };
+                        endpoints.Add(endpoint);
+                    }
+                    else if (parts.Length >= 6)
+                    {
+                        // Old format: Sno, Source, IntegrationCode, InstanceName, URL, Endpoint, Comments
                         var endpoint = new EndpointConfig
                         {
                             Sno = int.TryParse(parts[0], out int sno) ? sno : 0,
@@ -365,7 +390,8 @@ namespace WMSApp
                             InstanceName = parts[3],
                             BaseUrl = parts[4],
                             Endpoint = parts[5],
-                            Comments = parts.Length > 6 ? parts[6] : ""
+                            Comments = parts.Length > 6 ? parts[6] : "",
+                            ApiType = ""
                         };
                         endpoints.Add(endpoint);
                     }

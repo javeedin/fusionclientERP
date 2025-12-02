@@ -442,6 +442,11 @@ namespace WMSApp
                         else if (item.TryGetProperty("COMMENTS", out commEl))
                             endpoint.Comments = commEl.GetString() ?? "";
 
+                        if (item.TryGetProperty("api_type", out JsonElement apiTypeEl))
+                            endpoint.ApiType = apiTypeEl.GetString() ?? "";
+                        else if (item.TryGetProperty("API_TYPE", out apiTypeEl))
+                            endpoint.ApiType = apiTypeEl.GetString() ?? "";
+
                         endpoints.Add(endpoint);
                         System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Parsed endpoint: Sno={endpoint.Sno}, Source={endpoint.Source}, Code={endpoint.IntegrationCode}, Instance={endpoint.InstanceName}");
                     }

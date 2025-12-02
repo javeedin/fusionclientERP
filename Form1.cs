@@ -1582,6 +1582,7 @@ namespace WMSApp
                     url = ep.BaseUrl,
                     path = ep.Endpoint,
                     comments = ep.Comments,
+                    apiType = ep.ApiType ?? "",
                     parameters = "",
                     offset = 0,
                     limit = 100
@@ -1687,6 +1688,9 @@ namespace WMSApp
 
                         if (item.TryGetProperty("comments", out var commEl) || item.TryGetProperty("COMMENTS", out commEl))
                             endpoint.Comments = commEl.GetString() ?? "";
+
+                        if (item.TryGetProperty("api_type", out var apiTypeEl) || item.TryGetProperty("API_TYPE", out apiTypeEl))
+                            endpoint.ApiType = apiTypeEl.GetString() ?? "";
 
                         endpoints.Add(endpoint);
                         System.Diagnostics.Debug.WriteLine($"[APEX PARSE] Parsed: Sno={endpoint.Sno}, Source={endpoint.Source}, Code={endpoint.IntegrationCode}");

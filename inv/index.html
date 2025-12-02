@@ -5932,12 +5932,15 @@ Click "Run Test" to execute the API call...
                 return;
             }
 
+            // Debug: Log input data count
+            console.log('[INV] renderPoHtmlGroupedView called with', data.length, 'rows');
+
             // Group data by document_number
             const groupedData = {};
             const allItems = new Set();
 
             // First pass: group header data and count rows per document
-            data.forEach(row => {
+            data.forEach((row, idx) => {
                 const docNum = row.document_number || row.DOCUMENT_NUMBER || '-';
                 if (!groupedData[docNum]) {
                     groupedData[docNum] = {
@@ -5948,6 +5951,11 @@ Click "Run Test" to execute the API call...
                 }
                 groupedData[docNum].headerRowCount++;
 
+                // Debug: Log first few rows
+                if (idx < 3) {
+                    console.log('[INV] Row', idx, 'document_number:', docNum, 'creation_date:', row.creation_date);
+                }
+
                 // Track items from header data as well
                 const itemNum = row.item_number || row.ITEM_NUMBER;
                 if (itemNum && itemNum !== '-') {
@@ -5955,8 +5963,9 @@ Click "Run Test" to execute the API call...
                 }
             });
 
-            // Get lines for each document from poReceiptsLinesData
+            // Debug: Log grouped data
             const allDocNumbers = Object.keys(groupedData);
+            console.log('[INV] Unique document numbers:', allDocNumbers.length, allDocNumbers);
 
             (poReceiptsLinesData || []).forEach(line => {
                 const lineDocNum = line.document_number || line.DOCUMENT_NUMBER;
@@ -5996,14 +6005,33 @@ Click "Run Test" to execute the API call...
                 const toOrgCode = header.to_organization_code || header.TO_ORGANIZATION_CODE || '-';
                 // Use priority: explicit field > lines count > header row count
                 const noOfItems = header.no_of_items || header.NO_OF_ITEMS || items.length || group.headerRowCount || 0;
-                const creationDate = header.CREATION_DATE || header.creation_date || header.created_date || header.CREATED_DATE ||
+
+                // Get creation date - check multiple field names
+                let rawCreationDate = header.creation_date || header.CREATION_DATE || header.created_date || header.CREATED_DATE ||
                                      header.PO_DATE || header.po_date || header.ORDER_DATE || header.order_date ||
-                                     header.EXPECTED_RECEIPT_DATE || header.expected_receipt_date || '-';
+                                     header.EXPECTED_RECEIPT_DATE || header.expected_receipt_date || '';
+
+                // Format the date if it's an ISO string
+                let creationDate = '-';
+                if (rawCreationDate) {
+                    try {
+                        if (rawCreationDate.includes('T')) {
+                            // ISO format - parse and format
+                            const d = new Date(rawCreationDate);
+                            creationDate = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                        } else {
+                            creationDate = rawCreationDate;
+                        }
+                    } catch (e) {
+                        creationDate = rawCreationDate;
+                    }
+                }
 
                 // Debug: Log first row's keys to see available fields
                 if (idx === 0) {
                     console.log('[INV] PO Header fields:', Object.keys(header));
                     console.log('[INV] PO Group count - headerRowCount:', group.headerRowCount, 'items.length:', items.length);
+                    console.log('[INV] Raw creation_date:', rawCreationDate, '-> Formatted:', creationDate);
                     // Debug all date-related fields
                     console.log('[INV] Date fields check:', {
                         CREATION_DATE: header.CREATION_DATE,

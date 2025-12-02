@@ -3982,14 +3982,35 @@ Click "Run Test" to execute the API call...
                         <div class="tab-content active" id="inv-items-tab-list">
                             <div class="grid-header" style="margin-bottom: 10px; padding: 10px 0; border: none; background: none;">
                                 <div class="grid-title">
-                                    Inventory Items
                                 </div>
                                 <div class="grid-search">
-                                    <input type="text" id="invItemsGridSearch" placeholder="Filter results..." oninput="filterInventoryItemsGrid()">
                                     <span class="record-count" id="invItemsRecordCount">0 Item(s)</span>
                                 </div>
                             </div>
-                            <div id="invItemsDataGrid" style="height: calc(100vh - 420px); min-height: 400px;">
+                            <!-- Result Filters Row -->
+                            <div id="invItemsResultFilters" style="display: none; margin-bottom: 10px; padding: 10px; background: #f9f9f9; border-radius: 6px; border: 1px solid #eee;">
+                                <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                                    <div style="flex: 1; min-width: 150px;">
+                                        <label style="font-size: 11px; color: #666; display: block; margin-bottom: 3px;">Item Number</label>
+                                        <input type="text" id="invItemsFilterItemNumber" list="invItemsItemNumberList" placeholder="Type to filter..." oninput="applyInventoryItemsFilters()" style="width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                                        <datalist id="invItemsItemNumberList"></datalist>
+                                    </div>
+                                    <div style="flex: 1; min-width: 150px;">
+                                        <label style="font-size: 11px; color: #666; display: block; margin-bottom: 3px;">Description</label>
+                                        <input type="text" id="invItemsFilterDescription" list="invItemsDescriptionList" placeholder="Type to filter..." oninput="applyInventoryItemsFilters()" style="width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                                        <datalist id="invItemsDescriptionList"></datalist>
+                                    </div>
+                                    <div style="flex: 1; min-width: 150px;">
+                                        <label style="font-size: 11px; color: #666; display: block; margin-bottom: 3px;">Organization</label>
+                                        <input type="text" id="invItemsFilterOrganization" list="invItemsOrganizationList" placeholder="Type to filter..." oninput="applyInventoryItemsFilters()" style="width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                                        <datalist id="invItemsOrganizationList"></datalist>
+                                    </div>
+                                    <div style="display: flex; align-items: flex-end; padding-bottom: 2px;">
+                                        <button onclick="clearInventoryItemsFilters()" style="padding: 6px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 12px;">Clear Filters</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="invItemsDataGrid" style="height: calc(100vh - 320px); min-height: 500px;">
                                 <div style="padding: 40px; text-align: center; color: #888;">
                                     Enter search parameters and click Search to view items
                                 </div>
@@ -4169,20 +4190,28 @@ Click "Run Test" to execute the API call...
         }
 
         // Render Inventory Items Grid
-        function renderInventoryItemsGrid(data) {
+        function renderInventoryItemsGrid(data, isFiltered = false) {
             const container = document.getElementById('invItemsDataGrid');
             const countEl = document.getElementById('invItemsRecordCount');
+            const filtersEl = document.getElementById('invItemsResultFilters');
 
             if (!data || data.length === 0) {
                 container.innerHTML = '<div style="padding: 40px; text-align: center; color: #888;">No items found</div>';
                 if (countEl) countEl.textContent = '0 Item(s)';
+                if (filtersEl && !isFiltered) filtersEl.style.display = 'none';
                 return;
             }
 
             if (countEl) countEl.textContent = data.length + ' Item(s)';
 
+            // Show filters section and populate datalists only on initial load (not filtered)
+            if (filtersEl && !isFiltered) {
+                filtersEl.style.display = 'block';
+                populateInventoryItemsDataLists(inventoryItemsData);
+            }
+
             let html = `
-                <div style="overflow-x: auto; max-height: calc(100vh - 450px);">
+                <div style="overflow-x: auto; height: 100%;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
                         <thead style="position: sticky; top: 0; background: #f0f0f0; z-index: 10;">
                             <tr>
@@ -4228,12 +4257,49 @@ Click "Run Test" to execute the API call...
             container.innerHTML = html;
         }
 
-        // Filter Inventory Items Grid
-        function filterInventoryItemsGrid() {
-            const searchText = (document.getElementById('invItemsGridSearch')?.value || '').toLowerCase().trim();
+        // Populate datalists for inventory items filters
+        function populateInventoryItemsDataLists(data) {
+            const itemNumbers = new Set();
+            const descriptions = new Set();
+            const organizations = new Set();
 
-            if (!searchText) {
-                renderInventoryItemsGrid(inventoryItemsData);
+            data.forEach(item => {
+                const itemNumber = item.item_number || item.ITEM_NUMBER || item.segment1 || item.SEGMENT1 || '';
+                const description = item.description || item.DESCRIPTION || item.item_description || item.ITEM_DESCRIPTION || '';
+                const orgCode = item.organization_code || item.ORGANIZATION_CODE || '';
+
+                if (itemNumber) itemNumbers.add(itemNumber);
+                if (description) descriptions.add(description);
+                if (orgCode) organizations.add(orgCode);
+            });
+
+            // Populate Item Number datalist
+            const itemNumberList = document.getElementById('invItemsItemNumberList');
+            if (itemNumberList) {
+                itemNumberList.innerHTML = Array.from(itemNumbers).slice(0, 100).map(v => `<option value="${v}">`).join('');
+            }
+
+            // Populate Description datalist
+            const descriptionList = document.getElementById('invItemsDescriptionList');
+            if (descriptionList) {
+                descriptionList.innerHTML = Array.from(descriptions).slice(0, 100).map(v => `<option value="${v}">`).join('');
+            }
+
+            // Populate Organization datalist
+            const organizationList = document.getElementById('invItemsOrganizationList');
+            if (organizationList) {
+                organizationList.innerHTML = Array.from(organizations).slice(0, 100).map(v => `<option value="${v}">`).join('');
+            }
+        }
+
+        // Apply inventory items filters
+        function applyInventoryItemsFilters() {
+            const itemNumberFilter = (document.getElementById('invItemsFilterItemNumber')?.value || '').toLowerCase().trim();
+            const descriptionFilter = (document.getElementById('invItemsFilterDescription')?.value || '').toLowerCase().trim();
+            const organizationFilter = (document.getElementById('invItemsFilterOrganization')?.value || '').toLowerCase().trim();
+
+            if (!itemNumberFilter && !descriptionFilter && !organizationFilter) {
+                renderInventoryItemsGrid(inventoryItemsData, true);
                 return;
             }
 
@@ -4242,10 +4308,27 @@ Click "Run Test" to execute the API call...
                 const description = (item.description || item.DESCRIPTION || item.item_description || item.ITEM_DESCRIPTION || '').toLowerCase();
                 const orgCode = (item.organization_code || item.ORGANIZATION_CODE || '').toLowerCase();
 
-                return itemNumber.includes(searchText) || description.includes(searchText) || orgCode.includes(searchText);
+                const matchesItemNumber = !itemNumberFilter || itemNumber.includes(itemNumberFilter);
+                const matchesDescription = !descriptionFilter || description.includes(descriptionFilter);
+                const matchesOrganization = !organizationFilter || orgCode.includes(organizationFilter);
+
+                return matchesItemNumber && matchesDescription && matchesOrganization;
             });
 
-            renderInventoryItemsGrid(filtered);
+            renderInventoryItemsGrid(filtered, true);
+        }
+
+        // Clear inventory items filters
+        function clearInventoryItemsFilters() {
+            const itemNumberInput = document.getElementById('invItemsFilterItemNumber');
+            const descriptionInput = document.getElementById('invItemsFilterDescription');
+            const organizationInput = document.getElementById('invItemsFilterOrganization');
+
+            if (itemNumberInput) itemNumberInput.value = '';
+            if (descriptionInput) descriptionInput.value = '';
+            if (organizationInput) organizationInput.value = '';
+
+            renderInventoryItemsGrid(inventoryItemsData, true);
         }
 
         // Toggle Inventory Items fullscreen

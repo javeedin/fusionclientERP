@@ -4767,6 +4767,11 @@ Click "Run Test" to execute the API call...
                                     <input type="text" id="poHtmlFilterItem" list="poHtmlItemList" oninput="filterPoHtmlGrid()" placeholder="Type or select..." style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; min-width: 180px;">
                                     <datalist id="poHtmlItemList"></datalist>
                                 </div>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <label style="font-size: 11px; font-weight: 600; color: #555;">Date</label>
+                                    <input type="text" id="poHtmlFilterDate" list="poHtmlDateList" oninput="filterPoHtmlGrid()" placeholder="Type or select..." style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; min-width: 120px;">
+                                    <datalist id="poHtmlDateList"></datalist>
+                                </div>
                                 <div style="display: flex; gap: 8px; margin-left: auto; align-items: flex-end;">
                                     <button onclick="expandAllPoHtmlGroups()" style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
                                         &#9660; Expand All
@@ -5923,7 +5928,7 @@ Click "Run Test" to execute the API call...
 
             if (!data || data.length === 0) {
                 container.innerHTML = '<div style="padding: 40px; text-align: center; color: #888;">No data found</div>';
-                populatePoHtmlFilters([], []);
+                populatePoHtmlFilters([], [], [], []);
                 return;
             }
 
@@ -5966,7 +5971,13 @@ Click "Run Test" to execute the API call...
 
             // Populate filters
             const uniqueVendors = [...new Set(data.map(r => r.vendor_name || r.VENDOR_NAME).filter(v => v && v !== '-'))];
-            populatePoHtmlFilters(allDocNumbers, uniqueVendors, [...allItems]);
+            // Collect unique dates from data
+            const uniqueDates = [...new Set(data.map(r => {
+                return r.CREATION_DATE || r.creation_date || r.created_date || r.CREATED_DATE ||
+                       r.PO_DATE || r.po_date || r.ORDER_DATE || r.order_date ||
+                       r.EXPECTED_RECEIPT_DATE || r.expected_receipt_date || null;
+            }).filter(d => d && d !== '-'))];
+            populatePoHtmlFilters(allDocNumbers, uniqueVendors, [...allItems], uniqueDates);
 
             // Store for filtering
             poHtmlFilteredData = data;
@@ -5985,12 +5996,27 @@ Click "Run Test" to execute the API call...
                 const toOrgCode = header.to_organization_code || header.TO_ORGANIZATION_CODE || '-';
                 // Use priority: explicit field > lines count > header row count
                 const noOfItems = header.no_of_items || header.NO_OF_ITEMS || items.length || group.headerRowCount || 0;
-                const creationDate = header.CREATION_DATE || header.creation_date || header.created_date || header.CREATED_DATE || '-';
+                const creationDate = header.CREATION_DATE || header.creation_date || header.created_date || header.CREATED_DATE ||
+                                     header.PO_DATE || header.po_date || header.ORDER_DATE || header.order_date ||
+                                     header.EXPECTED_RECEIPT_DATE || header.expected_receipt_date || '-';
 
                 // Debug: Log first row's keys to see available fields
                 if (idx === 0) {
                     console.log('[INV] PO Header fields:', Object.keys(header));
                     console.log('[INV] PO Group count - headerRowCount:', group.headerRowCount, 'items.length:', items.length);
+                    // Debug all date-related fields
+                    console.log('[INV] Date fields check:', {
+                        CREATION_DATE: header.CREATION_DATE,
+                        creation_date: header.creation_date,
+                        CREATED_DATE: header.CREATED_DATE,
+                        created_date: header.created_date,
+                        PO_DATE: header.PO_DATE,
+                        po_date: header.po_date,
+                        ORDER_DATE: header.ORDER_DATE,
+                        order_date: header.order_date,
+                        EXPECTED_RECEIPT_DATE: header.EXPECTED_RECEIPT_DATE,
+                        expected_receipt_date: header.expected_receipt_date
+                    });
                 }
 
                 html += `
@@ -6099,10 +6125,11 @@ Click "Run Test" to execute the API call...
         }
 
         // Populate filter datalists (type + select)
-        function populatePoHtmlFilters(docNumbers, vendors, items) {
+        function populatePoHtmlFilters(docNumbers, vendors, items, dates) {
             const docDatalist = document.getElementById('poHtmlDocNumberList');
             const vendorDatalist = document.getElementById('poHtmlVendorList');
             const itemDatalist = document.getElementById('poHtmlItemList');
+            const dateDatalist = document.getElementById('poHtmlDateList');
 
             if (docDatalist) {
                 docDatalist.innerHTML = '';
@@ -6122,6 +6149,13 @@ Click "Run Test" to execute the API call...
                 itemDatalist.innerHTML = '';
                 (items || []).sort().forEach(item => {
                     itemDatalist.innerHTML += `<option value="${item}">`;
+                });
+            }
+
+            if (dateDatalist) {
+                dateDatalist.innerHTML = '';
+                (dates || []).sort().forEach(date => {
+                    dateDatalist.innerHTML += `<option value="${date}">`;
                 });
             }
         }
@@ -6167,6 +6201,7 @@ Click "Run Test" to execute the API call...
             const docFilter = (document.getElementById('poHtmlFilterDocNumber')?.value || '').toLowerCase().trim();
             const vendorFilter = (document.getElementById('poHtmlFilterVendor')?.value || '').toLowerCase().trim();
             const itemFilter = (document.getElementById('poHtmlFilterItem')?.value || '').toLowerCase().trim();
+            const dateFilter = (document.getElementById('poHtmlFilterDate')?.value || '').toLowerCase().trim();
 
             let filtered = [...(poReceiptsData || [])];
 
@@ -6183,6 +6218,16 @@ Click "Run Test" to execute the API call...
                 filtered = filtered.filter(row => {
                     const vendor = (row.vendor_name || row.VENDOR_NAME || '').toLowerCase();
                     return vendor.includes(vendorFilter);
+                });
+            }
+
+            // Filter by date (partial match)
+            if (dateFilter) {
+                filtered = filtered.filter(row => {
+                    const rowDate = (row.CREATION_DATE || row.creation_date || row.created_date || row.CREATED_DATE ||
+                                     row.PO_DATE || row.po_date || row.ORDER_DATE || row.order_date ||
+                                     row.EXPECTED_RECEIPT_DATE || row.expected_receipt_date || '').toLowerCase();
+                    return rowDate.includes(dateFilter);
                 });
             }
 
@@ -6210,10 +6255,12 @@ Click "Run Test" to execute the API call...
             const docSelect = document.getElementById('poHtmlFilterDocNumber');
             const vendorSelect = document.getElementById('poHtmlFilterVendor');
             const itemSelect = document.getElementById('poHtmlFilterItem');
+            const dateSelect = document.getElementById('poHtmlFilterDate');
 
             if (docSelect) docSelect.value = '';
             if (vendorSelect) vendorSelect.value = '';
             if (itemSelect) itemSelect.value = '';
+            if (dateSelect) dateSelect.value = '';
 
             renderPoHtmlGroupedView(poReceiptsData);
         }

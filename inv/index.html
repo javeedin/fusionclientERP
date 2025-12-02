@@ -5929,19 +5929,29 @@ Click "Run Test" to execute the API call...
 
             // Group data by document_number
             const groupedData = {};
+            const allItems = new Set();
+
+            // First pass: group header data and count rows per document
             data.forEach(row => {
                 const docNum = row.document_number || row.DOCUMENT_NUMBER || '-';
                 if (!groupedData[docNum]) {
                     groupedData[docNum] = {
                         header: row,
-                        items: []
+                        items: [],
+                        headerRowCount: 0  // Count rows from header data
                     };
+                }
+                groupedData[docNum].headerRowCount++;
+
+                // Track items from header data as well
+                const itemNum = row.item_number || row.ITEM_NUMBER;
+                if (itemNum && itemNum !== '-') {
+                    allItems.add(itemNum);
                 }
             });
 
-            // Get lines for each document
+            // Get lines for each document from poReceiptsLinesData
             const allDocNumbers = Object.keys(groupedData);
-            const allItems = new Set();
 
             (poReceiptsLinesData || []).forEach(line => {
                 const lineDocNum = line.document_number || line.DOCUMENT_NUMBER;
@@ -5973,13 +5983,14 @@ Click "Run Test" to execute the API call...
                 const vendorSite = header.vendor_site_code || header.VENDOR_SITE_CODE || '-';
                 const shipToLocation = header.ship_to_location || header.SHIP_TO_LOCATION || '-';
                 const toOrgCode = header.to_organization_code || header.TO_ORGANIZATION_CODE || '-';
-                const noOfItems = header.no_of_items || header.NO_OF_ITEMS || items.length;
+                // Use priority: explicit field > lines count > header row count
+                const noOfItems = header.no_of_items || header.NO_OF_ITEMS || items.length || group.headerRowCount || 0;
                 const creationDate = header.CREATION_DATE || header.creation_date || header.created_date || header.CREATED_DATE || '-';
 
                 // Debug: Log first row's keys to see available fields
                 if (idx === 0) {
                     console.log('[INV] PO Header fields:', Object.keys(header));
-                    console.log('[INV] CREATION_DATE value:', header.CREATION_DATE);
+                    console.log('[INV] PO Group count - headerRowCount:', group.headerRowCount, 'items.length:', items.length);
                 }
 
                 html += `
@@ -6036,20 +6047,26 @@ Click "Run Test" to execute the API call...
                             <th style="padding: 8px 10px; text-align: left; border: 1px solid #dee2e6; font-weight: 600;">Item Number</th>
                             <th style="padding: 8px 10px; text-align: left; border: 1px solid #dee2e6; font-weight: 600;">Description</th>
                             <th style="padding: 8px 10px; text-align: right; border: 1px solid #dee2e6; font-weight: 600;">Quantity</th>
-                            <th style="padding: 8px 10px; text-align: center; border: 1px solid #dee2e6; font-weight: 600;">UOM</th>
+                            <th style="padding: 8px 10px; text-align: center; border: 1px solid #dee2e6; font-weight: 600;">UOM Code</th>
+                            <th style="padding: 8px 10px; text-align: right; border: 1px solid #dee2e6; font-weight: 600;">Available Qty</th>
+                            <th style="padding: 8px 10px; text-align: left; border: 1px solid #dee2e6; font-weight: 600;">Routing</th>
                         </tr>
                     </thead>
                     <tbody>
             `;
 
             let totalQty = 0;
+            let totalAvailQty = 0;
             items.forEach((line, idx) => {
                 const lineNum = line.line_number || line.LINE_NUMBER || '-';
                 const itemNum = line.item_number || line.ITEM_NUMBER || '-';
                 const itemDesc = line.item_description || line.ITEM_DESCRIPTION || '-';
                 const qty = parseFloat(line.quantity || line.QUANTITY || 0);
-                const uom = line.uom || line.UOM || line.unit_of_measure || '-';
+                const uomCode = line.uom_code || line.UOM_CODE || line.uom || line.UOM || line.unit_of_measure || '-';
+                const availQty = parseFloat(line.available_quantity || line.AVAILABLE_QUANTITY || 0);
+                const routing = line.routing || line.ROUTING || line.routing_name || line.ROUTING_NAME || '-';
                 totalQty += qty;
+                totalAvailQty += availQty;
 
                 html += `
                     <tr style="background: ${idx % 2 === 0 ? '#fff' : '#f8f9fa'};">
@@ -6057,7 +6074,9 @@ Click "Run Test" to execute the API call...
                         <td style="padding: 6px 10px; border: 1px solid #dee2e6; font-weight: 500;">${itemNum}</td>
                         <td style="padding: 6px 10px; border: 1px solid #dee2e6;">${itemDesc}</td>
                         <td style="padding: 6px 10px; border: 1px solid #dee2e6; text-align: right;">${qty.toLocaleString()}</td>
-                        <td style="padding: 6px 10px; border: 1px solid #dee2e6; text-align: center;">${uom}</td>
+                        <td style="padding: 6px 10px; border: 1px solid #dee2e6; text-align: center;">${uomCode}</td>
+                        <td style="padding: 6px 10px; border: 1px solid #dee2e6; text-align: right;">${availQty > 0 ? availQty.toLocaleString() : '-'}</td>
+                        <td style="padding: 6px 10px; border: 1px solid #dee2e6;">${routing}</td>
                     </tr>
                 `;
             });
@@ -6068,6 +6087,8 @@ Click "Run Test" to execute the API call...
                         <tr style="background: #e9ecef; font-weight: 600;">
                             <td colspan="3" style="padding: 8px 10px; border: 1px solid #dee2e6;">Total: ${items.length} Line(s)</td>
                             <td style="padding: 8px 10px; border: 1px solid #dee2e6; text-align: right;">${totalQty.toLocaleString()}</td>
+                            <td style="padding: 8px 10px; border: 1px solid #dee2e6;"></td>
+                            <td style="padding: 8px 10px; border: 1px solid #dee2e6; text-align: right;">${totalAvailQty > 0 ? totalAvailQty.toLocaleString() : ''}</td>
                             <td style="padding: 8px 10px; border: 1px solid #dee2e6;"></td>
                         </tr>
                     </tfoot>

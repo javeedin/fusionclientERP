@@ -386,15 +386,22 @@ namespace WMSApp
                 {
                     JsonElement root = doc.RootElement;
 
-                    // Check if response is an array or has an "items" property
+                    // Check various JSON structures
                     JsonElement itemsArray;
                     if (root.ValueKind == JsonValueKind.Array)
                     {
+                        // Direct array
                         itemsArray = root;
                     }
                     else if (root.TryGetProperty("items", out itemsArray))
                     {
                         // APEX REST often wraps results in "items"
+                    }
+                    else if (root.TryGetProperty("Endpoints", out var endpointsObj) &&
+                             endpointsObj.TryGetProperty("Endpoint", out itemsArray))
+                    {
+                        // Structure: { "Endpoints": { "Endpoint": [...] } }
+                        System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Found Endpoints.Endpoint structure");
                     }
                     else
                     {
@@ -406,49 +413,33 @@ namespace WMSApp
                     {
                         var endpoint = new EndpointConfig();
 
-                        // Map fields exactly as they come from the API - no concatenation
-                        if (item.TryGetProperty("sno", out JsonElement snoEl))
+                        // Map fields - handle multiple naming conventions (PascalCase, snake_case, UPPER_CASE)
+                        if (item.TryGetProperty("Sno", out JsonElement snoEl) || item.TryGetProperty("sno", out snoEl) || item.TryGetProperty("SNO", out snoEl))
                             endpoint.Sno = snoEl.TryGetInt32(out int sno) ? sno : 0;
-                        else if (item.TryGetProperty("SNO", out snoEl))
-                            endpoint.Sno = snoEl.TryGetInt32(out int sno2) ? sno2 : 0;
 
-                        if (item.TryGetProperty("source", out JsonElement sourceEl))
-                            endpoint.Source = sourceEl.GetString() ?? "";
-                        else if (item.TryGetProperty("SOURCE", out sourceEl))
+                        if (item.TryGetProperty("Source", out JsonElement sourceEl) || item.TryGetProperty("source", out sourceEl) || item.TryGetProperty("SOURCE", out sourceEl))
                             endpoint.Source = sourceEl.GetString() ?? "";
 
-                        if (item.TryGetProperty("integration_code", out JsonElement codeEl))
-                            endpoint.IntegrationCode = codeEl.GetString() ?? "";
-                        else if (item.TryGetProperty("INTEGRATION_CODE", out codeEl))
+                        if (item.TryGetProperty("IntegrationCode", out JsonElement codeEl) || item.TryGetProperty("integration_code", out codeEl) || item.TryGetProperty("INTEGRATION_CODE", out codeEl))
                             endpoint.IntegrationCode = codeEl.GetString() ?? "";
 
-                        if (item.TryGetProperty("instance_name", out JsonElement instEl))
-                            endpoint.InstanceName = instEl.GetString() ?? "";
-                        else if (item.TryGetProperty("INSTANCE_NAME", out instEl))
+                        if (item.TryGetProperty("InstanceName", out JsonElement instEl) || item.TryGetProperty("instance_name", out instEl) || item.TryGetProperty("INSTANCE_NAME", out instEl))
                             endpoint.InstanceName = instEl.GetString() ?? "";
 
-                        if (item.TryGetProperty("base_url", out JsonElement urlEl))
-                            endpoint.BaseUrl = urlEl.GetString() ?? "";
-                        else if (item.TryGetProperty("BASE_URL", out urlEl))
+                        if (item.TryGetProperty("URL", out JsonElement urlEl) || item.TryGetProperty("base_url", out urlEl) || item.TryGetProperty("BASE_URL", out urlEl))
                             endpoint.BaseUrl = urlEl.GetString() ?? "";
 
-                        if (item.TryGetProperty("endpoint", out JsonElement epEl))
-                            endpoint.Endpoint = epEl.GetString() ?? "";
-                        else if (item.TryGetProperty("ENDPOINT", out epEl))
+                        if (item.TryGetProperty("Path", out JsonElement epEl) || item.TryGetProperty("endpoint", out epEl) || item.TryGetProperty("ENDPOINT", out epEl))
                             endpoint.Endpoint = epEl.GetString() ?? "";
 
-                        if (item.TryGetProperty("comments", out JsonElement commEl))
-                            endpoint.Comments = commEl.GetString() ?? "";
-                        else if (item.TryGetProperty("COMMENTS", out commEl))
+                        if (item.TryGetProperty("Comments", out JsonElement commEl) || item.TryGetProperty("comments", out commEl) || item.TryGetProperty("COMMENTS", out commEl))
                             endpoint.Comments = commEl.GetString() ?? "";
 
-                        if (item.TryGetProperty("api_type", out JsonElement apiTypeEl))
-                            endpoint.ApiType = apiTypeEl.GetString() ?? "";
-                        else if (item.TryGetProperty("API_TYPE", out apiTypeEl))
+                        if (item.TryGetProperty("API_TYPE", out JsonElement apiTypeEl) || item.TryGetProperty("api_type", out apiTypeEl) || item.TryGetProperty("ApiType", out apiTypeEl))
                             endpoint.ApiType = apiTypeEl.GetString() ?? "";
 
                         endpoints.Add(endpoint);
-                        System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Parsed endpoint: Sno={endpoint.Sno}, Source={endpoint.Source}, Code={endpoint.IntegrationCode}, Instance={endpoint.InstanceName}");
+                        System.Diagnostics.Debug.WriteLine($"[EndpointSettingsPanel] Parsed endpoint: Sno={endpoint.Sno}, Source={endpoint.Source}, Code={endpoint.IntegrationCode}, ApiType={endpoint.ApiType}");
                     }
                 }
             }

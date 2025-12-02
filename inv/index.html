@@ -9438,7 +9438,8 @@ Click "Run Test" to execute the API call...
                                 console.log('[APEX LOAD] *** SUCCESS - Loaded ' + endpointsData.length + ' endpoints ***');
                                 console.log('[APEX LOAD] Data source: ' + (data.source || 'unknown (check C# logs)'));
                                 endpointsData.forEach((ep, idx) => {
-                                    console.log('[APEX LOAD]   Endpoint[' + idx + ']: Sno=' + ep.sno + ', Source=' + ep.source + ', Code=' + ep.integrationCode + ', Instance=' + ep.instanceName);
+                                    console.log('[APEX LOAD]   Endpoint[' + idx + ']: Sno=' + ep.sno + ', Source=' + ep.source + ', Code=' + ep.integrationCode + ', Instance=' + ep.instanceName + ', apiType=' + ep.apiType + ', API_TYPE=' + ep.API_TYPE);
+                                    if (idx === 0) console.log('[APEX LOAD]   First endpoint keys:', Object.keys(ep).join(', '));
                                 });
                                 if (data.settingsPath) {
                                     endpointsSettingsPath = data.settingsPath + '\\endpoints.xml';

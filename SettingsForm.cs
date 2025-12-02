@@ -435,7 +435,7 @@ namespace WMSApp
                         if (item.TryGetProperty("Comments", out JsonElement commEl) || item.TryGetProperty("comments", out commEl) || item.TryGetProperty("COMMENTS", out commEl))
                             endpoint.Comments = commEl.GetString() ?? "";
 
-                        if (item.TryGetProperty("API_TYPE", out JsonElement apiTypeEl) || item.TryGetProperty("api_type", out apiTypeEl) || item.TryGetProperty("ApiType", out apiTypeEl))
+                        if (item.TryGetProperty("apitype", out JsonElement apiTypeEl) || item.TryGetProperty("API_TYPE", out apiTypeEl) || item.TryGetProperty("api_type", out apiTypeEl) || item.TryGetProperty("ApiType", out apiTypeEl))
                             endpoint.ApiType = apiTypeEl.GetString() ?? "";
 
                         endpoints.Add(endpoint);

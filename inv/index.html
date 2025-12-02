@@ -5934,6 +5934,10 @@ Click "Run Test" to execute the API call...
 
             // Debug: Log input data count
             console.log('[INV] renderPoHtmlGroupedView called with', data.length, 'rows');
+            // Debug: Log first row to see all fields
+            if (data.length > 0) {
+                console.log('[INV] FIRST ROW FULL DATA:', JSON.stringify(data[0], null, 2));
+            }
 
             // Group data by document_number
             const groupedData = {};
@@ -5951,11 +5955,6 @@ Click "Run Test" to execute the API call...
                 }
                 groupedData[docNum].headerRowCount++;
 
-                // Debug: Log first few rows
-                if (idx < 3) {
-                    console.log('[INV] Row', idx, 'document_number:', docNum, 'creation_date:', row.creation_date);
-                }
-
                 // Track items from header data as well
                 const itemNum = row.item_number || row.ITEM_NUMBER;
                 if (itemNum && itemNum !== '-') {
@@ -5966,6 +5965,10 @@ Click "Run Test" to execute the API call...
             // Debug: Log grouped data
             const allDocNumbers = Object.keys(groupedData);
             console.log('[INV] Unique document numbers:', allDocNumbers.length, allDocNumbers);
+            // Debug: Log each group's headerRowCount
+            allDocNumbers.forEach(doc => {
+                console.log('[INV] Doc:', doc, 'headerRowCount:', groupedData[doc].headerRowCount);
+            });
 
             (poReceiptsLinesData || []).forEach(line => {
                 const lineDocNum = line.document_number || line.DOCUMENT_NUMBER;

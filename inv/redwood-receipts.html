@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receive Expected Shipments - Redwood</title>
+    <style>
+        /* Oracle Redwood Design System Inspired Styles */
+        :root {
+            --rw-red: #c74634;
+            --rw-red-hover: #a83a2b;
+            --rw-red-light: #fef4f3;
+            --rw-neutral-900: #161513;
+            --rw-neutral-800: #312d2a;
+            --rw-neutral-700: #4a4744;
+            --rw-neutral-600: #5a5754;
+            --rw-neutral-500: #6b6966;
+            --rw-neutral-400: #8a8886;
+            --rw-neutral-300: #b8b6b4;
+            --rw-neutral-200: #d5d4d3;
+            --rw-neutral-100: #ebebea;
+            --rw-neutral-50: #f7f6f6;
+            --rw-white: #ffffff;
+            --rw-success: #1e7e34;
+            --rw-success-bg: #e6f4ea;
+            --rw-info: #0056b3;
+            --rw-info-bg: #e7f1ff;
+            --rw-shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --rw-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --rw-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --rw-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+            --rw-radius: 8px;
+            --rw-radius-lg: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Oracle Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--rw-neutral-50);
+            color: var(--rw-neutral-800);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .rw-header {
+            background: var(--rw-white);
+            border-bottom: 1px solid var(--rw-neutral-200);
+            padding: 0 24px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .rw-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .rw-logo {
+            width: 32px;
+            height: 32px;
+            background: var(--rw-red);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .rw-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+        }
+
+        .rw-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--rw-neutral-500);
+        }
+
+        .rw-breadcrumb a {
+            color: var(--rw-red);
+            text-decoration: none;
+        }
+
+        .rw-breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        /* Main Content */
+        .rw-main {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Page Header */
+        .rw-page-header {
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .rw-page-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+            margin-bottom: 8px;
+        }
+
+        .rw-page-subtitle {
+            font-size: 14px;
+            color: var(--rw-neutral-500);
+        }
+
+        /* Card */
+        .rw-card {
+            background: var(--rw-white);
+            border-radius: var(--rw-radius-lg);
+            box-shadow: var(--rw-shadow);
+            overflow: hidden;
+        }
+
+        .rw-card-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .rw-card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+        }
+
+        .rw-card-body {
+            padding: 24px;
+        }
+
+        /* Form Controls */
+        .rw-form-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .rw-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 160px;
+        }
+
+        .rw-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--rw-neutral-700);
+        }
+
+        .rw-input, .rw-select {
+            padding: 10px 14px;
+            border: 1px solid var(--rw-neutral-300);
+            border-radius: var(--rw-radius);
+            font-size: 14px;
+            color: var(--rw-neutral-800);
+            background: var(--rw-white);
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .rw-input:focus, .rw-select:focus {
+            outline: none;
+            border-color: var(--rw-red);
+            box-shadow: 0 0 0 3px var(--rw-red-light);
+        }
+
+        .rw-input::placeholder {
+            color: var(--rw-neutral-400);
+        }
+
+        /* Buttons */
+        .rw-btn {
+            padding: 10px 20px;
+            border-radius: var(--rw-radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            white-space: nowrap;
+        }
+
+        .rw-btn-primary {
+            background: var(--rw-red);
+            color: var(--rw-white);
+        }
+
+        .rw-btn-primary:hover {
+            background: var(--rw-red-hover);
+        }
+
+        .rw-btn-primary:disabled {
+            background: var(--rw-neutral-300);
+            cursor: not-allowed;
+        }
+
+        .rw-btn-secondary {
+            background: var(--rw-white);
+            color: var(--rw-neutral-700);
+            border: 1px solid var(--rw-neutral-300);
+        }
+
+        .rw-btn-secondary:hover {
+            background: var(--rw-neutral-50);
+            border-color: var(--rw-neutral-400);
+        }
+
+        .rw-btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .rw-btn-icon {
+            padding: 8px;
+            border-radius: var(--rw-radius);
+            background: transparent;
+            border: 1px solid var(--rw-neutral-200);
+            color: var(--rw-neutral-600);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .rw-btn-icon:hover {
+            background: var(--rw-neutral-50);
+            border-color: var(--rw-neutral-300);
+            color: var(--rw-red);
+        }
+
+        .rw-btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Stats Bar */
+        .rw-stats-bar {
+            display: flex;
+            gap: 32px;
+            padding: 16px 24px;
+            background: var(--rw-neutral-50);
+            border-bottom: 1px solid var(--rw-neutral-100);
+        }
+
+        .rw-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .rw-stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--rw-red);
+        }
+
+        .rw-stat-label {
+            font-size: 12px;
+            color: var(--rw-neutral-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Toolbar */
+        .rw-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 24px;
+            background: var(--rw-white);
+            border-bottom: 1px solid var(--rw-neutral-100);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .rw-toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .rw-toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rw-selected-count {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--rw-red);
+            padding: 6px 12px;
+            background: var(--rw-red-light);
+            border-radius: 20px;
+        }
+
+        /* Filter Pills */
+        .rw-filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rw-filter-input {
+            padding: 6px 12px;
+            border: 1px solid var(--rw-neutral-200);
+            border-radius: var(--rw-radius);
+            font-size: 13px;
+            width: 140px;
+            background: var(--rw-white);
+        }
+
+        .rw-filter-input:focus {
+            outline: none;
+            border-color: var(--rw-red);
+            box-shadow: 0 0 0 2px var(--rw-red-light);
+        }
+
+        /* PO Groups */
+        .rw-po-list {
+            border-top: 1px solid var(--rw-neutral-100);
+        }
+
+        .rw-po-group {
+            border-bottom: 1px solid var(--rw-neutral-100);
+            transition: background 0.15s;
+        }
+
+        .rw-po-group-header {
+            display: flex;
+            align-items: center;
+            padding: 16px 24px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .rw-po-group-header:hover {
+            background: var(--rw-red-light);
+        }
+
+        .rw-po-checkbox {
+            width: 18px;
+            height: 18px;
+            margin-right: 16px;
+            cursor: pointer;
+            accent-color: var(--rw-red);
+        }
+
+        .rw-po-expand {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            color: var(--rw-red);
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .rw-po-expand.expanded {
+            transform: rotate(90deg);
+        }
+
+        .rw-po-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .rw-po-field {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .rw-po-field-label {
+            font-size: 11px;
+            color: var(--rw-neutral-500);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .rw-po-field-value {
+            font-weight: 500;
+            color: var(--rw-neutral-800);
+        }
+
+        .rw-po-field-value.highlight {
+            color: var(--rw-red);
+            font-weight: 600;
+        }
+
+        .rw-po-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Line Items */
+        .rw-po-lines {
+            display: none;
+            padding: 0 24px 20px 60px;
+            background: var(--rw-neutral-50);
+        }
+
+        .rw-po-lines.expanded {
+            display: block;
+        }
+
+        .rw-lines-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            background: var(--rw-white);
+            border-radius: var(--rw-radius);
+            overflow: hidden;
+            box-shadow: var(--rw-shadow-sm);
+        }
+
+        .rw-lines-table th {
+            text-align: left;
+            padding: 12px 14px;
+            background: var(--rw-neutral-100);
+            font-weight: 600;
+            color: var(--rw-neutral-700);
+            border-bottom: 2px solid var(--rw-neutral-200);
+            white-space: nowrap;
+        }
+
+        .rw-lines-table th.text-right {
+            text-align: right;
+        }
+
+        .rw-lines-table th.text-center {
+            text-align: center;
+        }
+
+        .rw-lines-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+            color: var(--rw-neutral-800);
+        }
+
+        .rw-lines-table td.text-right {
+            text-align: right;
+        }
+
+        .rw-lines-table td.text-center {
+            text-align: center;
+        }
+
+        .rw-lines-table tbody tr:hover {
+            background: var(--rw-red-light);
+        }
+
+        .rw-lines-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .rw-lines-table tfoot {
+            background: var(--rw-neutral-100);
+            font-weight: 600;
+        }
+
+        .rw-lines-table tfoot td {
+            padding: 12px 14px;
+            border-top: 2px solid var(--rw-neutral-200);
+        }
+
+        /* Badge */
+        .rw-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .rw-badge-success {
+            background: var(--rw-success-bg);
+            color: var(--rw-success);
+        }
+
+        .rw-badge-info {
+            background: var(--rw-info-bg);
+            color: var(--rw-info);
+        }
+
+        /* Empty State */
+        .rw-empty-state {
+            text-align: center;
+            padding: 60px 24px;
+            color: var(--rw-neutral-500);
+        }
+
+        .rw-empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .rw-empty-state-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--rw-neutral-700);
+            margin-bottom: 8px;
+        }
+
+        /* Loading Spinner */
+        .rw-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--rw-neutral-200);
+            border-top-color: var(--rw-red);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Back Link */
+        .rw-back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--rw-red);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .rw-back-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Dialog/Modal */
+        .rw-dialog-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .rw-dialog-overlay.active {
+            display: flex;
+        }
+
+        .rw-dialog {
+            background: var(--rw-white);
+            border-radius: var(--rw-radius-lg);
+            box-shadow: var(--rw-shadow-lg);
+            max-width: 900px;
+            width: 90%;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .rw-dialog-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .rw-dialog-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+        }
+
+        .rw-dialog-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 20px;
+            color: var(--rw-neutral-500);
+            border-radius: var(--rw-radius);
+            transition: all 0.15s;
+        }
+
+        .rw-dialog-close:hover {
+            background: var(--rw-neutral-100);
+            color: var(--rw-neutral-800);
+        }
+
+        .rw-dialog-body {
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .rw-dialog-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--rw-neutral-100);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* Detail Info Grid */
+        .rw-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .rw-detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .rw-detail-label {
+            font-size: 12px;
+            color: var(--rw-neutral-500);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .rw-detail-value {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--rw-neutral-800);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .rw-main {
+                padding: 16px;
+            }
+
+            .rw-form-row {
+                flex-direction: column;
+            }
+
+            .rw-form-group {
+                width: 100%;
+            }
+
+            .rw-stats-bar {
+                flex-wrap: wrap;
+            }
+
+            .rw-po-info {
+                gap: 12px;
+            }
+
+            .rw-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .rw-toolbar-left, .rw-toolbar-right {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="rw-header">
+        <div class="rw-header-left">
+            <div class="rw-logo">O</div>
+            <span class="rw-title">Fusion Client ERP</span>
+        </div>
+        <nav class="rw-breadcrumb">
+            <a href="index.html">Inventory</a>
+            <span>/</span>
+            <span>Receive Expected Shipments</span>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="rw-main">
+        <a href="index.html" class="rw-back-link">
+            <span>&#8592;</span> Back to Inventory
+        </a>
+
+        <div class="rw-page-header">
+            <div>
+                <h1 class="rw-page-title">Receive Expected Shipments</h1>
+                <p class="rw-page-subtitle">View and receive expected purchase order shipments</p>
+            </div>
+            <div class="rw-btn-group">
+                <button id="rwLoadBtn" class="rw-btn rw-btn-primary" onclick="loadData()">
+                    <span>&#8635;</span> Load Shipments
+                </button>
+            </div>
+        </div>
+
+        <!-- Search Card -->
+        <div class="rw-card" style="margin-bottom: 24px;">
+            <div class="rw-card-body" style="padding: 16px 24px;">
+                <div class="rw-form-row">
+                    <div class="rw-form-group">
+                        <label class="rw-label" for="rwOrgCode">Organization Code</label>
+                        <input type="text" id="rwOrgCode" class="rw-input" placeholder="e.g., AMS" value="AMS">
+                    </div>
+                    <div class="rw-form-group">
+                        <label class="rw-label" for="rwVendor">Vendor</label>
+                        <input type="text" id="rwVendor" class="rw-input" placeholder="Filter by vendor...">
+                    </div>
+                    <div class="rw-form-group">
+                        <label class="rw-label" for="rwPoNumber">PO Number</label>
+                        <input type="text" id="rwPoNumber" class="rw-input" placeholder="Filter by PO...">
+                    </div>
+                    <div class="rw-form-group" style="justify-content: flex-end; flex-direction: row; gap: 8px;">
+                        <button class="rw-btn rw-btn-primary" onclick="loadData()">
+                            <span>&#128269;</span> Search
+                        </button>
+                        <button class="rw-btn rw-btn-secondary" onclick="clearFilters()">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Card -->
+        <div class="rw-card">
+            <!-- Stats Bar -->
+            <div class="rw-stats-bar" id="rwStatsBar" style="display: none;">
+                <div class="rw-stat">
+                    <span class="rw-stat-value" id="rwTotalPOs">0</span>
+                    <span class="rw-stat-label">Purchase Orders</span>
+                </div>
+                <div class="rw-stat">
+                    <span class="rw-stat-value" id="rwTotalLines">0</span>
+                    <span class="rw-stat-label">Total Lines</span>
+                </div>
+                <div class="rw-stat">
+                    <span class="rw-stat-value" id="rwTotalVendors">0</span>
+                    <span class="rw-stat-label">Vendors</span>
+                </div>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="rw-toolbar" id="rwToolbar" style="display: none;">
+                <div class="rw-toolbar-left">
+                    <div class="rw-filter-group">
+                        <input type="text" id="rwFilterDoc" class="rw-filter-input" placeholder="PO Number..." list="rwDocList" oninput="filterGroups()">
+                        <datalist id="rwDocList"></datalist>
+                    </div>
+                    <div class="rw-filter-group">
+                        <input type="text" id="rwFilterVendor" class="rw-filter-input" placeholder="Vendor..." list="rwVendorList" oninput="filterGroups()">
+                        <datalist id="rwVendorList"></datalist>
+                    </div>
+                    <div class="rw-filter-group">
+                        <input type="text" id="rwFilterItem" class="rw-filter-input" placeholder="Item..." list="rwItemList" oninput="filterGroups()">
+                        <datalist id="rwItemList"></datalist>
+                    </div>
+                    <div class="rw-filter-group">
+                        <input type="text" id="rwFilterDate" class="rw-filter-input" placeholder="Date..." list="rwDateList" oninput="filterGroups()">
+                        <datalist id="rwDateList"></datalist>
+                    </div>
+                    <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="clearGroupFilters()">
+                        Clear Filters
+                    </button>
+                </div>
+                <div class="rw-toolbar-right">
+                    <button class="rw-btn-icon" onclick="sortByDate('asc')" title="Sort Oldest First">&#8593;</button>
+                    <button class="rw-btn-icon" onclick="sortByDate('desc')" title="Sort Newest First">&#8595;</button>
+                    <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="expandAll()">Expand All</button>
+                    <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="collapseAll()">Collapse All</button>
+                    <span class="rw-selected-count" id="rwSelectedCount">0 selected</span>
+                    <button class="rw-btn rw-btn-primary rw-btn-sm" onclick="receiveSelected()">
+                        Receive Selected
+                    </button>
+                </div>
+            </div>
+
+            <!-- PO List Container -->
+            <div class="rw-po-list" id="rwPoList">
+                <div class="rw-empty-state">
+                    <div class="rw-empty-state-icon">&#128230;</div>
+                    <div class="rw-empty-state-title">Load Expected Shipments</div>
+                    <p>Enter organization code and click "Load Shipments" to view pending receipts</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- PO Details Dialog -->
+    <div class="rw-dialog-overlay" id="rwDialogOverlay">
+        <div class="rw-dialog">
+            <div class="rw-dialog-header">
+                <h2 class="rw-dialog-title" id="rwDialogTitle">PO Details</h2>
+                <button class="rw-dialog-close" onclick="closeDialog()">&times;</button>
+            </div>
+            <div class="rw-dialog-body" id="rwDialogBody">
+                <!-- Dynamic content -->
+            </div>
+            <div class="rw-dialog-footer">
+                <button class="rw-btn rw-btn-secondary" onclick="closeDialog()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data storage
+        let poReceiptsData = [];
+        let poReceiptsLinesData = [];
+        let filteredData = [];
+        let selectedPOs = new Set();
+
+        // Get endpoint by integration code
+        async function getEndpointByCode(integrationCode) {
+            const instanceName = localStorage.getItem('wms_instance') || 'PROD';
+            return new Promise((resolve) => {
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'endpoint_' + integrationCode + '_' + Date.now();
+                    const handler = function(event) {
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            if (data.requestId === requestId && data.endpoint) {
+                                resolve(data.endpoint);
+                                window.chrome.webview.removeEventListener('message', handler);
+                            }
+                        } catch (e) {}
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+                    window.chrome.webview.postMessage({
+                        action: 'getEndpoint',
+                        requestId: requestId,
+                        integrationCode: integrationCode,
+                        instanceName: instanceName
+                    });
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        resolve(null);
+                    }, 5000);
+                } else {
+                    resolve(null);
+                }
+            });
+        }
+
+        // Fetch with C# bridge (executeGet action for REST calls)
+        async function fetchWithBridge(url) {
+            return new Promise((resolve, reject) => {
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'fetch_' + Date.now();
+                    const handler = function(event) {
+                        console.log('[Redwood] Raw message received:', event.data);
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            console.log('[Redwood] Message data:', data);
+                            if (data.requestId === requestId) {
+                                window.chrome.webview.removeEventListener('message', handler);
+                                console.log('[Redwood] RequestId matched! Success:', data.success);
+                                if (data.success) {
+                                    // Parse the nested JSON data if it's a string
+                                    let responseData = data.data;
+                                    console.log('[Redwood] Response data type:', typeof responseData);
+                                    if (typeof responseData === 'string') {
+                                        console.log('[Redwood] Parsing string response data...');
+                                        responseData = JSON.parse(responseData);
+                                    }
+                                    console.log('[Redwood] Final response data:', responseData);
+                                    resolve(responseData);
+                                } else {
+                                    console.error('[Redwood] Request failed:', data.error);
+                                    reject(new Error(data.error || 'Request failed'));
+                                }
+                            }
+                        } catch (e) {
+                            console.error('[Redwood] Error parsing response:', e);
+                        }
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+
+                    // Use executeGet action for REST API calls
+                    window.chrome.webview.postMessage({
+                        action: 'executeGet',
+                        requestId: requestId,
+                        url: url
+                    });
+
+                    // Timeout after 30 seconds
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        reject(new Error('Request timeout'));
+                    }, 30000);
+                } else {
+                    // Direct fetch for testing outside WebView
+                    console.log('[Redwood] WebView not available, using direct fetch');
+                    fetch(url)
+                        .then(res => res.json())
+                        .then(data => resolve(data))
+                        .catch(err => reject(err));
+                }
+            });
+        }
+
+        // Load data
+        async function loadData() {
+            const btn = document.getElementById('rwLoadBtn');
+            const orgCode = document.getElementById('rwOrgCode').value.trim();
+            const vendorFilter = document.getElementById('rwVendor').value.trim();
+            const poFilter = document.getElementById('rwPoNumber').value.trim();
+
+            if (!orgCode) {
+                alert('Please enter Organization Code');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="rw-spinner"></span> Loading...';
+
+            const container = document.getElementById('rwPoList');
+            container.innerHTML = '<div class="rw-empty-state"><div class="rw-spinner" style="width:40px;height:40px;border-width:3px;"></div><p style="margin-top:16px;">Loading shipments...</p></div>';
+
+            try {
+                // Fetch PO receipts
+                const receiptsEndpoint = await getEndpointByCode('EXPECTED_PO_RECEIPTS');
+                if (!receiptsEndpoint) {
+                    throw new Error('EXPECTED_PO_RECEIPTS endpoint not configured');
+                }
+
+                let url = `${receiptsEndpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                if (vendorFilter) url += `&p_vendor_name=${encodeURIComponent(vendorFilter)}`;
+                if (poFilter) url += `&p_po_number=${encodeURIComponent(poFilter)}`;
+
+                console.log('[Redwood] Fetching PO receipts:', url);
+                const response = await fetchWithBridge(url);
+
+                if (response && response.items) {
+                    poReceiptsData = response.items;
+                    filteredData = [...poReceiptsData];
+                    console.log('[Redwood] Loaded', poReceiptsData.length, 'PO receipts');
+                } else {
+                    poReceiptsData = [];
+                    filteredData = [];
+                }
+
+                // Fetch PO lines
+                const linesEndpoint = await getEndpointByCode('PO_EXPECTED_RECEIPTS_LINES');
+                if (linesEndpoint) {
+                    let linesUrl = `${linesEndpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                    console.log('[Redwood] Fetching PO lines:', linesUrl);
+                    const linesResponse = await fetchWithBridge(linesUrl);
+
+                    if (linesResponse && linesResponse.items) {
+                        poReceiptsLinesData = linesResponse.items;
+                        console.log('[Redwood] Loaded', poReceiptsLinesData.length, 'PO lines');
+                    } else {
+                        poReceiptsLinesData = [];
+                    }
+                }
+
+                renderGroupedView(filteredData);
+                updateStats();
+                document.getElementById('rwStatsBar').style.display = 'flex';
+                document.getElementById('rwToolbar').style.display = 'flex';
+
+            } catch (error) {
+                console.error('[Redwood] Error:', error);
+                container.innerHTML = `<div class="rw-empty-state"><div class="rw-empty-state-icon" style="color:var(--rw-red);">&#9888;</div><div class="rw-empty-state-title">Error Loading Data</div><p>${error.message}</p></div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>&#8635;</span> Load Shipments';
+            }
+        }
+
+        // Render grouped view
+        function renderGroupedView(data) {
+            const container = document.getElementById('rwPoList');
+
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="rw-empty-state"><div class="rw-empty-state-icon">&#128466;</div><div class="rw-empty-state-title">No Shipments Found</div><p>Try adjusting your search criteria</p></div>';
+                populateFilterLists([], [], [], []);
+                return;
+            }
+
+            // Group by document_number
+            const groupedData = {};
+            const allItems = new Set();
+
+            data.forEach(row => {
+                const docNum = row.document_number || row.DOCUMENT_NUMBER || '-';
+                if (!groupedData[docNum]) {
+                    groupedData[docNum] = {
+                        header: row,
+                        items: [],
+                        headerRowCount: 0
+                    };
+                }
+                groupedData[docNum].headerRowCount++;
+
+                const itemNum = row.item_number || row.ITEM_NUMBER;
+                if (itemNum && itemNum !== '-') allItems.add(itemNum);
+            });
+
+            // Add line items to groups
+            (poReceiptsLinesData || []).forEach(line => {
+                const lineDocNum = line.document_number || line.DOCUMENT_NUMBER;
+                if (groupedData[lineDocNum]) {
+                    groupedData[lineDocNum].items.push(line);
+                    const itemNum = line.item_number || line.ITEM_NUMBER;
+                    if (itemNum && itemNum !== '-') allItems.add(itemNum);
+                }
+            });
+
+            // Collect filter data
+            const docNumbers = Object.keys(groupedData);
+            const vendors = [...new Set(data.map(r => r.vendor_name || r.VENDOR_NAME).filter(v => v && v !== '-'))];
+
+            // Collect dates
+            const allDatesRaw = new Set();
+            data.forEach(r => {
+                const d = r.creation_date || r.CREATION_DATE || '';
+                if (d) allDatesRaw.add(d);
+            });
+            (poReceiptsLinesData || []).forEach(r => {
+                const d = r.creation_date || r.CREATION_DATE || '';
+                if (d) allDatesRaw.add(d);
+            });
+
+            const dates = [...allDatesRaw].map(rawDate => {
+                if (rawDate && rawDate.includes && rawDate.includes('T')) {
+                    try {
+                        const d = new Date(rawDate);
+                        return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                    } catch (e) {
+                        return rawDate;
+                    }
+                }
+                return rawDate;
+            }).filter(d => d && d !== '-');
+
+            populateFilterLists(docNumbers, vendors, [...allItems], dates);
+
+            // Build HTML
+            let html = '';
+            Object.keys(groupedData).forEach((docNum, idx) => {
+                const group = groupedData[docNum];
+                const header = group.header;
+                const items = group.items;
+                const isSelected = selectedPOs.has(docNum);
+
+                const vendorName = header.vendor_name || header.VENDOR_NAME || '-';
+                const vendorSite = header.vendor_site_code || header.VENDOR_SITE_CODE || '-';
+                const shipToLocation = header.ship_to_location || header.SHIP_TO_LOCATION || '-';
+                const toOrgCode = header.to_organization_code || header.TO_ORGANIZATION_CODE || '-';
+                const currencyCode = header.currency_code || header.CURRENCY_CODE || '-';
+                const poRevisionNum = header.po_revision_number !== undefined ? header.po_revision_number : (header.PO_REVISION_NUMBER !== undefined ? header.PO_REVISION_NUMBER : '-');
+                const noOfItems = header.no_of_items || header.NO_OF_ITEMS || items.length || group.headerRowCount || 0;
+
+                // Get creation date
+                const firstItem = items && items.length > 0 ? items[0] : {};
+                let rawCreationDate = header.creation_date || header.CREATION_DATE ||
+                                     firstItem.creation_date || firstItem.CREATION_DATE ||
+                                     header.created_date || header.CREATED_DATE || '';
+
+                let creationDate = '-';
+                if (rawCreationDate) {
+                    try {
+                        if (rawCreationDate.includes && rawCreationDate.includes('T')) {
+                            const d = new Date(rawCreationDate);
+                            creationDate = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                        } else {
+                            creationDate = rawCreationDate;
+                        }
+                    } catch (e) {
+                        creationDate = rawCreationDate || '-';
+                    }
+                }
+
+                html += `
+                    <div class="rw-po-group" data-doc="${docNum}">
+                        <div class="rw-po-group-header" onclick="toggleGroup('${docNum}')">
+                            <input type="checkbox" class="rw-po-checkbox" data-doc="${docNum}"
+                                ${isSelected ? 'checked' : ''}
+                                onclick="event.stopPropagation(); toggleSelection('${docNum}', this)">
+
+                            <div class="rw-po-expand" id="rwIcon_${docNum}">&#9654;</div>
+
+                            <div class="rw-po-info">
+                                <div class="rw-po-field">
+                                    <span class="rw-po-field-label">PO Number</span>
+                                    <span class="rw-po-field-value highlight">${docNum}</span>
+                                </div>
+                                <div class="rw-po-field">
+                                    <span class="rw-po-field-label">Revision</span>
+                                    <span class="rw-po-field-value">${poRevisionNum}</span>
+                                </div>
+                                <div class="rw-po-field">
+                                    <span class="rw-po-field-label">Date</span>
+                                    <span class="rw-po-field-value">${creationDate}</span>
+                                </div>
+                                <div class="rw-po-field">
+                                    <span class="rw-po-field-label">Vendor</span>
+                                    <span class="rw-po-field-value">${vendorName}</span>
+                                </div>
+                                <div class="rw-po-field">
+                                    <span class="rw-po-field-label">Site</span>
+                                    <span class="rw-po-field-value">${vendorSite}</span>
+                                </div>
+                                <div class="rw-po-field">
+                                    <span class="rw-po-field-label">Ship To</span>
+                                    <span class="rw-po-field-value">${shipToLocation}</span>
+                                </div>
+                                <div class="rw-po-field">
+                                    <span class="rw-po-field-label">Lines</span>
+                                    <span class="rw-po-field-value"><span class="rw-badge rw-badge-success">${noOfItems}</span></span>
+                                </div>
+                            </div>
+
+                            <div class="rw-po-actions">
+                                <button class="rw-btn-icon" onclick="event.stopPropagation(); openDetails('${docNum}')" title="View Details">
+                                    &#9998;
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="rw-po-lines" id="rwLines_${docNum}">
+                            ${renderLinesTable(items)}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            updateSelectedCount();
+        }
+
+        // Render lines table
+        function renderLinesTable(items) {
+            if (!items || items.length === 0) {
+                return '<div style="padding: 20px; color: var(--rw-neutral-500); font-style: italic;">No line items available for this PO</div>';
+            }
+
+            let html = `
+                <table class="rw-lines-table">
+                    <thead>
+                        <tr>
+                            <th class="text-center">Line #</th>
+                            <th>Item Number</th>
+                            <th>Description</th>
+                            <th class="text-right">Ordered Qty</th>
+                            <th class="text-right">Available Qty</th>
+                            <th class="text-center">UOM</th>
+                            <th>Routing</th>
+                            <th>Dest Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            let totalOrderedQty = 0;
+            let totalAvailQty = 0;
+
+            items.forEach(line => {
+                const docLineNum = line.document_line_number || line.DOCUMENT_LINE_NUMBER || line.line_number || line.LINE_NUMBER || '-';
+                const itemNum = line.item_number || line.ITEM_NUMBER || '-';
+                const itemDesc = line.item_description || line.ITEM_DESCRIPTION || '-';
+                const orderedQty = parseFloat(line.ordered_quantity || line.ORDERED_QUANTITY || 0);
+                const availQty = parseFloat(line.available_quantity || line.AVAILABLE_QUANTITY || 0);
+                const uomCode = line.uom_code || line.UOM_CODE || line.uom || line.UOM || line.unit_of_measure || '-';
+                const routing = line.routing || line.ROUTING || line.routing_name || line.ROUTING_NAME || '-';
+                const destTypeCode = line.destination_type_code || line.DESTINATION_TYPE_CODE || line.destination_type || line.DESTINATION_TYPE || '-';
+
+                totalOrderedQty += orderedQty;
+                totalAvailQty += availQty;
+
+                html += `
+                    <tr>
+                        <td class="text-center">${docLineNum}</td>
+                        <td style="font-weight: 500;">${itemNum}</td>
+                        <td>${itemDesc}</td>
+                        <td class="text-right">${orderedQty.toLocaleString()}</td>
+                        <td class="text-right">${availQty > 0 ? availQty.toLocaleString() : '-'}</td>
+                        <td class="text-center">${uomCode}</td>
+                        <td>${routing}</td>
+                        <td>${destTypeCode}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3">Total: ${items.length} Line(s)</td>
+                            <td class="text-right">${totalOrderedQty.toLocaleString()}</td>
+                            <td class="text-right">${totalAvailQty > 0 ? totalAvailQty.toLocaleString() : ''}</td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            `;
+
+            return html;
+        }
+
+        // Populate filter datalists
+        function populateFilterLists(docs, vendors, items, dates) {
+            const docList = document.getElementById('rwDocList');
+            const vendorList = document.getElementById('rwVendorList');
+            const itemList = document.getElementById('rwItemList');
+            const dateList = document.getElementById('rwDateList');
+
+            if (docList) {
+                docList.innerHTML = docs.sort().map(d => `<option value="${d}">`).join('');
+            }
+            if (vendorList) {
+                vendorList.innerHTML = vendors.sort().map(v => `<option value="${v}">`).join('');
+            }
+            if (itemList) {
+                itemList.innerHTML = items.sort().map(i => `<option value="${i}">`).join('');
+            }
+            if (dateList) {
+                dateList.innerHTML = dates.sort().map(d => `<option value="${d}">`).join('');
+            }
+        }
+
+        // Update stats
+        function updateStats() {
+            const uniquePOs = new Set(poReceiptsData.map(r => r.document_number || r.DOCUMENT_NUMBER)).size;
+            const totalLines = poReceiptsLinesData.length;
+            const uniqueVendors = new Set(poReceiptsData.map(r => r.vendor_name || r.VENDOR_NAME).filter(v => v)).size;
+
+            document.getElementById('rwTotalPOs').textContent = uniquePOs;
+            document.getElementById('rwTotalLines').textContent = totalLines;
+            document.getElementById('rwTotalVendors').textContent = uniqueVendors;
+        }
+
+        // Toggle group expand/collapse
+        function toggleGroup(docNum) {
+            const linesDiv = document.getElementById('rwLines_' + docNum);
+            const icon = document.getElementById('rwIcon_' + docNum);
+
+            if (linesDiv && icon) {
+                const isExpanded = linesDiv.classList.contains('expanded');
+                if (isExpanded) {
+                    linesDiv.classList.remove('expanded');
+                    icon.classList.remove('expanded');
+                } else {
+                    linesDiv.classList.add('expanded');
+                    icon.classList.add('expanded');
+                }
+            }
+        }
+
+        // Expand all groups
+        function expandAll() {
+            document.querySelectorAll('.rw-po-lines').forEach(div => div.classList.add('expanded'));
+            document.querySelectorAll('.rw-po-expand').forEach(icon => icon.classList.add('expanded'));
+        }
+
+        // Collapse all groups
+        function collapseAll() {
+            document.querySelectorAll('.rw-po-lines').forEach(div => div.classList.remove('expanded'));
+            document.querySelectorAll('.rw-po-expand').forEach(icon => icon.classList.remove('expanded'));
+        }
+
+        // Filter groups
+        function filterGroups() {
+            const docFilter = (document.getElementById('rwFilterDoc')?.value || '').toLowerCase().trim();
+            const vendorFilter = (document.getElementById('rwFilterVendor')?.value || '').toLowerCase().trim();
+            const itemFilter = (document.getElementById('rwFilterItem')?.value || '').toLowerCase().trim();
+            const dateFilter = (document.getElementById('rwFilterDate')?.value || '').toLowerCase().trim();
+
+            let filtered = [...poReceiptsData];
+
+            // Filter by document number
+            if (docFilter) {
+                filtered = filtered.filter(row => {
+                    const docNum = (row.document_number || row.DOCUMENT_NUMBER || '').toLowerCase();
+                    return docNum.includes(docFilter);
+                });
+            }
+
+            // Filter by vendor
+            if (vendorFilter) {
+                filtered = filtered.filter(row => {
+                    const vendor = (row.vendor_name || row.VENDOR_NAME || '').toLowerCase();
+                    return vendor.includes(vendorFilter);
+                });
+            }
+
+            // Filter by date
+            if (dateFilter) {
+                const docsWithDate = new Set();
+                (poReceiptsLinesData || []).forEach(line => {
+                    const lineDate = line.creation_date || line.CREATION_DATE || '';
+                    let formattedDate = lineDate;
+                    if (lineDate && lineDate.includes && lineDate.includes('T')) {
+                        try {
+                            const d = new Date(lineDate);
+                            formattedDate = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                        } catch (e) {}
+                    }
+                    if (formattedDate.toLowerCase().includes(dateFilter)) {
+                        const docNum = line.document_number || line.DOCUMENT_NUMBER;
+                        docsWithDate.add(docNum);
+                    }
+                });
+
+                filtered = filtered.filter(row => {
+                    const docNum = row.document_number || row.DOCUMENT_NUMBER || '';
+                    if (docsWithDate.has(docNum)) return true;
+                    const rowDate = (row.creation_date || row.CREATION_DATE || '').toLowerCase();
+                    return rowDate.includes(dateFilter);
+                });
+            }
+
+            // Filter by item
+            if (itemFilter) {
+                const docsWithItem = new Set();
+                (poReceiptsLinesData || []).forEach(line => {
+                    const itemNum = (line.item_number || line.ITEM_NUMBER || '').toLowerCase();
+                    if (itemNum.includes(itemFilter)) {
+                        const docNum = line.document_number || line.DOCUMENT_NUMBER;
+                        docsWithItem.add(docNum);
+                    }
+                });
+                filtered = filtered.filter(row => {
+                    const docNum = row.document_number || row.DOCUMENT_NUMBER || '';
+                    return docsWithItem.has(docNum);
+                });
+            }
+
+            filteredData = filtered;
+            renderGroupedView(filtered);
+        }
+
+        // Clear group filters
+        function clearGroupFilters() {
+            document.getElementById('rwFilterDoc').value = '';
+            document.getElementById('rwFilterVendor').value = '';
+            document.getElementById('rwFilterItem').value = '';
+            document.getElementById('rwFilterDate').value = '';
+            filteredData = [...poReceiptsData];
+            renderGroupedView(filteredData);
+        }
+
+        // Sort by date
+        function sortByDate(order) {
+            const data = filteredData.length > 0 ? [...filteredData] : [...poReceiptsData];
+
+            const getDateForDoc = (docNum) => {
+                const line = (poReceiptsLinesData || []).find(l => (l.document_number || l.DOCUMENT_NUMBER) === docNum);
+                if (line) {
+                    const d = line.creation_date || line.CREATION_DATE || '';
+                    if (d) return new Date(d);
+                }
+                const row = data.find(r => (r.document_number || r.DOCUMENT_NUMBER) === docNum);
+                if (row) {
+                    const d = row.creation_date || row.CREATION_DATE || '';
+                    if (d) return new Date(d);
+                }
+                return new Date(0);
+            };
+
+            const sortedData = data.sort((a, b) => {
+                const docA = a.document_number || a.DOCUMENT_NUMBER || '';
+                const docB = b.document_number || b.DOCUMENT_NUMBER || '';
+                const dateA = getDateForDoc(docA);
+                const dateB = getDateForDoc(docB);
+
+                return order === 'asc' ? dateA - dateB : dateB - dateA;
+            });
+
+            filteredData = sortedData;
+            renderGroupedView(sortedData);
+            console.log('[Redwood] Sorted by date:', order);
+        }
+
+        // Toggle selection
+        function toggleSelection(docNum, checkbox) {
+            if (checkbox.checked) {
+                selectedPOs.add(docNum);
+            } else {
+                selectedPOs.delete(docNum);
+            }
+            updateSelectedCount();
+        }
+
+        // Update selected count
+        function updateSelectedCount() {
+            const countEl = document.getElementById('rwSelectedCount');
+            if (countEl) {
+                countEl.textContent = selectedPOs.size + ' selected';
+            }
+        }
+
+        // Receive selected
+        function receiveSelected() {
+            if (selectedPOs.size === 0) {
+                alert('Please select at least one PO to receive');
+                return;
+            }
+            const selectedDocs = Array.from(selectedPOs);
+            console.log('[Redwood] Receiving orders:', selectedDocs);
+            alert('Receiving ' + selectedDocs.length + ' order(s):\n' + selectedDocs.join('\n') + '\n\nThis feature is under development.');
+        }
+
+        // Open details dialog
+        function openDetails(docNum) {
+            const poData = poReceiptsData.find(r => (r.document_number || r.DOCUMENT_NUMBER) === docNum);
+            const lines = poReceiptsLinesData.filter(l => (l.document_number || l.DOCUMENT_NUMBER) === docNum);
+
+            if (!poData) return;
+
+            document.getElementById('rwDialogTitle').textContent = 'PO Details: ' + docNum;
+
+            const firstItem = lines && lines.length > 0 ? lines[0] : {};
+            let rawDate = poData.creation_date || poData.CREATION_DATE ||
+                         firstItem.creation_date || firstItem.CREATION_DATE || '';
+            let creationDate = '-';
+            if (rawDate && rawDate.includes && rawDate.includes('T')) {
+                try {
+                    creationDate = new Date(rawDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                } catch (e) { creationDate = rawDate; }
+            }
+
+            let html = `
+                <div class="rw-detail-grid">
+                    <div class="rw-detail-item">
+                        <span class="rw-detail-label">PO Number</span>
+                        <span class="rw-detail-value">${docNum}</span>
+                    </div>
+                    <div class="rw-detail-item">
+                        <span class="rw-detail-label">Revision</span>
+                        <span class="rw-detail-value">${poData.po_revision_number || poData.PO_REVISION_NUMBER || '-'}</span>
+                    </div>
+                    <div class="rw-detail-item">
+                        <span class="rw-detail-label">Creation Date</span>
+                        <span class="rw-detail-value">${creationDate}</span>
+                    </div>
+                    <div class="rw-detail-item">
+                        <span class="rw-detail-label">Vendor</span>
+                        <span class="rw-detail-value">${poData.vendor_name || poData.VENDOR_NAME || '-'}</span>
+                    </div>
+                    <div class="rw-detail-item">
+                        <span class="rw-detail-label">Vendor Site</span>
+                        <span class="rw-detail-value">${poData.vendor_site_code || poData.VENDOR_SITE_CODE || '-'}</span>
+                    </div>
+                    <div class="rw-detail-item">
+                        <span class="rw-detail-label">Ship To Location</span>
+                        <span class="rw-detail-value">${poData.ship_to_location || poData.SHIP_TO_LOCATION || '-'}</span>
+                    </div>
+                    <div class="rw-detail-item">
+                        <span class="rw-detail-label">To Organization</span>
+                        <span class="rw-detail-value">${poData.to_organization_code || poData.TO_ORGANIZATION_CODE || '-'}</span>
+                    </div>
+                    <div class="rw-detail-item">
+                        <span class="rw-detail-label">Currency</span>
+                        <span class="rw-detail-value">${poData.currency_code || poData.CURRENCY_CODE || '-'}</span>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--rw-neutral-900);">Line Items (${lines.length})</h3>
+                ${renderLinesTable(lines)}
+            `;
+
+            document.getElementById('rwDialogBody').innerHTML = html;
+            document.getElementById('rwDialogOverlay').classList.add('active');
+        }
+
+        // Close dialog
+        function closeDialog() {
+            document.getElementById('rwDialogOverlay').classList.remove('active');
+        }
+
+        // Clear main filters
+        function clearFilters() {
+            document.getElementById('rwVendor').value = '';
+            document.getElementById('rwPoNumber').value = '';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedOrg = localStorage.getItem('wms_org_code') || localStorage.getItem('wms_default_org');
+            if (savedOrg) {
+                document.getElementById('rwOrgCode').value = savedOrg;
+            }
+
+            // Close dialog on overlay click
+            document.getElementById('rwDialogOverlay').addEventListener('click', function(e) {
+                if (e.target === this) closeDialog();
+            });
+
+            // Close dialog on Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeDialog();
+            });
+        });
+    </script>
+</body>
+</html>

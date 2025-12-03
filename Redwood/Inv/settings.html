@@ -903,38 +903,50 @@
             if (isWebView2) {
                 const requestId = 'getAllEndpoints_' + Date.now();
                 log('ENDPOINTS', 'Requesting endpoints from C# with requestId:', requestId);
+                log('ENDPOINTS', 'Sending message: { action: "getAllEndpoints", requestId: "' + requestId + '" }');
 
                 const handler = function(event) {
                     try {
                         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                        log('ENDPOINTS', '*** RESPONSE RECEIVED ***');
+                        log('ENDPOINTS', '*** RAW MESSAGE RECEIVED ***');
+                        log('ENDPOINTS', 'Message data:', JSON.stringify(data).substring(0, 500));
 
                         if (data.debug) {
                             log('ENDPOINTS DEBUG', 'Full URL:', data.debug.fullUrl || 'N/A');
-                            log('ENDPOINTS DEBUG', 'Raw Response:', data.debug.rawResponse || 'N/A');
+                            log('ENDPOINTS DEBUG', 'Raw Response (first 300 chars):', (data.debug.rawResponse || '').substring(0, 300));
                         }
 
                         log('ENDPOINTS', 'Success:', data.success);
                         log('ENDPOINTS', 'Source:', data.source || 'not specified');
                         log('ENDPOINTS', 'Count:', data.endpoints ? data.endpoints.length : 'undefined');
+                        log('ENDPOINTS', 'RequestId match:', data.requestId === requestId);
 
                         if (data.requestId === requestId || data.action === 'getAllEndpointsResponse') {
                             window.chrome.webview.removeEventListener('message', handler);
                             if (data.success && data.endpoints) {
                                 endpointsData = data.endpoints;
                                 log('ENDPOINTS', '*** SUCCESS - Loaded', endpointsData.length, 'endpoints ***');
+
+                                // Log first 3 endpoints to verify data
+                                endpointsData.slice(0, 3).forEach((ep, i) => {
+                                    log('ENDPOINTS', `  [${i}] code="${ep.integrationCode}", src="${ep.source}", inst="${ep.instanceName}"`);
+                                });
+
                                 if (data.settingsPath) {
                                     endpointsSettingsPath = data.settingsPath + '\\endpoints.xml';
                                     document.getElementById('settingsPath').textContent = endpointsSettingsPath;
                                 }
+                                showAlert('Loaded ' + endpointsData.length + ' endpoints from ' + (data.source || 'unknown'), 'success');
                             } else {
                                 log('ENDPOINTS', '*** FAILED - Using defaults ***');
+                                log('ENDPOINTS', 'Error:', data.error || 'No error message');
                                 endpointsData = getDefaultEndpoints();
+                                showAlert('Failed to load endpoints: ' + (data.error || 'Unknown error'), 'error');
                             }
                             renderEndpointsTable();
                         }
                     } catch (e) {
-                        log('ENDPOINTS', 'Error:', e.message);
+                        log('ENDPOINTS', 'Error parsing message:', e.message);
                     }
                 };
 
@@ -944,14 +956,17 @@
                     requestId: requestId
                 });
 
+                // Increase timeout to 15 seconds (APEX REST can be slow)
                 setTimeout(() => {
                     window.chrome.webview.removeEventListener('message', handler);
                     if (endpointsData.length === 0) {
-                        log('ENDPOINTS', '*** TIMEOUT - Using defaults ***');
+                        log('ENDPOINTS', '*** TIMEOUT after 15s - No response from C# ***');
+                        log('ENDPOINTS', 'Check Visual Studio Debug Output for C# errors');
                         endpointsData = getDefaultEndpoints();
                         renderEndpointsTable();
+                        showAlert('Timeout waiting for C# response. Check Debug Output.', 'error');
                     }
-                }, 3000);
+                }, 15000);
             } else {
                 log('ENDPOINTS', 'WebView2 not available, using localStorage');
                 const stored = localStorage.getItem('fusionclient_endpoints');

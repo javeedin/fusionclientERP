@@ -2458,31 +2458,42 @@
         // ==========================================
         // SETTINGS PAGE
         // ==========================================
+        let settingsEndpoints = [];
+
         function renderSettingsPage() {
             const container = document.getElementById('content-settings');
             container.innerHTML = `
-                <div class="rw-page-header">
-                    <h1 class="rw-page-title">Settings</h1>
-                    <p class="rw-page-subtitle">Configure endpoints and system settings</p>
+                <div class="rw-page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h1 class="rw-page-title">Settings</h1>
+                        <p class="rw-page-subtitle">Configure endpoints and system settings</p>
+                    </div>
                 </div>
 
                 <div class="rw-tabs">
-                    <button class="rw-tab active" onclick="switchSettingsTab('endpoints')">Endpoints</button>
+                    <button class="rw-tab active" onclick="switchSettingsTab('all-endpoints')">All Endpoints</button>
                     <button class="rw-tab" onclick="switchSettingsTab('general')">General</button>
                 </div>
 
-                <div class="rw-tab-content active" id="settings-tab-endpoints">
+                <div class="rw-tab-content active" id="settings-tab-all-endpoints">
                     <div class="rw-card">
-                        <div class="rw-card-header">
-                            <h2 class="rw-card-title">REST Endpoints</h2>
-                            <button class="rw-btn rw-btn-primary" onclick="refreshEndpoints()">
-                                <span>&#128472;</span> Retrieve from APEX
-                            </button>
+                        <div class="rw-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                            <h2 class="rw-card-title">All REST Endpoints</h2>
+                            <div style="display:flex;gap:8px;">
+                                <button class="rw-btn rw-btn-secondary" onclick="refreshAllEndpoints()">
+                                    <span>&#8635;</span> Refresh
+                                </button>
+                                <button class="rw-btn rw-btn-primary" onclick="openNewEndpointDialog()">
+                                    <span>&#43;</span> New Endpoint
+                                </button>
+                            </div>
                         </div>
-                        <div class="rw-card-body">
-                            <div class="settings-grid" id="settings-endpointsGrid">
-                                <div class="rw-empty-state">
-                                    <p>Click "Retrieve from APEX" to load endpoints</p>
+                        <div class="rw-card-body" style="padding:0;">
+                            <div id="settings-allEndpointsTable">
+                                <div class="rw-empty-state" style="padding:40px;">
+                                    <div class="rw-empty-state-icon">&#9881;</div>
+                                    <div class="rw-empty-state-title">Load Endpoints</div>
+                                    <p>Click "Refresh" to load all configured endpoints</p>
                                 </div>
                             </div>
                         </div>
@@ -2491,16 +2502,26 @@
 
                 <div class="rw-tab-content" id="settings-tab-general">
                     <div class="rw-card">
+                        <div class="rw-card-header">
+                            <h2 class="rw-card-title">General Settings</h2>
+                        </div>
                         <div class="rw-card-body">
                             <div class="rw-form-group" style="max-width: 400px;">
-                                <label class="rw-label">Default Organization</label>
+                                <label class="rw-label">Default Organization Code</label>
                                 <input type="text" id="settings-defaultOrg" class="rw-input" value="${localStorage.getItem('wms_org_code') || ''}" placeholder="Enter default org code">
+                            </div>
+                            <div class="rw-form-group" style="max-width: 400px; margin-top: 16px;">
+                                <label class="rw-label">Username</label>
+                                <input type="text" id="settings-username" class="rw-input" value="${localStorage.getItem('wms_username') || ''}" placeholder="Enter username">
                             </div>
                             <button class="rw-btn rw-btn-primary" style="margin-top: 16px;" onclick="saveGeneralSettings()">Save Settings</button>
                         </div>
                     </div>
                 </div>
             `;
+
+            // Auto-load endpoints
+            refreshAllEndpoints();
         }
 
         function switchSettingsTab(tabName) {
@@ -2510,37 +2531,328 @@
             document.getElementById('settings-tab-' + tabName).classList.add('active');
         }
 
-        async function refreshEndpoints() {
-            const grid = document.getElementById('settings-endpointsGrid');
-            grid.innerHTML = '<div class="rw-empty-state"><div class="rw-spinner"></div><p style="margin-top:16px;">Loading endpoints from APEX...</p></div>';
+        async function refreshAllEndpoints() {
+            const container = document.getElementById('settings-allEndpointsTable');
+            container.innerHTML = '<div class="rw-loading" style="padding:40px;"><div class="rw-spinner"></div><span>Loading endpoints...</span></div>';
 
             try {
-                cachedEndpoints = []; // Force refresh
+                cachedEndpoints = [];
                 await loadAllEndpoints();
+                settingsEndpoints = [...cachedEndpoints];
 
-                if (cachedEndpoints.length === 0) {
-                    grid.innerHTML = '<div class="rw-empty-state"><p>No endpoints found</p></div>';
+                if (settingsEndpoints.length === 0) {
+                    container.innerHTML = '<div class="rw-empty-state" style="padding:40px;"><div class="rw-empty-state-icon">&#128466;</div><div class="rw-empty-state-title">No Endpoints Found</div><p>Click "New Endpoint" to add one</p></div>';
                     return;
                 }
 
-                let html = '';
-                cachedEndpoints.forEach(ep => {
-                    const code = ep.integrationCode || ep.source || 'Unknown';
-                    const url = (ep.url || '') + (ep.path || '');
-                    html += `<div class="endpoint-item">
-                        <div class="endpoint-code">${code}</div>
-                        <div class="endpoint-url">${url}</div>
-                    </div>`;
-                });
-                grid.innerHTML = html;
+                renderEndpointsTable();
             } catch (error) {
-                grid.innerHTML = `<div class="rw-empty-state" style="color:var(--rw-red);">Error: ${error.message}</div>`;
+                container.innerHTML = `<div class="rw-empty-state" style="padding:40px;"><div class="rw-empty-state-icon" style="color:var(--rw-red);">&#9888;</div><div class="rw-empty-state-title">Error</div><p style="color:var(--rw-red);">${error.message}</p></div>`;
             }
+        }
+
+        function renderEndpointsTable() {
+            const container = document.getElementById('settings-allEndpointsTable');
+
+            let html = `
+                <table class="rw-table">
+                    <thead>
+                        <tr>
+                            <th style="width:180px;">Integration Code</th>
+                            <th>Base URL</th>
+                            <th>Path</th>
+                            <th style="width:100px;">Method</th>
+                            <th style="width:150px;text-align:center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            settingsEndpoints.forEach((ep, idx) => {
+                const code = ep.integrationCode || ep.source || ep.integration_code || 'Unknown';
+                const baseUrl = ep.url || ep.base_url || '-';
+                const path = ep.path || '-';
+                const method = ep.method || 'GET';
+
+                html += `
+                    <tr>
+                        <td style="font-weight:600;color:var(--rw-red);">${code}</td>
+                        <td style="font-size:13px;word-break:break-all;">${baseUrl}</td>
+                        <td style="font-size:13px;word-break:break-all;">${path}</td>
+                        <td><span class="rw-badge rw-badge-info">${method}</span></td>
+                        <td style="text-align:center;">
+                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="editEndpoint(${idx})" style="margin-right:4px;">
+                                &#9998; Edit
+                            </button>
+                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="testEndpoint(${idx})">
+                                &#9654; Test
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function openNewEndpointDialog() {
+            document.getElementById('receiptsDialogTitle').textContent = 'New Endpoint';
+            document.getElementById('receiptsDialogBody').innerHTML = `
+                <div class="rw-form-group">
+                    <label class="rw-label">Integration Code *</label>
+                    <input type="text" id="ep-integrationCode" class="rw-input" placeholder="e.g., INVENTORY_ON_HAND">
+                </div>
+                <div class="rw-form-group" style="margin-top:12px;">
+                    <label class="rw-label">Base URL *</label>
+                    <input type="text" id="ep-baseUrl" class="rw-input" placeholder="https://your-server.com/ords/apex">
+                </div>
+                <div class="rw-form-group" style="margin-top:12px;">
+                    <label class="rw-label">Path</label>
+                    <input type="text" id="ep-path" class="rw-input" placeholder="/inventory/onhand">
+                </div>
+                <div class="rw-form-row" style="margin-top:12px;">
+                    <div class="rw-form-group" style="flex:1;">
+                        <label class="rw-label">Method</label>
+                        <select id="ep-method" class="rw-input">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="DELETE">DELETE</option>
+                        </select>
+                    </div>
+                    <div class="rw-form-group" style="flex:1;">
+                        <label class="rw-label">Content Type</label>
+                        <select id="ep-contentType" class="rw-input">
+                            <option value="application/json">application/json</option>
+                            <option value="application/xml">application/xml</option>
+                            <option value="text/plain">text/plain</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="rw-form-group" style="margin-top:12px;">
+                    <label class="rw-label">Description</label>
+                    <input type="text" id="ep-description" class="rw-input" placeholder="Endpoint description...">
+                </div>
+                <div style="margin-top:20px;display:flex;gap:12px;justify-content:flex-end;">
+                    <button class="rw-btn rw-btn-secondary" onclick="closeReceiptsDialog()">Cancel</button>
+                    <button class="rw-btn rw-btn-primary" onclick="saveNewEndpoint()">
+                        &#10004; Save Endpoint
+                    </button>
+                </div>
+            `;
+            document.getElementById('receiptsDialogOverlay').classList.add('active');
+        }
+
+        function editEndpoint(idx) {
+            const ep = settingsEndpoints[idx];
+            if (!ep) return;
+
+            const code = ep.integrationCode || ep.source || ep.integration_code || '';
+            const baseUrl = ep.url || ep.base_url || '';
+            const path = ep.path || '';
+            const method = ep.method || 'GET';
+            const contentType = ep.contentType || ep.content_type || 'application/json';
+            const description = ep.description || '';
+
+            document.getElementById('receiptsDialogTitle').textContent = 'Edit Endpoint';
+            document.getElementById('receiptsDialogBody').innerHTML = `
+                <div class="rw-form-group">
+                    <label class="rw-label">Integration Code *</label>
+                    <input type="text" id="ep-integrationCode" class="rw-input" value="${code}">
+                </div>
+                <div class="rw-form-group" style="margin-top:12px;">
+                    <label class="rw-label">Base URL *</label>
+                    <input type="text" id="ep-baseUrl" class="rw-input" value="${baseUrl}">
+                </div>
+                <div class="rw-form-group" style="margin-top:12px;">
+                    <label class="rw-label">Path</label>
+                    <input type="text" id="ep-path" class="rw-input" value="${path}">
+                </div>
+                <div class="rw-form-row" style="margin-top:12px;">
+                    <div class="rw-form-group" style="flex:1;">
+                        <label class="rw-label">Method</label>
+                        <select id="ep-method" class="rw-input">
+                            <option value="GET" ${method === 'GET' ? 'selected' : ''}>GET</option>
+                            <option value="POST" ${method === 'POST' ? 'selected' : ''}>POST</option>
+                            <option value="PUT" ${method === 'PUT' ? 'selected' : ''}>PUT</option>
+                            <option value="DELETE" ${method === 'DELETE' ? 'selected' : ''}>DELETE</option>
+                        </select>
+                    </div>
+                    <div class="rw-form-group" style="flex:1;">
+                        <label class="rw-label">Content Type</label>
+                        <select id="ep-contentType" class="rw-input">
+                            <option value="application/json" ${contentType === 'application/json' ? 'selected' : ''}>application/json</option>
+                            <option value="application/xml" ${contentType === 'application/xml' ? 'selected' : ''}>application/xml</option>
+                            <option value="text/plain" ${contentType === 'text/plain' ? 'selected' : ''}>text/plain</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="rw-form-group" style="margin-top:12px;">
+                    <label class="rw-label">Description</label>
+                    <input type="text" id="ep-description" class="rw-input" value="${description}">
+                </div>
+                <div style="margin-top:20px;display:flex;gap:12px;justify-content:flex-end;">
+                    <button class="rw-btn rw-btn-secondary" onclick="closeReceiptsDialog()">Cancel</button>
+                    <button class="rw-btn rw-btn-primary" onclick="saveEditedEndpoint(${idx})">
+                        &#10004; Save Changes
+                    </button>
+                </div>
+            `;
+            document.getElementById('receiptsDialogOverlay').classList.add('active');
+        }
+
+        function testEndpoint(idx) {
+            const ep = settingsEndpoints[idx];
+            if (!ep) return;
+
+            const code = ep.integrationCode || ep.source || ep.integration_code || 'Unknown';
+            const baseUrl = ep.url || ep.base_url || '';
+            const path = ep.path || '';
+            const fullUrl = baseUrl + path;
+
+            document.getElementById('receiptsDialogTitle').textContent = 'Test Endpoint - ' + code;
+            document.getElementById('receiptsDialogBody').innerHTML = `
+                <div style="margin-bottom:16px;">
+                    <label class="rw-label">Full URL</label>
+                    <div style="background:var(--rw-neutral-50);padding:10px 12px;border-radius:var(--rw-radius);font-family:monospace;font-size:13px;word-break:break-all;">${fullUrl}</div>
+                </div>
+                <div class="rw-form-group">
+                    <label class="rw-label">Query Parameters (optional)</label>
+                    <input type="text" id="test-params" class="rw-input" placeholder="e.g., p_organization_code=AMS">
+                </div>
+                <div style="margin-top:16px;display:flex;gap:12px;">
+                    <button class="rw-btn rw-btn-primary" onclick="executeEndpointTest(${idx})">
+                        &#9654; Execute Test
+                    </button>
+                </div>
+                <div id="test-result" style="margin-top:16px;display:none;">
+                    <label class="rw-label">Response</label>
+                    <div id="test-response" style="background:var(--rw-neutral-900);color:#4ade80;padding:12px;border-radius:var(--rw-radius);font-family:monospace;font-size:12px;max-height:300px;overflow:auto;white-space:pre-wrap;"></div>
+                </div>
+            `;
+            document.getElementById('receiptsDialogOverlay').classList.add('active');
+        }
+
+        async function executeEndpointTest(idx) {
+            const ep = settingsEndpoints[idx];
+            if (!ep) return;
+
+            const baseUrl = ep.url || ep.base_url || '';
+            const path = ep.path || '';
+            const params = document.getElementById('test-params').value.trim();
+
+            let fullUrl = baseUrl + path;
+            if (params) {
+                fullUrl += (fullUrl.includes('?') ? '&' : '?') + params;
+            }
+
+            const resultDiv = document.getElementById('test-result');
+            const responseDiv = document.getElementById('test-response');
+
+            resultDiv.style.display = 'block';
+            responseDiv.style.color = '#4ade80';
+            responseDiv.textContent = 'Testing endpoint...';
+
+            try {
+                const startTime = Date.now();
+                const response = await fetchWithBridge(fullUrl);
+                const elapsed = Date.now() - startTime;
+
+                responseDiv.style.color = '#4ade80';
+                responseDiv.textContent = `✓ Success (${elapsed}ms)\n\n` + JSON.stringify(response, null, 2);
+            } catch (error) {
+                responseDiv.style.color = '#ef4444';
+                responseDiv.textContent = `✗ Error\n\n${error.message}`;
+            }
+        }
+
+        function saveNewEndpoint() {
+            const code = document.getElementById('ep-integrationCode').value.trim();
+            const baseUrl = document.getElementById('ep-baseUrl').value.trim();
+            const path = document.getElementById('ep-path').value.trim();
+            const method = document.getElementById('ep-method').value;
+            const contentType = document.getElementById('ep-contentType').value;
+            const description = document.getElementById('ep-description').value.trim();
+
+            if (!code || !baseUrl) {
+                alert('Integration Code and Base URL are required');
+                return;
+            }
+
+            const newEndpoint = {
+                integrationCode: code,
+                source: code,
+                url: baseUrl,
+                base_url: baseUrl,
+                path: path,
+                method: method,
+                contentType: contentType,
+                content_type: contentType,
+                description: description
+            };
+
+            // Add to local cache
+            settingsEndpoints.push(newEndpoint);
+            cachedEndpoints.push(newEndpoint);
+
+            // Save to localStorage
+            localStorage.setItem('custom_endpoints', JSON.stringify(settingsEndpoints));
+
+            console.log('[Settings] New endpoint saved:', newEndpoint);
+            alert('Endpoint saved successfully!');
+
+            closeReceiptsDialog();
+            renderEndpointsTable();
+        }
+
+        function saveEditedEndpoint(idx) {
+            const code = document.getElementById('ep-integrationCode').value.trim();
+            const baseUrl = document.getElementById('ep-baseUrl').value.trim();
+            const path = document.getElementById('ep-path').value.trim();
+            const method = document.getElementById('ep-method').value;
+            const contentType = document.getElementById('ep-contentType').value;
+            const description = document.getElementById('ep-description').value.trim();
+
+            if (!code || !baseUrl) {
+                alert('Integration Code and Base URL are required');
+                return;
+            }
+
+            // Update endpoint
+            settingsEndpoints[idx] = {
+                ...settingsEndpoints[idx],
+                integrationCode: code,
+                source: code,
+                url: baseUrl,
+                base_url: baseUrl,
+                path: path,
+                method: method,
+                contentType: contentType,
+                content_type: contentType,
+                description: description
+            };
+
+            // Update cached endpoints
+            cachedEndpoints = [...settingsEndpoints];
+
+            // Save to localStorage
+            localStorage.setItem('custom_endpoints', JSON.stringify(settingsEndpoints));
+
+            console.log('[Settings] Endpoint updated:', settingsEndpoints[idx]);
+            alert('Endpoint updated successfully!');
+
+            closeReceiptsDialog();
+            renderEndpointsTable();
         }
 
         function saveGeneralSettings() {
             const org = document.getElementById('settings-defaultOrg').value.trim();
+            const username = document.getElementById('settings-username').value.trim();
+
             if (org) localStorage.setItem('wms_org_code', org);
+            if (username) localStorage.setItem('wms_username', username);
+
             alert('Settings saved!');
         }
 

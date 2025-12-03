@@ -2565,6 +2565,9 @@ namespace WMSApp
                 wv.CoreWebView2.Settings.AreDevToolsEnabled = true;
                 wv.CoreWebView2.Settings.IsWebMessageEnabled = true;
 
+                // Allow iframes to use window.chrome.webview for messaging
+                wv.CoreWebView2.Settings.AreHostObjectsAllowedForSubframes = true;
+
                 wv.CoreWebView2.WebMessageReceived += async (sender, args) =>
                 {
                     try

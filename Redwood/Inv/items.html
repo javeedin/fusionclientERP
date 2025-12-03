@@ -518,29 +518,10 @@
         let filteredItems = [];
         let cachedEndpoints = []; // Cache for endpoints loaded from APEX
 
-        // =============================================
-        // IFRAME FIX: Use parent/top window for WebView2 when inside iframe
-        // =============================================
-        function getWebView() {
-            if (window.top && window.top.chrome && window.top.chrome.webview) {
-                return window.top.chrome.webview;
-            }
-            if (window.parent && window.parent.chrome && window.parent.chrome.webview) {
-                return window.parent.chrome.webview;
-            }
-            if (window.chrome && webview) {
-                return webview;
-            }
-            return null;
-        }
-
-        const webview = getWebView();
+        // WebView2 - each iframe has its own window.chrome.webview
+        const webview = (window.chrome && window.chrome.webview) ? window.chrome.webview : null;
         const isWebView2 = !!webview;
-
         log('INIT', 'Page loaded, WebView2 available:', isWebView2);
-        log('INIT', 'WebView source:', webview === window.chrome?.webview ? 'window' :
-                                       webview === window.parent?.chrome?.webview ? 'parent' :
-                                       webview === window.top?.chrome?.webview ? 'top' : 'none');
 
         // Load all endpoints from APEX REST API (via C# handler)
         async function loadAllEndpoints() {

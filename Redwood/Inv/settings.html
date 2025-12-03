@@ -808,35 +808,10 @@
         let apexEndpointUrl = '';
         let endpointsSettingsPath = 'C:\\fusionclient\\ERP\\settings\\endpoints.xml';
 
-        // =============================================
-        // IFRAME FIX: Use parent/top window for WebView2 when inside iframe
-        // =============================================
-        function getWebView() {
-            // Try window.top first (for nested iframes)
-            if (window.top && window.top.chrome && window.top.chrome.webview) {
-                return window.top.chrome.webview;
-            }
-            // Try window.parent (for single iframe)
-            if (window.parent && window.parent.chrome && window.parent.chrome.webview) {
-                return window.parent.chrome.webview;
-            }
-            // Fallback to current window
-            if (window.chrome && webview) {
-                return webview;
-            }
-            return null;
-        }
-
-        const webview = getWebView();
+        // WebView2 - each iframe has its own window.chrome.webview
+        const webview = (window.chrome && window.chrome.webview) ? window.chrome.webview : null;
         const isWebView2 = !!webview;
-
-        log('INIT', 'WebView2 detection:');
-        log('INIT', '  webview:', !!(window.chrome && webview));
-        log('INIT', '  window.parent.chrome.webview:', !!(window.parent && window.parent.chrome && window.parent.chrome.webview));
-        log('INIT', '  window.top.chrome.webview:', !!(window.top && window.top.chrome && window.top.chrome.webview));
-        log('INIT', '  Using webview from:', webview === window.chrome?.webview ? 'window' :
-                                              webview === window.parent?.chrome?.webview ? 'parent' :
-                                              webview === window.top?.chrome?.webview ? 'top' : 'none');
+        log('INIT', 'WebView2 available:', isWebView2);
 
         // =============================================
         // INITIALIZATION

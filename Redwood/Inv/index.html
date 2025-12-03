@@ -901,6 +901,20 @@
 
         // Navigate to page
         function navigateTo(pageId) {
+            // Pages that need direct navigation (for WebView2 access)
+            const directPages = {
+                'items': 'items.html',
+                'receipts': 'receipts.html',
+                'shipments': 'shipments.html',
+                'settings': 'settings.html'
+            };
+
+            // If it's a page that needs WebView2, navigate directly
+            if (directPages[pageId]) {
+                window.location.href = directPages[pageId];
+                return;
+            }
+
             // Hide all content areas
             document.querySelectorAll('.rw-content-area').forEach(el => {
                 el.classList.remove('active');

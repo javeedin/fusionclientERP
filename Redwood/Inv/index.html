@@ -509,6 +509,76 @@
             to { transform: rotate(360deg); }
         }
 
+        /* PO Details Page Styles */
+        .po-field {
+            margin-bottom: 4px;
+        }
+
+        .po-field-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--rw-neutral-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .po-field-value {
+            font-size: 14px;
+            color: var(--rw-neutral-900);
+        }
+
+        .po-detail-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--rw-neutral-200);
+            padding: 0 16px;
+            gap: 4px;
+        }
+
+        .po-detail-tab {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--rw-neutral-600);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.2s ease;
+        }
+
+        .po-detail-tab:hover {
+            color: var(--rw-red);
+            background: var(--rw-neutral-50);
+        }
+
+        .po-detail-tab.active {
+            color: var(--rw-red);
+            border-bottom-color: var(--rw-red);
+        }
+
+        .po-detail-content {
+            padding: 16px;
+            min-height: 200px;
+        }
+
+        .po-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--rw-neutral-500);
+        }
+
+        .po-loading .rw-spinner {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 12px;
+        }
+
         /* Responsive */
         @media (max-width: 1024px) {
             .rw-sidebar {
@@ -4399,6 +4469,15 @@
                 return;
             }
 
+            // PO Details Query - detect patterns like:
+            // "show po details for xxx", "show po xxx", "po xx details", "po details xxx"
+            const poMatch = apParsePOQuery(lowerCmd);
+            if (poMatch) {
+                apAddBotMessage(`Fetching PO details for <strong>${poMatch}</strong>...`);
+                apFetchPODetails(poMatch);
+                return;
+            }
+
             // Open specific page
             if (lowerCmd.startsWith('open ')) {
                 const query = lowerCmd.substring(5).trim();
@@ -4422,7 +4501,7 @@
                 apProcessCommand('open ' + lowerCmd.replace(/^(navigate to |navigate )/, ''));
                 return;
             }
-            if (lowerCmd.startsWith('show ')) {
+            if (lowerCmd.startsWith('show ') && !apParsePOQuery(lowerCmd)) {
                 apProcessCommand('open ' + lowerCmd.substring(5));
                 return;
             }
@@ -4439,9 +4518,447 @@
             apAddBotMessage(`I didn't understand that. Try:
                 <div class="ap-suggestions">
                     <button class="ap-suggestion" onclick="apSendSuggestion('open')">open</button>
+                    <button class="ap-suggestion" onclick="apSendSuggestion('show po IP00003')">show po IP00003</button>
                     <button class="ap-suggestion" onclick="apSendSuggestion('help')">help</button>
                 </div>
             `);
+        }
+
+        // Parse PO query from user input
+        function apParsePOQuery(cmd) {
+            // Patterns: "show po details for xxx", "show po xxx", "po xx details", "po details xxx", "po xxx"
+            const patterns = [
+                /show\s+po\s+details\s+for\s+(\S+)/i,
+                /show\s+po\s+(\S+)\s+details/i,
+                /show\s+po\s+(\S+)/i,
+                /po\s+details\s+for\s+(\S+)/i,
+                /po\s+(\S+)\s+details/i,
+                /po\s+details\s+(\S+)/i,
+                /^po\s+(\S+)$/i
+            ];
+
+            for (const pattern of patterns) {
+                const match = cmd.match(pattern);
+                if (match && match[1]) {
+                    // Make sure it's not a menu item like "po receipts"
+                    const poNum = match[1].toUpperCase();
+                    if (!['RECEIPTS', 'LINES', 'DETAILS', 'ORDERS'].includes(poNum)) {
+                        return poNum;
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Find FUSION_PO_DETAILS endpoint
+        function apFindPOEndpoint() {
+            const endpoints = cachedEndpoints.length > 0 ? cachedEndpoints : settingsEndpoints;
+            return endpoints.find(ep =>
+                (ep.integrationCode || ep.integration_code || '').toUpperCase() === 'FUSION_PO_DETAILS'
+            );
+        }
+
+        // Fetch PO details from API
+        async function apFetchPODetails(orderNumber) {
+            try {
+                const endpoint = apFindPOEndpoint();
+
+                if (!endpoint) {
+                    apAddBotMessage(`<span style="color:#ef4444;">Error: FUSION_PO_DETAILS endpoint not configured.</span>
+                        <p style="font-size:12px;margin-top:8px;">Please add the endpoint in Settings &gt; All Endpoints.</p>`);
+                    return;
+                }
+
+                const baseUrl = endpoint.baseUrl || endpoint.base_url || endpoint.url || '';
+                const path = endpoint.endpointPath || endpoint.path || '';
+                const fullUrl = baseUrl + path + '?q=OrderNumber=' + encodeURIComponent(orderNumber);
+
+                console.log('[Autopilot] Fetching PO:', fullUrl);
+
+                const response = await fetchWithBridge(fullUrl);
+
+                if (response && response.items && response.items.length > 0) {
+                    const po = response.items[0];
+                    apAddBotMessage(`<span style="color:#22c55e;">✓ Found PO ${po.OrderNumber}</span>
+                        <p style="font-size:12px;margin-top:4px;">Opening details page...</p>`);
+
+                    // Open PO details in a new tab
+                    openPODetailsTab(po);
+                } else {
+                    apAddBotMessage(`<span style="color:#ef4444;">No PO found with number "${orderNumber}"</span>`);
+                }
+            } catch (error) {
+                console.error('[Autopilot] Error fetching PO:', error);
+                apAddBotMessage(`<span style="color:#ef4444;">Error fetching PO: ${error.message}</span>`);
+            }
+        }
+
+        // Open PO details in a new tab
+        function openPODetailsTab(po) {
+            const tabId = 'po-' + po.OrderNumber;
+            const tabName = 'PO: ' + po.OrderNumber;
+
+            // Check if tab already exists
+            const existingTab = openTabs.find(t => t.id === tabId);
+            if (existingTab) {
+                switchToTab(tabId);
+                return;
+            }
+
+            // Add to page definitions
+            pageDefinitions[tabId] = { name: tabName, icon: '&#128196;' };
+
+            // Add to open tabs
+            openTabs.push({ id: tabId, name: tabName, icon: '&#128196;' });
+
+            // Create content container
+            let contentEl = document.createElement('div');
+            contentEl.id = 'content-' + tabId;
+            contentEl.className = 'rw-content-area';
+            contentEl.style.display = 'none';
+            document.getElementById('tabContentWrapper').appendChild(contentEl);
+
+            // Render PO details
+            renderPODetailsPage(contentEl, po);
+
+            // Render tabs and switch
+            renderTabBar();
+            switchToTab(tabId);
+
+            // Close autopilot panel
+            closeAutopilot();
+        }
+
+        // Render PO Details page
+        function renderPODetailsPage(container, po) {
+            const orderDate = po.OrderDate ? new Date(po.OrderDate).toLocaleDateString() : 'N/A';
+            const creationDate = po.CreationDate ? new Date(po.CreationDate).toLocaleDateString() : 'N/A';
+
+            // Find lines and globalDFFs hrefs from links
+            let linesHref = '';
+            let globalDFFsHref = '';
+            let attachmentsHref = '';
+
+            if (po.links) {
+                const linesLink = po.links.find(l => l.name === 'lines' && l.rel === 'child');
+                const dffLink = po.links.find(l => l.name === 'globalDFFs' && l.rel === 'child');
+                const attachLink = po.links.find(l => l.name === 'attachments' && l.rel === 'child');
+
+                if (linesLink) linesHref = linesLink.href;
+                if (dffLink) globalDFFsHref = dffLink.href;
+                if (attachLink) attachmentsHref = attachLink.href;
+            }
+
+            container.innerHTML = `
+                <div class="rw-page-header">
+                    <h1 class="rw-page-title">PO: ${po.OrderNumber}</h1>
+                    <p class="rw-page-subtitle">Purchase Order Details</p>
+                </div>
+
+                <!-- PO Header Card -->
+                <div class="rw-card" style="margin-bottom:20px;">
+                    <div class="rw-card-header">
+                        <h3 class="rw-card-title">Header Information</h3>
+                        <span class="rw-badge ${po.StatusCode === 'OPEN' ? 'rw-badge-success' : 'rw-badge-secondary'}">${po.Status || po.StatusCode}</span>
+                    </div>
+                    <div class="rw-card-body">
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;">
+                            <div class="po-field">
+                                <label class="po-field-label">Order Number</label>
+                                <div class="po-field-value">${po.OrderNumber || 'N/A'}</div>
+                            </div>
+                            <div class="po-field">
+                                <label class="po-field-label">Order Date</label>
+                                <div class="po-field-value">${orderDate}</div>
+                            </div>
+                            <div class="po-field">
+                                <label class="po-field-label">Procurement BU</label>
+                                <div class="po-field-value">${po.ProcurementBU || 'N/A'}</div>
+                            </div>
+                            <div class="po-field">
+                                <label class="po-field-label">Supplier</label>
+                                <div class="po-field-value">${po.Supplier || 'N/A'}</div>
+                            </div>
+                            <div class="po-field">
+                                <label class="po-field-label">Supplier Site</label>
+                                <div class="po-field-value">${po.SupplierSite || 'N/A'}</div>
+                            </div>
+                            <div class="po-field">
+                                <label class="po-field-label">Bill To Location</label>
+                                <div class="po-field-value">${po.BillToLocation || 'N/A'}</div>
+                            </div>
+                            <div class="po-field">
+                                <label class="po-field-label">Currency</label>
+                                <div class="po-field-value">${po.CurrencyCode || ''} - ${po.Currency || 'N/A'}</div>
+                            </div>
+                            <div class="po-field">
+                                <label class="po-field-label">Total Tax</label>
+                                <div class="po-field-value">${po.CurrencyCode || ''} ${(po.TotalTax || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+                            </div>
+                            <div class="po-field">
+                                <label class="po-field-label">Total Amount</label>
+                                <div class="po-field-value" style="font-weight:600;color:var(--rw-red);">${po.CurrencyCode || ''} ${(po.Total || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+                            </div>
+                            <div class="po-field">
+                                <label class="po-field-label">Buyer</label>
+                                <div class="po-field-value">${po.Buyer || po.BuyerDisplayName || 'N/A'}</div>
+                            </div>
+                            <div class="po-field">
+                                <label class="po-field-label">Payment Terms</label>
+                                <div class="po-field-value">${po.PaymentTerms || 'N/A'}</div>
+                            </div>
+                            <div class="po-field">
+                                <label class="po-field-label">Created By</label>
+                                <div class="po-field-value">${po.CreatedBy || 'N/A'} (${creationDate})</div>
+                            </div>
+                        </div>
+                        ${po.Description ? `<div class="po-field" style="margin-top:16px;"><label class="po-field-label">Description</label><div class="po-field-value">${po.Description}</div></div>` : ''}
+                    </div>
+                </div>
+
+                <!-- Details Tabs -->
+                <div class="rw-card">
+                    <div class="po-detail-tabs">
+                        <button class="po-detail-tab active" onclick="switchPODetailTab(this, 'po-lines-${po.POHeaderId}')">
+                            &#128196; Line Details
+                        </button>
+                        <button class="po-detail-tab" onclick="switchPODetailTab(this, 'po-dffs-${po.POHeaderId}')">
+                            &#128203; Global DFFs
+                        </button>
+                        <button class="po-detail-tab" onclick="switchPODetailTab(this, 'po-attachments-${po.POHeaderId}')">
+                            &#128206; Attachments
+                        </button>
+                    </div>
+
+                    <!-- Lines Tab Content -->
+                    <div id="po-lines-${po.POHeaderId}" class="po-detail-content active">
+                        <div class="po-loading" id="po-lines-loading-${po.POHeaderId}">
+                            <div class="rw-spinner"></div>
+                            <span>Loading line details...</span>
+                        </div>
+                        <div id="po-lines-data-${po.POHeaderId}" style="display:none;"></div>
+                    </div>
+
+                    <!-- Global DFFs Tab Content -->
+                    <div id="po-dffs-${po.POHeaderId}" class="po-detail-content" style="display:none;">
+                        <div class="po-loading" id="po-dffs-loading-${po.POHeaderId}">
+                            <div class="rw-spinner"></div>
+                            <span>Loading DFFs...</span>
+                        </div>
+                        <div id="po-dffs-data-${po.POHeaderId}" style="display:none;"></div>
+                    </div>
+
+                    <!-- Attachments Tab Content -->
+                    <div id="po-attachments-${po.POHeaderId}" class="po-detail-content" style="display:none;">
+                        <div class="po-loading" id="po-attachments-loading-${po.POHeaderId}">
+                            <div class="rw-spinner"></div>
+                            <span>Loading attachments...</span>
+                        </div>
+                        <div id="po-attachments-data-${po.POHeaderId}" style="display:none;"></div>
+                    </div>
+                </div>
+            `;
+
+            // Load lines data
+            if (linesHref) {
+                loadPOLines(po.POHeaderId, linesHref);
+            } else {
+                document.getElementById('po-lines-loading-' + po.POHeaderId).innerHTML = '<p style="color:var(--rw-neutral-500);">Lines data not available</p>';
+            }
+
+            // Load globalDFFs when tab is clicked (lazy load)
+            window['loadPODFFs_' + po.POHeaderId] = () => loadPODFFs(po.POHeaderId, globalDFFsHref);
+            window['loadPOAttachments_' + po.POHeaderId] = () => loadPOAttachments(po.POHeaderId, attachmentsHref);
+        }
+
+        // Switch PO detail tabs
+        function switchPODetailTab(btn, contentId) {
+            // Update tab buttons
+            btn.parentElement.querySelectorAll('.po-detail-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Update content visibility
+            const container = btn.closest('.rw-card');
+            container.querySelectorAll('.po-detail-content').forEach(c => {
+                c.style.display = 'none';
+                c.classList.remove('active');
+            });
+
+            const content = document.getElementById(contentId);
+            if (content) {
+                content.style.display = 'block';
+                content.classList.add('active');
+
+                // Lazy load DFFs or Attachments
+                const poHeaderId = contentId.split('-').pop();
+                if (contentId.includes('dffs') && window['loadPODFFs_' + poHeaderId]) {
+                    window['loadPODFFs_' + poHeaderId]();
+                    delete window['loadPODFFs_' + poHeaderId];
+                }
+                if (contentId.includes('attachments') && window['loadPOAttachments_' + poHeaderId]) {
+                    window['loadPOAttachments_' + poHeaderId]();
+                    delete window['loadPOAttachments_' + poHeaderId];
+                }
+            }
+        }
+
+        // Load PO Lines
+        async function loadPOLines(poHeaderId, href) {
+            const loadingEl = document.getElementById('po-lines-loading-' + poHeaderId);
+            const dataEl = document.getElementById('po-lines-data-' + poHeaderId);
+
+            try {
+                const response = await fetchWithBridge(href);
+
+                if (response && response.items && response.items.length > 0) {
+                    let html = `
+                        <div class="rw-table-wrapper">
+                            <table class="rw-table">
+                                <thead>
+                                    <tr>
+                                        <th>Line</th>
+                                        <th>Item</th>
+                                        <th>Description</th>
+                                        <th>Quantity</th>
+                                        <th>UOM</th>
+                                        <th>Unit Price</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    response.items.forEach(line => {
+                        html += `
+                            <tr>
+                                <td>${line.LineNumber || line.POLineId || ''}</td>
+                                <td>${line.ItemNumber || line.Item || ''}</td>
+                                <td>${line.Description || line.ItemDescription || ''}</td>
+                                <td style="text-align:right;">${(line.Quantity || 0).toLocaleString()}</td>
+                                <td>${line.UOM || line.UOMCode || ''}</td>
+                                <td style="text-align:right;">${(line.UnitPrice || line.Price || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                <td style="text-align:right;font-weight:500;">${(line.Amount || line.LineAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                <td><span class="rw-badge rw-badge-secondary">${line.Status || line.LineStatus || 'N/A'}</span></td>
+                            </tr>
+                        `;
+                    });
+
+                    html += '</tbody></table></div>';
+                    dataEl.innerHTML = html;
+                } else {
+                    dataEl.innerHTML = '<p style="color:var(--rw-neutral-500);padding:20px;">No line items found</p>';
+                }
+
+                loadingEl.style.display = 'none';
+                dataEl.style.display = 'block';
+
+            } catch (error) {
+                console.error('[PO Lines] Error:', error);
+                loadingEl.innerHTML = `<p style="color:#ef4444;">Error loading lines: ${error.message}</p>`;
+            }
+        }
+
+        // Load PO Global DFFs
+        async function loadPODFFs(poHeaderId, href) {
+            const loadingEl = document.getElementById('po-dffs-loading-' + poHeaderId);
+            const dataEl = document.getElementById('po-dffs-data-' + poHeaderId);
+
+            if (!href) {
+                loadingEl.innerHTML = '<p style="color:var(--rw-neutral-500);">DFFs data not available</p>';
+                return;
+            }
+
+            try {
+                const response = await fetchWithBridge(href);
+
+                if (response && response.items && response.items.length > 0) {
+                    let html = '<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));gap:16px;padding:16px;">';
+
+                    response.items.forEach(dff => {
+                        // Display all non-null attributes
+                        Object.keys(dff).forEach(key => {
+                            if (dff[key] !== null && key !== 'links' && !key.endsWith('Id')) {
+                                html += `
+                                    <div class="po-field">
+                                        <label class="po-field-label">${key}</label>
+                                        <div class="po-field-value">${dff[key]}</div>
+                                    </div>
+                                `;
+                            }
+                        });
+                    });
+
+                    html += '</div>';
+                    dataEl.innerHTML = html;
+                } else {
+                    dataEl.innerHTML = '<p style="color:var(--rw-neutral-500);padding:20px;">No DFF data found</p>';
+                }
+
+                loadingEl.style.display = 'none';
+                dataEl.style.display = 'block';
+
+            } catch (error) {
+                console.error('[PO DFFs] Error:', error);
+                loadingEl.innerHTML = `<p style="color:#ef4444;">Error loading DFFs: ${error.message}</p>`;
+            }
+        }
+
+        // Load PO Attachments
+        async function loadPOAttachments(poHeaderId, href) {
+            const loadingEl = document.getElementById('po-attachments-loading-' + poHeaderId);
+            const dataEl = document.getElementById('po-attachments-data-' + poHeaderId);
+
+            if (!href) {
+                loadingEl.innerHTML = '<p style="color:var(--rw-neutral-500);">Attachments data not available</p>';
+                return;
+            }
+
+            try {
+                const response = await fetchWithBridge(href);
+
+                if (response && response.items && response.items.length > 0) {
+                    let html = `
+                        <div class="rw-table-wrapper">
+                            <table class="rw-table">
+                                <thead>
+                                    <tr>
+                                        <th>File Name</th>
+                                        <th>Title</th>
+                                        <th>Category</th>
+                                        <th>Type</th>
+                                        <th>Created</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    response.items.forEach(att => {
+                        const createdDate = att.CreationDate ? new Date(att.CreationDate).toLocaleDateString() : '';
+                        html += `
+                            <tr>
+                                <td>${att.FileName || att.AttachedDocumentId || ''}</td>
+                                <td>${att.Title || att.Description || ''}</td>
+                                <td>${att.CategoryName || att.Category || ''}</td>
+                                <td>${att.DataTypeCode || att.ContentType || ''}</td>
+                                <td>${createdDate}</td>
+                            </tr>
+                        `;
+                    });
+
+                    html += '</tbody></table></div>';
+                    dataEl.innerHTML = html;
+                } else {
+                    dataEl.innerHTML = '<p style="color:var(--rw-neutral-500);padding:20px;">No attachments found</p>';
+                }
+
+                loadingEl.style.display = 'none';
+                dataEl.style.display = 'block';
+
+            } catch (error) {
+                console.error('[PO Attachments] Error:', error);
+                loadingEl.innerHTML = `<p style="color:#ef4444;">Error loading attachments: ${error.message}</p>`;
+            }
         }
 
         function apFindMenuItem(query) {
@@ -4493,11 +5010,13 @@
                     <li><strong>open</strong> - Show all pages</li>
                     <li><strong>open [page]</strong> - Open a page</li>
                     <li><strong>go to [page]</strong> - Navigate to page</li>
+                    <li><strong>show po [number]</strong> - View PO details</li>
+                    <li><strong>po [number] details</strong> - View PO details</li>
                     <li><strong>help</strong> - Show this help</li>
                 </ul>
                 <div class="ap-suggestions">
                     <button class="ap-suggestion" onclick="apSendSuggestion('open items')">open items</button>
-                    <button class="ap-suggestion" onclick="apSendSuggestion('open receipts')">open receipts</button>
+                    <button class="ap-suggestion" onclick="apSendSuggestion('show po IP00003')">show po IP00003</button>
                 </div>
             `);
         }
@@ -4522,10 +5041,10 @@
             <div class="ap-message bot">
                 <div class="ap-message-avatar">&#129302;</div>
                 <div class="ap-message-content">
-                    Hi! I can help you navigate. Try these:
+                    Hi! I can help you navigate and query data. Try these:
                     <div class="ap-suggestions">
                         <button class="ap-suggestion" onclick="apSendSuggestion('open')">open</button>
-                        <button class="ap-suggestion" onclick="apSendSuggestion('open items')">open items</button>
+                        <button class="ap-suggestion" onclick="apSendSuggestion('show po IP00003')">show po</button>
                         <button class="ap-suggestion" onclick="apSendSuggestion('help')">help</button>
                     </div>
                 </div>

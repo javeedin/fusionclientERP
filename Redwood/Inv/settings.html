@@ -808,7 +808,35 @@
         let apexEndpointUrl = '';
         let endpointsSettingsPath = 'C:\\fusionclient\\ERP\\settings\\endpoints.xml';
 
-        const isWebView2 = !!(window.chrome && window.chrome.webview);
+        // =============================================
+        // IFRAME FIX: Use parent/top window for WebView2 when inside iframe
+        // =============================================
+        function getWebView() {
+            // Try window.top first (for nested iframes)
+            if (window.top && window.top.chrome && window.top.chrome.webview) {
+                return window.top.chrome.webview;
+            }
+            // Try window.parent (for single iframe)
+            if (window.parent && window.parent.chrome && window.parent.chrome.webview) {
+                return window.parent.chrome.webview;
+            }
+            // Fallback to current window
+            if (window.chrome && webview) {
+                return webview;
+            }
+            return null;
+        }
+
+        const webview = getWebView();
+        const isWebView2 = !!webview;
+
+        log('INIT', 'WebView2 detection:');
+        log('INIT', '  webview:', !!(window.chrome && webview));
+        log('INIT', '  window.parent.chrome.webview:', !!(window.parent && window.parent.chrome && window.parent.chrome.webview));
+        log('INIT', '  window.top.chrome.webview:', !!(window.top && window.top.chrome && window.top.chrome.webview));
+        log('INIT', '  Using webview from:', webview === window.chrome?.webview ? 'window' :
+                                              webview === window.parent?.chrome?.webview ? 'parent' :
+                                              webview === window.top?.chrome?.webview ? 'top' : 'none');
 
         // =============================================
         // INITIALIZATION
@@ -866,7 +894,7 @@
                     try {
                         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
                         if (data.requestId === requestId || data.action === 'getApexEndpointUrlResponse') {
-                            window.chrome.webview.removeEventListener('message', handler);
+                            webview.removeEventListener('message', handler);
                             if (data.success && data.url) {
                                 apexEndpointUrl = data.url.trim();
                                 log('APEX', 'Loaded APEX endpoint URL:', apexEndpointUrl);
@@ -880,13 +908,13 @@
                     }
                 };
 
-                window.chrome.webview.addEventListener('message', handler);
-                window.chrome.webview.postMessage({
+                webview.addEventListener('message', handler);
+                webview.postMessage({
                     action: 'getApexEndpointUrl',
                     requestId: requestId
                 });
 
-                setTimeout(() => window.chrome.webview.removeEventListener('message', handler), 3000);
+                setTimeout(() => webview.removeEventListener('message', handler), 3000);
             } else {
                 apexEndpointUrl = 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com/ords/test/FUSIONCLIENTERP/endpoints';
                 log('APEX', 'Using fallback URL:', apexEndpointUrl);
@@ -925,7 +953,7 @@
                         log('ENDPOINTS', 'RequestId match:', data.requestId === requestId);
 
                         if (data.requestId === requestId || data.action === 'getAllEndpointsResponse') {
-                            window.chrome.webview.removeEventListener('message', handler);
+                            webview.removeEventListener('message', handler);
                             if (data.success && data.endpoints) {
                                 endpointsData = data.endpoints;
                                 log('ENDPOINTS', '*** SUCCESS - Loaded', endpointsData.length, 'endpoints ***');
@@ -953,15 +981,15 @@
                     }
                 };
 
-                window.chrome.webview.addEventListener('message', handler);
-                window.chrome.webview.postMessage({
+                webview.addEventListener('message', handler);
+                webview.postMessage({
                     action: 'getAllEndpoints',
                     requestId: requestId
                 });
 
                 // Increase timeout to 15 seconds (APEX REST can be slow)
                 setTimeout(() => {
-                    window.chrome.webview.removeEventListener('message', handler);
+                    webview.removeEventListener('message', handler);
                     if (endpointsData.length === 0) {
                         log('ENDPOINTS', '*** TIMEOUT after 15s - No response from C# ***');
                         log('ENDPOINTS', 'Check Visual Studio Debug Output for C# errors');
@@ -1067,10 +1095,10 @@
                 } catch (e) {
                     log('TEST', 'Parse error:', e.message);
                 }
-                window.chrome.webview.removeEventListener('message', handler);
+                webview.removeEventListener('message', handler);
             };
 
-            window.chrome.webview.addEventListener('message', handler);
+            webview.addEventListener('message', handler);
 
             // Send a simple getAllEndpoints request
             const message = {
@@ -1078,12 +1106,12 @@
                 requestId: requestId
             };
             log('TEST', 'Posting message:', JSON.stringify(message));
-            window.chrome.webview.postMessage(message);
+            webview.postMessage(message);
 
             showAlert('Test message sent. Check VS Debug Output for [C# RECEIVED]...', 'info');
 
             setTimeout(() => {
-                window.chrome.webview.removeEventListener('message', handler);
+                webview.removeEventListener('message', handler);
                 log('TEST', '*** TIMEOUT - No response after 10s ***');
             }, 10000);
         }
@@ -1300,7 +1328,7 @@
                         }
 
                         if (data.requestId === requestId || data.action === 'getAllInstancesResponse') {
-                            window.chrome.webview.removeEventListener('message', handler);
+                            webview.removeEventListener('message', handler);
                             if (data.success && data.instances) {
                                 instancesData = data.instances.map(inst => ({
                                     instance_id: inst.instance_id || null,
@@ -1324,13 +1352,13 @@
                     }
                 };
 
-                window.chrome.webview.addEventListener('message', handler);
-                window.chrome.webview.postMessage({
+                webview.addEventListener('message', handler);
+                webview.postMessage({
                     action: 'getAllInstances',
                     requestId: requestId
                 });
 
-                setTimeout(() => window.chrome.webview.removeEventListener('message', handler), 5000);
+                setTimeout(() => webview.removeEventListener('message', handler), 5000);
             } else {
                 showAlert('WebView2 not available', 'error');
             }
@@ -1502,7 +1530,7 @@
             showAlert('Testing connection...', 'info');
 
             if (isWebView2) {
-                window.chrome.webview.postMessage({
+                webview.postMessage({
                     action: 'testConnection',
                     requestId: 'test_' + Date.now()
                 });

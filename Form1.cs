@@ -1910,6 +1910,78 @@ namespace WMSApp
         }
 
         /// <summary>
+        /// Handles readFile request from webview - reads a local file and returns content
+        /// </summary>
+        private async Task HandleReadFile(WebView2 wv, JsonElement root, string requestId)
+        {
+            string fileId = "";
+            string filePath = "";
+
+            try
+            {
+                // Get fileId and filePath from request
+                if (root.TryGetProperty("fileId", out var fileIdProp))
+                {
+                    fileId = fileIdProp.GetString() ?? "";
+                }
+                if (root.TryGetProperty("filePath", out var filePathProp))
+                {
+                    filePath = filePathProp.GetString() ?? "";
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[C#] ReadFile request - fileId: {fileId}, filePath: {filePath}");
+
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    throw new ArgumentException("filePath is required");
+                }
+
+                // Read file content
+                string content = "";
+                if (System.IO.File.Exists(filePath))
+                {
+                    content = await System.IO.File.ReadAllTextAsync(filePath);
+                    System.Diagnostics.Debug.WriteLine($"[C#] File read successfully, content length: {content.Length}");
+                }
+                else
+                {
+                    throw new System.IO.FileNotFoundException($"File not found: {filePath}");
+                }
+
+                // Send response in format expected by JavaScript
+                var response = new
+                {
+                    action = "fileReadResult",
+                    file = fileId,
+                    success = true,
+                    content = content,
+                    requestId = requestId
+                };
+
+                string responseJson = System.Text.Json.JsonSerializer.Serialize(response);
+                System.Diagnostics.Debug.WriteLine($"[C#] Sending fileReadResult response for: {fileId}");
+                wv.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[C# ERROR] ReadFile failed: {ex.Message}");
+
+                // Send error response
+                var errorResponse = new
+                {
+                    action = "fileReadResult",
+                    file = fileId,
+                    success = false,
+                    error = ex.Message,
+                    requestId = requestId
+                };
+
+                string errorJson = System.Text.Json.JsonSerializer.Serialize(errorResponse);
+                wv.CoreWebView2.PostWebMessageAsJson(errorJson);
+            }
+        }
+
+        /// <summary>
         /// Parses the APEX JSON response into a list of instance dictionaries
         /// </summary>
         private List<Dictionary<string, object>> ParseApexInstancesResponse(string jsonResponse)
@@ -2820,6 +2892,11 @@ namespace WMSApp
                                 // Get all instances from APEX
                                 case "getAllInstances":
                                     await HandleGetAllInstances(wv, requestId);
+                                    break;
+
+                                // Read file from local filesystem
+                                case "readFile":
+                                    await HandleReadFile(wv, root, requestId);
                                     break;
 
                                 default:

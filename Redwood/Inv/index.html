@@ -1262,6 +1262,34 @@
         </main>
     </div>
 
+    <!-- Item Details Dialog -->
+    <div class="rw-dialog-overlay" id="itemDialogOverlay">
+        <div class="rw-dialog">
+            <div class="rw-dialog-header">
+                <h2 class="rw-dialog-title" id="itemDialogTitle">Item Details</h2>
+                <button class="rw-dialog-close" onclick="closeItemDialog()">&times;</button>
+            </div>
+            <div class="rw-dialog-body" id="itemDialogBody"></div>
+            <div class="rw-dialog-footer">
+                <button class="rw-btn rw-btn-secondary" onclick="closeItemDialog()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receipts Dialog -->
+    <div class="rw-dialog-overlay" id="receiptsDialogOverlay">
+        <div class="rw-dialog" style="max-width: 900px;">
+            <div class="rw-dialog-header">
+                <h2 class="rw-dialog-title" id="receiptsDialogTitle">PO Details</h2>
+                <button class="rw-dialog-close" onclick="closeReceiptsDialog()">&times;</button>
+            </div>
+            <div class="rw-dialog-body" id="receiptsDialogBody"></div>
+            <div class="rw-dialog-footer">
+                <button class="rw-btn rw-btn-secondary" onclick="closeReceiptsDialog()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // All available tasks
         const allTasks = [
@@ -1840,10 +1868,10 @@
             }
 
             let html = `<table class="rw-table"><thead><tr>
-                <th>Item Number</th><th>Description</th><th>Organization</th><th>UOM</th><th>Category</th><th>Status</th>
+                <th>Item Number</th><th>Description</th><th>Organization</th><th>UOM</th><th>Category</th><th>Status</th><th>Actions</th>
             </tr></thead><tbody>`;
 
-            data.forEach(item => {
+            data.forEach((item, idx) => {
                 const itemNum = item.item_number || item.ITEM_NUMBER || '-';
                 const desc = item.description || item.DESCRIPTION || item.item_description || '-';
                 const org = item.organization_code || item.ORGANIZATION_CODE || '-';
@@ -1859,6 +1887,7 @@
                     <td>${uom}</td>
                     <td>${category}</td>
                     <td><span class="rw-badge ${statusClass}">${status}</span></td>
+                    <td><button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="viewItemDetails(${idx})">View</button></td>
                 </tr>`;
             });
 
@@ -1918,6 +1947,43 @@
             URL.revokeObjectURL(url);
         }
 
+        function viewItemDetails(idx) {
+            const item = filteredItems[idx];
+            if (!item) return;
+
+            document.getElementById('itemDialogTitle').textContent = 'Item: ' + (item.item_number || item.ITEM_NUMBER || 'Unknown');
+
+            const fields = [
+                { label: 'Item Number', value: item.item_number || item.ITEM_NUMBER || '-' },
+                { label: 'Description', value: item.description || item.DESCRIPTION || item.item_description || '-' },
+                { label: 'Organization', value: item.organization_code || item.ORGANIZATION_CODE || '-' },
+                { label: 'Primary UOM', value: item.primary_uom_code || item.PRIMARY_UOM_CODE || '-' },
+                { label: 'Category', value: item.category_name || item.CATEGORY_NAME || '-' },
+                { label: 'Status', value: item.item_status || item.ITEM_STATUS || 'Active' },
+                { label: 'Item Type', value: item.item_type || item.ITEM_TYPE || '-' },
+                { label: 'Inventory Item', value: item.inventory_item_flag || item.INVENTORY_ITEM_FLAG || '-' },
+                { label: 'Purchasable', value: item.purchasing_enabled_flag || item.PURCHASING_ENABLED_FLAG || '-' },
+                { label: 'Shippable', value: item.shippable_item_flag || item.SHIPPABLE_ITEM_FLAG || '-' }
+            ];
+
+            document.getElementById('itemDialogBody').innerHTML = `
+                <div class="rw-detail-grid">
+                    ${fields.map(f => `
+                        <div class="rw-detail-item">
+                            <span class="rw-detail-label">${f.label}</span>
+                            <span class="rw-detail-value">${f.value}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            document.getElementById('itemDialogOverlay').classList.add('active');
+        }
+
+        function closeItemDialog() {
+            document.getElementById('itemDialogOverlay').classList.remove('active');
+        }
+
         // ==========================================
         // SETTINGS PAGE
         // ==========================================
@@ -1967,9 +2033,9 @@
         }
 
         function switchSettingsTab(tabName) {
-            document.querySelectorAll('#settings-container .rw-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('#settings-container .rw-tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelector(`#settings-container .rw-tab[onclick*="${tabName}"]`).classList.add('active');
+            document.querySelectorAll('#content-settings .rw-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#content-settings .rw-tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`#content-settings .rw-tab[onclick*="${tabName}"]`).classList.add('active');
             document.getElementById('settings-tab-' + tabName).classList.add('active');
         }
 
@@ -2008,25 +2074,367 @@
         }
 
         // ==========================================
-        // RECEIPTS PAGE (Placeholder)
+        // RECEIPTS PAGE
         // ==========================================
+        let poReceiptsData = [];
+        let poReceiptsLinesData = [];
+        let filteredReceiptsData = [];
+        let selectedPOs = new Set();
+
         function renderReceiptsPage() {
             const container = document.getElementById('content-receipts');
+            const savedOrg = localStorage.getItem('wms_org_code') || '';
+
             container.innerHTML = `
-                <div class="rw-page-header">
-                    <h1 class="rw-page-title">Receive Expected Shipments</h1>
-                    <p class="rw-page-subtitle">Process incoming PO receipts</p>
+                <div class="rw-page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h1 class="rw-page-title">Receive Expected Shipments</h1>
+                        <p class="rw-page-subtitle">View and receive expected purchase order shipments</p>
+                    </div>
+                    <button id="receipts-loadBtn" class="rw-btn rw-btn-primary" onclick="loadReceiptsData()">
+                        <span>&#8635;</span> Load Shipments
+                    </button>
                 </div>
+
                 <div class="rw-card">
                     <div class="rw-card-body">
+                        <div class="rw-form-row">
+                            <div class="rw-form-group">
+                                <label class="rw-label">Organization Code</label>
+                                <input type="text" id="receipts-orgCode" class="rw-input" placeholder="e.g., AMS" value="${savedOrg}">
+                            </div>
+                            <div class="rw-form-group">
+                                <label class="rw-label">Vendor</label>
+                                <input type="text" id="receipts-vendorFilter" class="rw-input" placeholder="Filter by vendor...">
+                            </div>
+                            <div class="rw-form-group">
+                                <label class="rw-label">PO Number</label>
+                                <input type="text" id="receipts-poFilter" class="rw-input" placeholder="Filter by PO...">
+                            </div>
+                            <div class="rw-form-group" style="flex-direction: row; gap: 8px; align-items: flex-end;">
+                                <button class="rw-btn rw-btn-primary" onclick="loadReceiptsData()">
+                                    <span>&#128269;</span> Search
+                                </button>
+                                <button class="rw-btn rw-btn-secondary" onclick="clearReceiptsFilters()">Clear</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rw-card">
+                    <div class="rw-stats-bar" id="receipts-statsBar" style="display: none;">
+                        <div class="rw-stat-item">
+                            <span class="rw-stat-item-value" id="receipts-totalPOs">0</span>
+                            <span class="rw-stat-item-label">Purchase Orders</span>
+                        </div>
+                        <div class="rw-stat-item">
+                            <span class="rw-stat-item-value" id="receipts-totalLines">0</span>
+                            <span class="rw-stat-item-label">Total Lines</span>
+                        </div>
+                        <div class="rw-stat-item">
+                            <span class="rw-stat-item-value" id="receipts-totalVendors">0</span>
+                            <span class="rw-stat-item-label">Vendors</span>
+                        </div>
+                    </div>
+
+                    <div class="rw-toolbar" id="receipts-toolbar" style="display: none;">
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                            <input type="text" id="receipts-filterDoc" class="rw-filter-input" style="width:120px;" placeholder="PO Number..." oninput="filterReceiptsGroups()">
+                            <input type="text" id="receipts-filterVendor" class="rw-filter-input" style="width:120px;" placeholder="Vendor..." oninput="filterReceiptsGroups()">
+                            <input type="text" id="receipts-filterItem" class="rw-filter-input" style="width:120px;" placeholder="Item..." oninput="filterReceiptsGroups()">
+                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="clearReceiptsGroupFilters()">Clear</button>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="expandAllPOs()">Expand All</button>
+                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="collapseAllPOs()">Collapse</button>
+                            <span class="rw-badge rw-badge-info" id="receipts-selectedCount">0 selected</span>
+                            <button class="rw-btn rw-btn-primary rw-btn-sm" onclick="receiveSelectedPOs()">Receive Selected</button>
+                        </div>
+                    </div>
+
+                    <div id="receipts-poList">
                         <div class="rw-empty-state">
                             <div class="rw-empty-state-icon">&#128230;</div>
-                            <div class="rw-empty-state-title">Receipts Module</div>
-                            <p>This module will allow you to receive expected shipments from purchase orders.</p>
+                            <div class="rw-empty-state-title">Load Expected Shipments</div>
+                            <p>Enter organization code and click "Load Shipments" to view pending receipts</p>
                         </div>
                     </div>
                 </div>
             `;
+        }
+
+        async function loadReceiptsData() {
+            const btn = document.getElementById('receipts-loadBtn');
+            const orgCode = document.getElementById('receipts-orgCode').value.trim();
+            const vendorF = document.getElementById('receipts-vendorFilter').value.trim();
+            const poF = document.getElementById('receipts-poFilter').value.trim();
+
+            if (!orgCode) {
+                alert('Please enter Organization Code');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="rw-spinner" style="width:16px;height:16px;border-width:2px;"></span> Loading...';
+
+            const container = document.getElementById('receipts-poList');
+            container.innerHTML = '<div class="rw-empty-state"><div class="rw-spinner"></div><p style="margin-top:16px;">Loading shipments...</p></div>';
+
+            try {
+                if (cachedEndpoints.length === 0) {
+                    await loadAllEndpoints();
+                }
+
+                // Get PO Receipts
+                const receiptsEndpoint = getEndpointUrl('EXPECTED_PO_RECEIPTS');
+                if (!receiptsEndpoint) throw new Error('EXPECTED_PO_RECEIPTS endpoint not configured');
+
+                let url = `${receiptsEndpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                if (vendorF) url += `&p_vendor_name=${encodeURIComponent(vendorF)}`;
+                if (poF) url += `&p_po_number=${encodeURIComponent(poF)}`;
+
+                const response = await fetchWithBridge(url);
+
+                if (response && response.items) {
+                    poReceiptsData = response.items;
+                    filteredReceiptsData = [...poReceiptsData];
+                } else {
+                    poReceiptsData = [];
+                    filteredReceiptsData = [];
+                }
+
+                // Get PO Lines
+                const linesEndpoint = getEndpointUrl('PO_EXPECTED_RECEIPTS_LINES');
+                if (linesEndpoint) {
+                    let linesUrl = `${linesEndpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                    const linesResponse = await fetchWithBridge(linesUrl);
+                    poReceiptsLinesData = linesResponse && linesResponse.items ? linesResponse.items : [];
+                } else {
+                    poReceiptsLinesData = [];
+                }
+
+                renderReceiptsGroupedView(filteredReceiptsData);
+                updateReceiptsStats();
+                document.getElementById('receipts-statsBar').style.display = 'flex';
+                document.getElementById('receipts-toolbar').style.display = 'flex';
+
+            } catch (error) {
+                console.error('[Receipts] Error:', error);
+                container.innerHTML = `<div class="rw-empty-state"><div class="rw-empty-state-icon" style="color:var(--rw-red);">&#9888;</div><div class="rw-empty-state-title">Error</div><p>${error.message}</p></div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>&#8635;</span> Load Shipments';
+            }
+        }
+
+        function renderReceiptsGroupedView(data) {
+            const container = document.getElementById('receipts-poList');
+
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="rw-empty-state"><div class="rw-empty-state-icon">&#128466;</div><div class="rw-empty-state-title">No Shipments Found</div><p>Try adjusting your search criteria</p></div>';
+                return;
+            }
+
+            // Group by document number
+            const groupedData = {};
+            data.forEach(row => {
+                const docNum = row.document_number || row.DOCUMENT_NUMBER || '-';
+                if (!groupedData[docNum]) {
+                    groupedData[docNum] = { header: row, items: [], headerRowCount: 0 };
+                }
+                groupedData[docNum].headerRowCount++;
+            });
+
+            // Add lines to groups
+            (poReceiptsLinesData || []).forEach(line => {
+                const lineDocNum = line.document_number || line.DOCUMENT_NUMBER;
+                if (groupedData[lineDocNum]) {
+                    groupedData[lineDocNum].items.push(line);
+                }
+            });
+
+            let html = '<div style="border-top: 1px solid var(--rw-neutral-100);">';
+            Object.keys(groupedData).forEach(docNum => {
+                const group = groupedData[docNum];
+                const header = group.header;
+                const items = group.items;
+                const isSelected = selectedPOs.has(docNum);
+
+                const vendorName = header.vendor_name || header.VENDOR_NAME || '-';
+                const vendorSite = header.vendor_site_code || header.VENDOR_SITE_CODE || '-';
+                const shipToLocation = header.ship_to_location || header.SHIP_TO_LOCATION || '-';
+                const noOfItems = items.length || group.headerRowCount || 0;
+
+                html += `
+                    <div class="rw-po-group" data-doc="${docNum}" style="border-bottom: 1px solid var(--rw-neutral-100);">
+                        <div style="display: flex; align-items: center; padding: 16px 24px; cursor: pointer; transition: background 0.15s;"
+                             onmouseover="this.style.background='var(--rw-red-light)'"
+                             onmouseout="this.style.background=''"
+                             onclick="togglePOGroup('${docNum}')">
+                            <input type="checkbox" style="width:18px;height:18px;margin-right:16px;cursor:pointer;accent-color:var(--rw-red);"
+                                   data-doc="${docNum}" ${isSelected ? 'checked' : ''}
+                                   onclick="event.stopPropagation(); togglePOSelection('${docNum}', this)">
+                            <div id="icon_${docNum}" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;margin-right:12px;color:var(--rw-red);font-size:12px;transition:transform 0.2s;">&#9654;</div>
+                            <div style="display:flex;flex-wrap:wrap;gap:24px;flex:1;font-size:14px;">
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">PO Number</span>
+                                    <span style="font-weight:600;color:var(--rw-red);">${docNum}</span>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Vendor</span>
+                                    <span style="font-weight:500;color:var(--rw-neutral-800);">${vendorName}</span>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Ship To</span>
+                                    <span style="font-weight:500;color:var(--rw-neutral-800);">${shipToLocation}</span>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Items</span>
+                                    <span style="font-weight:500;color:var(--rw-neutral-800);">${noOfItems}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="lines_${docNum}" style="display:none;padding:0 24px 20px 60px;background:var(--rw-neutral-50);">
+                            ${renderPOLines(items)}
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function renderPOLines(items) {
+            if (!items || items.length === 0) {
+                return '<p style="color:var(--rw-neutral-500);padding:16px;">No line items available</p>';
+            }
+
+            let html = `
+                <table class="rw-table" style="background:var(--rw-white);border-radius:var(--rw-radius);overflow:hidden;box-shadow:var(--rw-shadow);">
+                    <thead>
+                        <tr>
+                            <th>Line</th>
+                            <th>Item Number</th>
+                            <th>Description</th>
+                            <th style="text-align:right;">Ordered</th>
+                            <th style="text-align:right;">Received</th>
+                            <th style="text-align:right;">Remaining</th>
+                            <th>UOM</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            items.forEach(line => {
+                const lineNum = line.line_number || line.LINE_NUMBER || '-';
+                const itemNum = line.item_number || line.ITEM_NUMBER || '-';
+                const desc = line.item_description || line.ITEM_DESCRIPTION || '-';
+                const ordered = line.ordered_quantity || line.ORDERED_QUANTITY || 0;
+                const received = line.received_quantity || line.RECEIVED_QUANTITY || 0;
+                const remaining = ordered - received;
+                const uom = line.uom || line.UOM || line.primary_uom_code || '-';
+
+                html += `
+                    <tr>
+                        <td>${lineNum}</td>
+                        <td style="font-weight:500;">${itemNum}</td>
+                        <td>${desc}</td>
+                        <td style="text-align:right;">${ordered}</td>
+                        <td style="text-align:right;">${received}</td>
+                        <td style="text-align:right;font-weight:500;color:var(--rw-red);">${remaining}</td>
+                        <td>${uom}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function togglePOGroup(docNum) {
+            const icon = document.getElementById('icon_' + docNum);
+            const lines = document.getElementById('lines_' + docNum);
+            if (lines.style.display === 'none') {
+                lines.style.display = 'block';
+                icon.style.transform = 'rotate(90deg)';
+            } else {
+                lines.style.display = 'none';
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function togglePOSelection(docNum, checkbox) {
+            if (checkbox.checked) {
+                selectedPOs.add(docNum);
+            } else {
+                selectedPOs.delete(docNum);
+            }
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            document.getElementById('receipts-selectedCount').textContent = selectedPOs.size + ' selected';
+        }
+
+        function expandAllPOs() {
+            document.querySelectorAll('[id^="lines_"]').forEach(el => el.style.display = 'block');
+            document.querySelectorAll('[id^="icon_"]').forEach(el => el.style.transform = 'rotate(90deg)');
+        }
+
+        function collapseAllPOs() {
+            document.querySelectorAll('[id^="lines_"]').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('[id^="icon_"]').forEach(el => el.style.transform = 'rotate(0deg)');
+        }
+
+        function updateReceiptsStats() {
+            const vendors = new Set(filteredReceiptsData.map(r => r.vendor_name || r.VENDOR_NAME).filter(v => v && v !== '-'));
+            document.getElementById('receipts-totalPOs').textContent = new Set(filteredReceiptsData.map(r => r.document_number || r.DOCUMENT_NUMBER)).size;
+            document.getElementById('receipts-totalLines').textContent = poReceiptsLinesData.length;
+            document.getElementById('receipts-totalVendors').textContent = vendors.size;
+        }
+
+        function filterReceiptsGroups() {
+            const docFilter = (document.getElementById('receipts-filterDoc').value || '').toLowerCase();
+            const vendorFilter = (document.getElementById('receipts-filterVendor').value || '').toLowerCase();
+            const itemFilter = (document.getElementById('receipts-filterItem').value || '').toLowerCase();
+
+            filteredReceiptsData = poReceiptsData.filter(row => {
+                const docNum = (row.document_number || row.DOCUMENT_NUMBER || '').toLowerCase();
+                const vendor = (row.vendor_name || row.VENDOR_NAME || '').toLowerCase();
+                const matchDoc = !docFilter || docNum.includes(docFilter);
+                const matchVendor = !vendorFilter || vendor.includes(vendorFilter);
+                return matchDoc && matchVendor;
+            });
+
+            renderReceiptsGroupedView(filteredReceiptsData);
+            updateReceiptsStats();
+        }
+
+        function clearReceiptsFilters() {
+            document.getElementById('receipts-vendorFilter').value = '';
+            document.getElementById('receipts-poFilter').value = '';
+        }
+
+        function clearReceiptsGroupFilters() {
+            document.getElementById('receipts-filterDoc').value = '';
+            document.getElementById('receipts-filterVendor').value = '';
+            document.getElementById('receipts-filterItem').value = '';
+            filteredReceiptsData = [...poReceiptsData];
+            renderReceiptsGroupedView(filteredReceiptsData);
+            updateReceiptsStats();
+        }
+
+        function receiveSelectedPOs() {
+            if (selectedPOs.size === 0) {
+                alert('Please select at least one PO to receive');
+                return;
+            }
+            alert('Receive functionality - Selected POs: ' + Array.from(selectedPOs).join(', '));
+            // TODO: Implement actual receive logic via WebView2
+        }
+
+        function closeReceiptsDialog() {
+            document.getElementById('receiptsDialogOverlay').classList.remove('active');
         }
 
         // ==========================================

@@ -170,8 +170,16 @@
         }
 
         .rw-sidebar-header {
-            padding: 20px;
+            padding: 16px;
             border-bottom: 1px solid var(--rw-neutral-100);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .rw-sidebar-header-content {
+            flex: 1;
+            min-width: 0;
         }
 
         .rw-sidebar-title {
@@ -180,7 +188,7 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--rw-neutral-500);
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
 
         .rw-org-selector {
@@ -1028,37 +1036,61 @@
         }
 
         .rw-sidebar-toggle {
-            position: absolute;
-            bottom: 16px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 36px;
-            height: 36px;
-            background: var(--rw-neutral-100);
-            border: 1px solid var(--rw-neutral-200);
-            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            background: transparent;
+            border: none;
             cursor: pointer;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
-            color: var(--rw-neutral-600);
+            gap: 5px;
+            padding: 8px;
+            border-radius: var(--rw-radius);
             transition: all 0.2s;
-            z-index: 10;
+            flex-shrink: 0;
         }
 
         .rw-sidebar-toggle:hover {
             background: var(--rw-red-light);
-            color: var(--rw-red);
-            border-color: var(--rw-red);
         }
 
-        .rw-sidebar.collapsed .rw-sidebar-toggle {
-            transform: translateX(-50%) rotate(180deg);
+        .rw-sidebar-toggle .hamburger-line {
+            width: 20px;
+            height: 2px;
+            background: var(--rw-neutral-600);
+            border-radius: 1px;
+            transition: all 0.3s;
+        }
+
+        .rw-sidebar-toggle:hover .hamburger-line {
+            background: var(--rw-red);
+        }
+
+        .rw-sidebar.collapsed .rw-sidebar-toggle .hamburger-line:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+
+        .rw-sidebar.collapsed .rw-sidebar-toggle .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+
+        .rw-sidebar.collapsed .rw-sidebar-toggle .hamburger-line:nth-child(3) {
+            transform: rotate(-45deg) translate(5px, -5px);
         }
 
         .rw-sidebar {
             position: relative;
+        }
+
+        .rw-sidebar.collapsed .rw-sidebar-header {
+            justify-content: center;
+            padding: 12px;
+        }
+
+        .rw-sidebar.collapsed .rw-sidebar-header-content {
+            display: none;
         }
 
         /* Serial Number Dialog */
@@ -1100,7 +1132,7 @@
             <a href="#" class="rw-nav-link active">Inventory</a>
             <a href="../AR/index.html" class="rw-nav-link">Receivables</a>
             <a href="../AP/index.html" class="rw-nav-link">Payables</a>
-            <a href="../OM/index.html" class="rw-nav-link">Order Management</a>
+            <a href="../Autopilot/index.html" class="rw-nav-link">Autopilot</a>
         </nav>
         <div class="rw-header-right">
             <div class="rw-user-info">
@@ -1116,12 +1148,19 @@
     <!-- Page Layout -->
     <div class="rw-page">
         <!-- Sidebar -->
-        <aside class="rw-sidebar">
+        <aside class="rw-sidebar" id="sidebar">
             <div class="rw-sidebar-header">
-                <div class="rw-sidebar-title">Organization</div>
-                <select class="rw-org-selector" id="orgSelector">
-                    <option value="">Select Organization...</option>
-                </select>
+                <button class="rw-sidebar-toggle" onclick="toggleSidebar()" title="Toggle Menu">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+                <div class="rw-sidebar-header-content">
+                    <div class="rw-sidebar-title">Organization</div>
+                    <select class="rw-org-selector" id="orgSelector">
+                        <option value="">Select Organization...</option>
+                    </select>
+                </div>
             </div>
             <nav class="rw-sidebar-nav">
                 <!-- Inventory -->
@@ -1234,10 +1273,6 @@
                     </div>
                 </div>
             </nav>
-            <!-- Sidebar Toggle Button -->
-            <button class="rw-sidebar-toggle" onclick="toggleSidebar()" title="Collapse/Expand Menu">
-                &#9664;
-            </button>
         </aside>
 
         <!-- Main Content -->
@@ -1448,6 +1483,13 @@
 
             // Load dashboard stats
             loadDashboardStats();
+
+            // Check for URL parameter to open specific page (from Autopilot)
+            const urlParams = new URLSearchParams(window.location.search);
+            const pageParam = urlParams.get('page');
+            if (pageParam && pageDefinitions[pageParam]) {
+                navigateTo(pageParam);
+            }
         });
 
         // Populate organization selector

@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autopilot - Fusion Client ERP</title>
+    <style>
+        /* Oracle Redwood Design System */
+        :root {
+            --rw-red: #c74634;
+            --rw-red-hover: #a83a2b;
+            --rw-red-light: #fef4f3;
+            --rw-red-dark: #8b2f24;
+            --rw-neutral-900: #161513;
+            --rw-neutral-800: #312d2a;
+            --rw-neutral-700: #4a4744;
+            --rw-neutral-600: #5a5754;
+            --rw-neutral-500: #6b6966;
+            --rw-neutral-400: #8a8886;
+            --rw-neutral-300: #b8b6b4;
+            --rw-neutral-200: #d5d4d3;
+            --rw-neutral-100: #ebebea;
+            --rw-neutral-50: #f7f6f6;
+            --rw-white: #ffffff;
+            --rw-success: #1e7e34;
+            --rw-success-bg: #e6f4ea;
+            --rw-info: #0056b3;
+            --rw-info-bg: #e7f1ff;
+            --rw-shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --rw-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --rw-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --rw-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+            --rw-radius: 8px;
+            --rw-radius-lg: 12px;
+            --rw-radius-xl: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Oracle Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--rw-neutral-50);
+            color: var(--rw-neutral-800);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Global Header */
+        .rw-global-header {
+            background: linear-gradient(135deg, var(--rw-red) 0%, var(--rw-red-dark) 100%);
+            color: var(--rw-white);
+            padding: 0 24px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .rw-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .rw-logo {
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .rw-app-name {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .rw-header-nav {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .rw-nav-link {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 8px 12px;
+            border-radius: var(--rw-radius);
+            transition: all 0.15s;
+        }
+
+        .rw-nav-link:hover, .rw-nav-link.active {
+            color: var(--rw-white);
+            background: rgba(255,255,255,0.15);
+        }
+
+        /* Main Container */
+        .rw-main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 24px;
+        }
+
+        /* Tab Navigation */
+        .rw-tab-nav {
+            display: flex;
+            gap: 4px;
+            background: var(--rw-white);
+            border-radius: var(--rw-radius-lg) var(--rw-radius-lg) 0 0;
+            padding: 16px 24px 0;
+            box-shadow: var(--rw-shadow);
+        }
+
+        .rw-tab-btn {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--rw-neutral-500);
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rw-tab-btn:hover {
+            color: var(--rw-red);
+        }
+
+        .rw-tab-btn.active {
+            color: var(--rw-red);
+            border-bottom-color: var(--rw-red);
+        }
+
+        .rw-tab-btn .tab-icon {
+            font-size: 18px;
+        }
+
+        /* Tab Content */
+        .rw-tab-content {
+            flex: 1;
+            background: var(--rw-white);
+            border-radius: 0 0 var(--rw-radius-lg) var(--rw-radius-lg);
+            box-shadow: var(--rw-shadow);
+            display: none;
+            flex-direction: column;
+        }
+
+        .rw-tab-content.active {
+            display: flex;
+        }
+
+        /* Quick Links Page */
+        .quick-links-container {
+            padding: 24px;
+        }
+
+        .quick-links-header {
+            margin-bottom: 24px;
+        }
+
+        .quick-links-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+            margin-bottom: 8px;
+        }
+
+        .quick-links-subtitle {
+            font-size: 14px;
+            color: var(--rw-neutral-500);
+        }
+
+        .quick-links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .quick-link-card {
+            background: var(--rw-neutral-50);
+            border: 1px solid var(--rw-neutral-200);
+            border-radius: var(--rw-radius-lg);
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .quick-link-card:hover {
+            background: var(--rw-red-light);
+            border-color: var(--rw-red);
+            transform: translateY(-2px);
+            box-shadow: var(--rw-shadow-md);
+        }
+
+        .quick-link-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--rw-white);
+            border-radius: var(--rw-radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--rw-red);
+            flex-shrink: 0;
+        }
+
+        .quick-link-card:hover .quick-link-icon {
+            background: var(--rw-red);
+            color: var(--rw-white);
+        }
+
+        .quick-link-info {
+            flex: 1;
+        }
+
+        .quick-link-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--rw-neutral-800);
+            margin-bottom: 4px;
+        }
+
+        .quick-link-desc {
+            font-size: 13px;
+            color: var(--rw-neutral-500);
+        }
+
+        .quick-link-category {
+            margin-bottom: 24px;
+        }
+
+        .quick-link-category-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--rw-neutral-500);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--rw-neutral-200);
+        }
+
+        /* Chat Page */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 200px);
+            min-height: 500px;
+        }
+
+        .chat-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .chat-avatar {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--rw-red) 0%, var(--rw-red-dark) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--rw-white);
+        }
+
+        .chat-info {
+            flex: 1;
+        }
+
+        .chat-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+        }
+
+        .chat-status {
+            font-size: 13px;
+            color: var(--rw-success);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chat-status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--rw-success);
+            border-radius: 50%;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .chat-message {
+            display: flex;
+            gap: 12px;
+            max-width: 80%;
+        }
+
+        .chat-message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .chat-message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .chat-message.bot .chat-message-avatar {
+            background: linear-gradient(135deg, var(--rw-red) 0%, var(--rw-red-dark) 100%);
+            color: var(--rw-white);
+        }
+
+        .chat-message.user .chat-message-avatar {
+            background: var(--rw-neutral-200);
+            color: var(--rw-neutral-700);
+        }
+
+        .chat-message-content {
+            background: var(--rw-neutral-50);
+            padding: 12px 16px;
+            border-radius: var(--rw-radius-lg);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .chat-message.user .chat-message-content {
+            background: var(--rw-red);
+            color: var(--rw-white);
+        }
+
+        .chat-message-content p {
+            margin-bottom: 8px;
+        }
+
+        .chat-message-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .chat-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .chat-suggestion {
+            padding: 8px 16px;
+            background: var(--rw-white);
+            border: 1px solid var(--rw-neutral-300);
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--rw-neutral-700);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .chat-suggestion:hover {
+            background: var(--rw-red);
+            border-color: var(--rw-red);
+            color: var(--rw-white);
+        }
+
+        .chat-input-container {
+            padding: 16px 24px;
+            border-top: 1px solid var(--rw-neutral-100);
+            display: flex;
+            gap: 12px;
+            background: var(--rw-neutral-50);
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 1px solid var(--rw-neutral-300);
+            border-radius: var(--rw-radius-lg);
+            font-size: 14px;
+            color: var(--rw-neutral-800);
+            background: var(--rw-white);
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--rw-red);
+            box-shadow: 0 0 0 3px var(--rw-red-light);
+        }
+
+        .chat-input::placeholder {
+            color: var(--rw-neutral-400);
+        }
+
+        .chat-send-btn {
+            padding: 14px 24px;
+            background: var(--rw-red);
+            color: var(--rw-white);
+            border: none;
+            border-radius: var(--rw-radius-lg);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chat-send-btn:hover {
+            background: var(--rw-red-hover);
+        }
+
+        .chat-send-btn:disabled {
+            background: var(--rw-neutral-300);
+            cursor: not-allowed;
+        }
+
+        /* Menu Options */
+        .menu-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .menu-option {
+            padding: 10px 14px;
+            background: var(--rw-white);
+            border: 1px solid var(--rw-neutral-200);
+            border-radius: var(--rw-radius);
+            font-size: 13px;
+            color: var(--rw-neutral-700);
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-option:hover {
+            background: var(--rw-red-light);
+            border-color: var(--rw-red);
+            color: var(--rw-red);
+        }
+
+        .menu-option-icon {
+            font-size: 16px;
+        }
+
+        /* Loading indicator */
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 8px 0;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: var(--rw-neutral-400);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+            30% {
+                transform: translateY(-8px);
+                opacity: 1;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .rw-main-container {
+                padding: 16px;
+            }
+
+            .quick-links-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chat-message {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Global Header -->
+    <header class="rw-global-header">
+        <div class="rw-header-left">
+            <div class="rw-logo">O</div>
+            <span class="rw-app-name">Fusion Client ERP - Autopilot</span>
+        </div>
+        <nav class="rw-header-nav">
+            <a href="../Inv/index.html" class="rw-nav-link">Inventory</a>
+            <a href="../AR/index.html" class="rw-nav-link">Receivables</a>
+            <a href="../AP/index.html" class="rw-nav-link">Payables</a>
+            <a href="#" class="rw-nav-link active">Autopilot</a>
+        </nav>
+    </header>
+
+    <!-- Main Container -->
+    <div class="rw-main-container">
+        <!-- Tab Navigation -->
+        <div class="rw-tab-nav">
+            <button class="rw-tab-btn active" onclick="switchTab('quicklinks')">
+                <span class="tab-icon">&#9889;</span>
+                Quick Links
+            </button>
+            <button class="rw-tab-btn" onclick="switchTab('chat')">
+                <span class="tab-icon">&#128172;</span>
+                Chat
+            </button>
+        </div>
+
+        <!-- Quick Links Tab -->
+        <div class="rw-tab-content active" id="tab-quicklinks">
+            <div class="quick-links-container">
+                <div class="quick-links-header">
+                    <h1 class="quick-links-title">Quick Links</h1>
+                    <p class="quick-links-subtitle">Access frequently used features with one click</p>
+                </div>
+
+                <!-- Inventory -->
+                <div class="quick-link-category">
+                    <div class="quick-link-category-title">Inventory</div>
+                    <div class="quick-links-grid">
+                        <div class="quick-link-card" onclick="openModule('Inv', 'items')">
+                            <div class="quick-link-icon">&#128451;</div>
+                            <div class="quick-link-info">
+                                <div class="quick-link-name">Manage Items</div>
+                                <div class="quick-link-desc">View and manage inventory item master</div>
+                            </div>
+                        </div>
+                        <div class="quick-link-card" onclick="openModule('Inv', 'quantities')">
+                            <div class="quick-link-icon">&#128230;</div>
+                            <div class="quick-link-info">
+                                <div class="quick-link-name">Item Quantities</div>
+                                <div class="quick-link-desc">View on-hand inventory quantities</div>
+                            </div>
+                        </div>
+                        <div class="quick-link-card" onclick="openModule('Inv', 'receipts')">
+                            <div class="quick-link-icon">&#128666;</div>
+                            <div class="quick-link-info">
+                                <div class="quick-link-name">Receive Shipments</div>
+                                <div class="quick-link-desc">Process incoming PO receipts</div>
+                            </div>
+                        </div>
+                        <div class="quick-link-card" onclick="openModule('Inv', 'misc-txn')">
+                            <div class="quick-link-icon">&#128221;</div>
+                            <div class="quick-link-info">
+                                <div class="quick-link-name">Misc Transaction</div>
+                                <div class="quick-link-desc">Create inventory adjustments</div>
+                            </div>
+                        </div>
+                        <div class="quick-link-card" onclick="openModule('Inv', 'subinv-transfer')">
+                            <div class="quick-link-icon">&#8644;</div>
+                            <div class="quick-link-info">
+                                <div class="quick-link-name">Subinventory Transfer</div>
+                                <div class="quick-link-desc">Move items between subinventories</div>
+                            </div>
+                        </div>
+                        <div class="quick-link-card" onclick="openModule('Inv', 'shipments')">
+                            <div class="quick-link-icon">&#128666;</div>
+                            <div class="quick-link-info">
+                                <div class="quick-link-name">Manage Shipments</div>
+                                <div class="quick-link-desc">View and manage outbound shipments</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings -->
+                <div class="quick-link-category">
+                    <div class="quick-link-category-title">System</div>
+                    <div class="quick-links-grid">
+                        <div class="quick-link-card" onclick="openModule('Inv', 'settings')">
+                            <div class="quick-link-icon">&#9881;</div>
+                            <div class="quick-link-info">
+                                <div class="quick-link-name">Settings</div>
+                                <div class="quick-link-desc">Configure endpoints and instances</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Tab -->
+        <div class="rw-tab-content" id="tab-chat">
+            <div class="chat-container">
+                <div class="chat-header">
+                    <div class="chat-avatar">&#129302;</div>
+                    <div class="chat-info">
+                        <div class="chat-title">ERP Autopilot Assistant</div>
+                        <div class="chat-status">Online and ready to help</div>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <!-- Welcome Message -->
+                    <div class="chat-message bot">
+                        <div class="chat-message-avatar">&#129302;</div>
+                        <div class="chat-message-content">
+                            <p>Hello! I'm your ERP Autopilot Assistant. I can help you navigate and perform actions in Fusion Client ERP.</p>
+                            <p>Try these commands:</p>
+                            <div class="chat-suggestions">
+                                <button class="chat-suggestion" onclick="sendSuggestion('open')">open</button>
+                                <button class="chat-suggestion" onclick="sendSuggestion('open manage items')">open manage items</button>
+                                <button class="chat-suggestion" onclick="sendSuggestion('open receipts')">open receipts</button>
+                                <button class="chat-suggestion" onclick="sendSuggestion('help')">help</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-container">
+                    <input type="text" class="chat-input" id="chatInput" placeholder="Type a command... (e.g., 'open manage items')" onkeypress="handleKeyPress(event)">
+                    <button class="chat-send-btn" onclick="sendMessage()">
+                        <span>Send</span>
+                        <span>&#10148;</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Available menu items for navigation
+        const menuItems = [
+            { id: 'home', name: 'Home', icon: '&#127968;', module: 'Inv', keywords: ['home', 'dashboard', 'main'] },
+            { id: 'items', name: 'Manage Items', icon: '&#128451;', module: 'Inv', keywords: ['items', 'manage items', 'master items', 'item master', 'inventory items'] },
+            { id: 'quantities', name: 'Item Quantities', icon: '&#128230;', module: 'Inv', keywords: ['quantities', 'item quantities', 'on hand', 'onhand', 'stock'] },
+            { id: 'lots', name: 'Manage Lots', icon: '&#127991;', module: 'Inv', keywords: ['lots', 'manage lots', 'lot numbers'] },
+            { id: 'serials', name: 'Serial Numbers', icon: '&#128271;', module: 'Inv', keywords: ['serials', 'serial numbers', 'serial'] },
+            { id: 'misc-txn', name: 'Miscellaneous Transaction', icon: '&#128221;', module: 'Inv', keywords: ['misc', 'miscellaneous', 'misc txn', 'adjustment'] },
+            { id: 'subinv-transfer', name: 'Subinventory Transfer', icon: '&#8644;', module: 'Inv', keywords: ['subinv', 'subinventory', 'transfer', 'subinventory transfer'] },
+            { id: 'interorg-transfer', name: 'Interorg Transfer', icon: '&#127970;', module: 'Inv', keywords: ['interorg', 'inter org', 'organization transfer'] },
+            { id: 'receipts', name: 'Receive Shipments', icon: '&#128230;', module: 'Inv', keywords: ['receipts', 'receive', 'shipments', 'receive shipments', 'po receipts'] },
+            { id: 'inbound', name: 'Inbound Shipments', icon: '&#128666;', module: 'Inv', keywords: ['inbound', 'inbound shipments'] },
+            { id: 'putaway', name: 'Put Away', icon: '&#128229;', module: 'Inv', keywords: ['putaway', 'put away'] },
+            { id: 'inspect', name: 'Inspect Receipts', icon: '&#128269;', module: 'Inv', keywords: ['inspect', 'inspection', 'inspect receipts'] },
+            { id: 'shipments', name: 'Manage Shipments', icon: '&#128666;', module: 'Inv', keywords: ['shipments', 'manage shipments', 'outbound'] },
+            { id: 'shipment-lines', name: 'Shipment Lines', icon: '&#128196;', module: 'Inv', keywords: ['shipment lines', 'lines'] },
+            { id: 'pick-wave', name: 'Pick Wave', icon: '&#127754;', module: 'Inv', keywords: ['pick wave', 'wave', 'picking'] },
+            { id: 'pick-slips', name: 'Confirm Pick Slips', icon: '&#9745;', module: 'Inv', keywords: ['pick slips', 'confirm pick', 'slips'] },
+            { id: 'cycle-count', name: 'Cycle Counts', icon: '&#10133;', module: 'Inv', keywords: ['cycle count', 'cycle counts', 'counting'] },
+            { id: 'physical-inv', name: 'Physical Inventory', icon: '&#128203;', module: 'Inv', keywords: ['physical', 'physical inventory'] },
+            { id: 'settings', name: 'Settings', icon: '&#9881;', module: 'Inv', keywords: ['settings', 'config', 'configuration', 'setup'] }
+        ];
+
+        // Tab Switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.rw-tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.rw-tab-content').forEach(content => content.classList.remove('active'));
+
+            document.querySelector(`.rw-tab-btn[onclick*="${tabName}"]`).classList.add('active');
+            document.getElementById('tab-' + tabName).classList.add('active');
+        }
+
+        // Open Module
+        function openModule(module, page) {
+            const url = `../${module}/index.html?page=${page}`;
+            window.location.href = url;
+        }
+
+        // Chat Functions
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            addUserMessage(message);
+            input.value = '';
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            // Process command after short delay
+            setTimeout(() => {
+                hideTypingIndicator();
+                processCommand(message);
+            }, 500);
+        }
+
+        function sendSuggestion(text) {
+            document.getElementById('chatInput').value = text;
+            sendMessage();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function addUserMessage(text) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message user';
+            messageDiv.innerHTML = `
+                <div class="chat-message-avatar">U</div>
+                <div class="chat-message-content">
+                    <p>${escapeHtml(text)}</p>
+                </div>
+            `;
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function addBotMessage(html) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message bot';
+            messageDiv.innerHTML = `
+                <div class="chat-message-avatar">&#129302;</div>
+                <div class="chat-message-content">
+                    ${html}
+                </div>
+            `;
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function showTypingIndicator() {
+            const messagesContainer = document.getElementById('chatMessages');
+            const indicator = document.createElement('div');
+            indicator.className = 'chat-message bot';
+            indicator.id = 'typingIndicator';
+            indicator.innerHTML = `
+                <div class="chat-message-avatar">&#129302;</div>
+                <div class="chat-message-content">
+                    <div class="typing-indicator">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            `;
+            messagesContainer.appendChild(indicator);
+            scrollToBottom();
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) indicator.remove();
+        }
+
+        function scrollToBottom() {
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Command Processing
+        function processCommand(command) {
+            const lowerCommand = command.toLowerCase().trim();
+
+            // Help command
+            if (lowerCommand === 'help') {
+                showHelpMessage();
+                return;
+            }
+
+            // Open command
+            if (lowerCommand === 'open') {
+                showMenuOptions();
+                return;
+            }
+
+            // Open specific page
+            if (lowerCommand.startsWith('open ')) {
+                const query = lowerCommand.substring(5).trim();
+                const matchedItem = findMenuItem(query);
+
+                if (matchedItem) {
+                    addBotMessage(`<p>Opening <strong>${matchedItem.name}</strong>...</p>`);
+                    setTimeout(() => {
+                        openModule(matchedItem.module, matchedItem.id);
+                    }, 500);
+                } else {
+                    addBotMessage(`
+                        <p>I couldn't find a page matching "<strong>${escapeHtml(query)}</strong>".</p>
+                        <p>Here are the available options:</p>
+                        ${generateMenuOptionsHtml()}
+                    `);
+                }
+                return;
+            }
+
+            // Go to command (alias for open)
+            if (lowerCommand.startsWith('go to ') || lowerCommand.startsWith('goto ')) {
+                const query = lowerCommand.replace(/^(go to |goto )/, '').trim();
+                processCommand('open ' + query);
+                return;
+            }
+
+            // Navigate command (alias for open)
+            if (lowerCommand.startsWith('navigate to ') || lowerCommand.startsWith('navigate ')) {
+                const query = lowerCommand.replace(/^(navigate to |navigate )/, '').trim();
+                processCommand('open ' + query);
+                return;
+            }
+
+            // Show command (alias for open)
+            if (lowerCommand.startsWith('show ')) {
+                const query = lowerCommand.substring(5).trim();
+                processCommand('open ' + query);
+                return;
+            }
+
+            // Check if it matches a menu item directly
+            const directMatch = findMenuItem(lowerCommand);
+            if (directMatch) {
+                addBotMessage(`<p>Opening <strong>${directMatch.name}</strong>...</p>`);
+                setTimeout(() => {
+                    openModule(directMatch.module, directMatch.id);
+                }, 500);
+                return;
+            }
+
+            // Unknown command
+            addBotMessage(`
+                <p>I didn't understand that command. Here are some things you can try:</p>
+                <div class="chat-suggestions">
+                    <button class="chat-suggestion" onclick="sendSuggestion('open')">open</button>
+                    <button class="chat-suggestion" onclick="sendSuggestion('help')">help</button>
+                    <button class="chat-suggestion" onclick="sendSuggestion('open manage items')">open manage items</button>
+                </div>
+            `);
+        }
+
+        function findMenuItem(query) {
+            query = query.toLowerCase().trim();
+
+            // Exact match on id
+            let match = menuItems.find(item => item.id === query);
+            if (match) return match;
+
+            // Exact match on name
+            match = menuItems.find(item => item.name.toLowerCase() === query);
+            if (match) return match;
+
+            // Match on keywords
+            match = menuItems.find(item => item.keywords.some(kw => kw === query));
+            if (match) return match;
+
+            // Partial match on name
+            match = menuItems.find(item => item.name.toLowerCase().includes(query));
+            if (match) return match;
+
+            // Partial match on keywords
+            match = menuItems.find(item => item.keywords.some(kw => kw.includes(query) || query.includes(kw)));
+            if (match) return match;
+
+            return null;
+        }
+
+        function showMenuOptions() {
+            addBotMessage(`
+                <p>Here are the available pages you can open:</p>
+                ${generateMenuOptionsHtml()}
+                <p style="margin-top: 12px; font-size: 13px; color: var(--rw-neutral-500);">
+                    Click on any option or type "open [page name]"
+                </p>
+            `);
+        }
+
+        function generateMenuOptionsHtml() {
+            const grouped = {};
+            menuItems.forEach(item => {
+                const module = item.module;
+                if (!grouped[module]) grouped[module] = [];
+                grouped[module].push(item);
+            });
+
+            let html = '<div class="menu-options">';
+            for (const module in grouped) {
+                grouped[module].forEach(item => {
+                    html += `
+                        <div class="menu-option" onclick="sendSuggestion('open ${item.id}')">
+                            <span class="menu-option-icon">${item.icon}</span>
+                            <span>${item.name}</span>
+                        </div>
+                    `;
+                });
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function showHelpMessage() {
+            addBotMessage(`
+                <p><strong>ERP Autopilot Help</strong></p>
+                <p>I can help you navigate the ERP system. Here are some commands:</p>
+                <ul style="margin: 12px 0; padding-left: 20px;">
+                    <li><strong>open</strong> - Show all available pages</li>
+                    <li><strong>open [page]</strong> - Open a specific page</li>
+                    <li><strong>go to [page]</strong> - Navigate to a page</li>
+                    <li><strong>show [page]</strong> - Display a page</li>
+                    <li><strong>help</strong> - Show this help message</li>
+                </ul>
+                <p><strong>Examples:</strong></p>
+                <div class="chat-suggestions">
+                    <button class="chat-suggestion" onclick="sendSuggestion('open manage items')">open manage items</button>
+                    <button class="chat-suggestion" onclick="sendSuggestion('open receipts')">open receipts</button>
+                    <button class="chat-suggestion" onclick="sendSuggestion('go to settings')">go to settings</button>
+                    <button class="chat-suggestion" onclick="sendSuggestion('show quantities')">show quantities</button>
+                </div>
+            `);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Focus on chat input when chat tab is activated
+            document.querySelector('.rw-tab-btn[onclick*="chat"]').addEventListener('click', function() {
+                setTimeout(() => {
+                    document.getElementById('chatInput').focus();
+                }, 100);
+            });
+        });
+    </script>
+</body>
+</html>

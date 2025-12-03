@@ -2596,44 +2596,209 @@
             container.innerHTML = html;
         }
 
-        function openNewEndpointDialog() {
+        // Instances data for auto-fill
+        let instancesData = [];
+        let endpointPostUrl = '';
+        let nextSno = 1;
+        let dynamicParams = [];
+
+        // Load instances from apexinstances.txt
+        async function loadInstancesData() {
+            try {
+                // Read instances file path
+                const instancesFilePath = 'C:\\fusionclient\\ERP\\settings\\apexinstances.txt';
+
+                // Request file read via WebView2
+                if (window.chrome && window.chrome.webview) {
+                    return new Promise((resolve, reject) => {
+                        const handler = (event) => {
+                            const data = event.data;
+                            if (data.action === 'fileReadResult' && data.file === 'apexinstances') {
+                                window.chrome.webview.removeEventListener('message', handler);
+                                if (data.success && data.content) {
+                                    // Parse the URL and fetch instances
+                                    const instancesUrl = data.content.trim();
+                                    fetchWithBridge(instancesUrl).then(response => {
+                                        if (response && response.items) {
+                                            instancesData = response.items;
+                                        }
+                                        resolve(instancesData);
+                                    }).catch(err => {
+                                        console.error('[Settings] Error fetching instances:', err);
+                                        resolve([]);
+                                    });
+                                } else {
+                                    resolve([]);
+                                }
+                            }
+                        };
+                        window.chrome.webview.addEventListener('message', handler);
+                        window.chrome.webview.postMessage({
+                            action: 'readFile',
+                            filePath: instancesFilePath,
+                            fileId: 'apexinstances'
+                        });
+
+                        // Timeout after 5 seconds
+                        setTimeout(() => resolve([]), 5000);
+                    });
+                }
+            } catch (error) {
+                console.error('[Settings] Error loading instances:', error);
+            }
+            return [];
+        }
+
+        // Load endpoint POST URL from apexendpointurl
+        async function loadEndpointPostUrl() {
+            try {
+                const urlFilePath = 'C:\\fusionclient\\ERP\\settings\\apexendpointurl';
+
+                if (window.chrome && window.chrome.webview) {
+                    return new Promise((resolve, reject) => {
+                        const handler = (event) => {
+                            const data = event.data;
+                            if (data.action === 'fileReadResult' && data.file === 'apexendpointurl') {
+                                window.chrome.webview.removeEventListener('message', handler);
+                                if (data.success && data.content) {
+                                    endpointPostUrl = data.content.trim();
+                                }
+                                resolve(endpointPostUrl);
+                            }
+                        };
+                        window.chrome.webview.addEventListener('message', handler);
+                        window.chrome.webview.postMessage({
+                            action: 'readFile',
+                            filePath: urlFilePath,
+                            fileId: 'apexendpointurl'
+                        });
+
+                        setTimeout(() => resolve(''), 5000);
+                    });
+                }
+            } catch (error) {
+                console.error('[Settings] Error loading endpoint URL:', error);
+            }
+            return '';
+        }
+
+        // Get unique sources from instances
+        function getUniqueSources() {
+            const sources = new Set();
+            instancesData.forEach(inst => {
+                if (inst.source || inst.SOURCE) {
+                    sources.add(inst.source || inst.SOURCE);
+                }
+            });
+            return Array.from(sources);
+        }
+
+        // Get instances for a specific source
+        function getInstancesForSource(source) {
+            return instancesData.filter(inst =>
+                (inst.source || inst.SOURCE || '').toUpperCase() === source.toUpperCase()
+            );
+        }
+
+        // Get base URL for source + instance combination
+        function getBaseUrlForInstance(source, instanceName) {
+            const instance = instancesData.find(inst =>
+                (inst.source || inst.SOURCE || '').toUpperCase() === source.toUpperCase() &&
+                (inst.instanceName || inst.INSTANCE_NAME || inst.instance_name || '').toUpperCase() === instanceName.toUpperCase()
+            );
+            return instance ? (instance.baseUrl || instance.BASE_URL || instance.base_url || '') : '';
+        }
+
+        async function openNewEndpointDialog() {
+            // Load instances data first
+            await loadInstancesData();
+            await loadEndpointPostUrl();
+
+            // Calculate next S.No
+            nextSno = settingsEndpoints.length > 0
+                ? Math.max(...settingsEndpoints.map(e => parseInt(e.sno) || 0)) + 1
+                : 1;
+
+            // Get unique sources for dropdown
+            const sources = getUniqueSources();
+            const sourceOptions = sources.length > 0
+                ? sources.map(s => `<option value="${s}">${s}</option>`).join('')
+                : '<option value="FUSION">FUSION</option><option value="APEX">APEX</option><option value="EBS">EBS</option>';
+
+            dynamicParams = [];
+
             document.getElementById('receiptsDialogTitle').textContent = 'New Endpoint';
             document.getElementById('receiptsDialogBody').innerHTML = `
-                <div class="rw-form-group">
-                    <label class="rw-label">Integration Code *</label>
-                    <input type="text" id="ep-integrationCode" class="rw-input" placeholder="e.g., INVENTORY_ON_HAND">
-                </div>
-                <div class="rw-form-group" style="margin-top:12px;">
-                    <label class="rw-label">Base URL *</label>
-                    <input type="text" id="ep-baseUrl" class="rw-input" placeholder="https://your-server.com/ords/apex">
-                </div>
-                <div class="rw-form-group" style="margin-top:12px;">
-                    <label class="rw-label">Path</label>
-                    <input type="text" id="ep-path" class="rw-input" placeholder="/inventory/onhand">
-                </div>
-                <div class="rw-form-row" style="margin-top:12px;">
+                <div class="rw-form-row">
+                    <div class="rw-form-group" style="width:80px;">
+                        <label class="rw-label">S.No</label>
+                        <input type="number" id="ep-sno" class="rw-input" value="${nextSno}" style="background:var(--rw-neutral-100);" readonly>
+                    </div>
                     <div class="rw-form-group" style="flex:1;">
-                        <label class="rw-label">Method</label>
-                        <select id="ep-method" class="rw-input">
-                            <option value="GET">GET</option>
-                            <option value="POST">POST</option>
-                            <option value="PUT">PUT</option>
-                            <option value="DELETE">DELETE</option>
+                        <label class="rw-label">Source *</label>
+                        <select id="ep-source" class="rw-input" onchange="onSourceChange()">
+                            <option value="">-- Select --</option>
+                            ${sourceOptions}
                         </select>
                     </div>
                     <div class="rw-form-group" style="flex:1;">
-                        <label class="rw-label">Content Type</label>
-                        <select id="ep-contentType" class="rw-input">
-                            <option value="application/json">application/json</option>
-                            <option value="application/xml">application/xml</option>
-                            <option value="text/plain">text/plain</option>
+                        <label class="rw-label">Instance *</label>
+                        <select id="ep-instance" class="rw-input" onchange="onInstanceChange()">
+                            <option value="">-- Select --</option>
                         </select>
                     </div>
+                    <div class="rw-form-group" style="flex:1;">
+                        <label class="rw-label">API Type</label>
+                        <select id="ep-apiType" class="rw-input">
+                            <option value="">-- Select --</option>
+                            <option value="REST">REST</option>
+                            <option value="SOAP">SOAP</option>
+                            <option value="EXCEL">EXCEL</option>
+                            <option value="JSON">JSON</option>
+                        </select>
+                    </div>
+                    <div class="rw-form-group" style="flex:1.5;">
+                        <label class="rw-label">Integration Code *</label>
+                        <input type="text" id="ep-integrationCode" class="rw-input" placeholder="e.g., INVENTORY_ON_HAND">
+                    </div>
                 </div>
+
                 <div class="rw-form-group" style="margin-top:12px;">
-                    <label class="rw-label">Description</label>
-                    <input type="text" id="ep-description" class="rw-input" placeholder="Endpoint description...">
+                    <label class="rw-label">URL (auto-filled from instance)</label>
+                    <input type="text" id="ep-baseUrl" class="rw-input" placeholder="Auto-filled from selected instance" style="background:var(--rw-neutral-50);">
                 </div>
+
+                <div class="rw-form-group" style="margin-top:12px;">
+                    <label class="rw-label">Path *</label>
+                    <input type="text" id="ep-path" class="rw-input" placeholder="e.g., /ords/test/FUSIONCLIENTERP/inventory/getonhandbyorg">
+                </div>
+
+                <div class="rw-form-group" style="margin-top:12px;">
+                    <label class="rw-label">Comments</label>
+                    <input type="text" id="ep-comments" class="rw-input" placeholder="Optional comments">
+                </div>
+
+                <div style="margin-top:16px;padding:16px;background:var(--rw-neutral-50);border-radius:var(--rw-radius);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <span style="font-weight:500;font-size:14px;">Parameters <span style="color:var(--rw-neutral-500);font-weight:400;font-size:12px;">(Fusion: q=p1=v1;p2=v2 | APEX: ?p1=v1&p2=v2)</span></span>
+                        <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="addParameter()" style="background:var(--rw-success-bg);color:var(--rw-success);border-color:var(--rw-success);">
+                            <span>&#43;</span> Add Parameter
+                        </button>
+                    </div>
+                    <div id="ep-params-container"></div>
+
+                    <div class="rw-form-row" style="margin-top:12px;">
+                        <div class="rw-form-group" style="flex:1;">
+                            <label class="rw-label">Offset (Fusion pagination)</label>
+                            <input type="text" id="ep-offset" class="rw-input" placeholder="e.g., 0">
+                        </div>
+                        <div class="rw-form-group" style="flex:1;">
+                            <label class="rw-label">Limit (Fusion pagination)</label>
+                            <input type="text" id="ep-limit" class="rw-input" placeholder="e.g., 100">
+                        </div>
+                    </div>
+                </div>
+
                 <div style="margin-top:20px;display:flex;gap:12px;justify-content:flex-end;">
                     <button class="rw-btn rw-btn-secondary" onclick="closeReceiptsDialog()">Cancel</button>
                     <button class="rw-btn rw-btn-primary" onclick="saveNewEndpoint()">
@@ -2644,54 +2809,249 @@
             document.getElementById('receiptsDialogOverlay').classList.add('active');
         }
 
+        function onSourceChange() {
+            const source = document.getElementById('ep-source').value;
+            const instanceSelect = document.getElementById('ep-instance');
+
+            // Clear and populate instance dropdown
+            instanceSelect.innerHTML = '<option value="">-- Select --</option>';
+
+            if (source) {
+                const instances = getInstancesForSource(source);
+                instances.forEach(inst => {
+                    const name = inst.instanceName || inst.INSTANCE_NAME || inst.instance_name || '';
+                    instanceSelect.innerHTML += `<option value="${name}">${name}</option>`;
+                });
+            }
+
+            // Clear base URL
+            document.getElementById('ep-baseUrl').value = '';
+        }
+
+        function onInstanceChange() {
+            const source = document.getElementById('ep-source').value;
+            const instance = document.getElementById('ep-instance').value;
+
+            if (source && instance) {
+                const baseUrl = getBaseUrlForInstance(source, instance);
+                document.getElementById('ep-baseUrl').value = baseUrl;
+            }
+        }
+
+        function addParameter() {
+            const container = document.getElementById('ep-params-container');
+            const paramIdx = dynamicParams.length;
+            dynamicParams.push({ name: '', value: '' });
+
+            const paramDiv = document.createElement('div');
+            paramDiv.id = `param-row-${paramIdx}`;
+            paramDiv.className = 'rw-form-row';
+            paramDiv.style.marginBottom = '8px';
+            paramDiv.innerHTML = `
+                <div class="rw-form-group" style="flex:1;">
+                    <input type="text" id="param-name-${paramIdx}" class="rw-input" placeholder="Parameter name" style="font-size:13px;">
+                </div>
+                <div class="rw-form-group" style="flex:1;">
+                    <input type="text" id="param-value-${paramIdx}" class="rw-input" placeholder="Value" style="font-size:13px;">
+                </div>
+                <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="removeParameter(${paramIdx})" style="height:38px;color:var(--rw-red);">
+                    &#10005;
+                </button>
+            `;
+            container.appendChild(paramDiv);
+        }
+
+        function removeParameter(idx) {
+            const paramRow = document.getElementById(`param-row-${idx}`);
+            if (paramRow) {
+                paramRow.remove();
+                dynamicParams[idx] = null;
+            }
+        }
+
+        function collectParameters() {
+            const params = [];
+            dynamicParams.forEach((p, idx) => {
+                if (p !== null) {
+                    const nameEl = document.getElementById(`param-name-${idx}`);
+                    const valueEl = document.getElementById(`param-value-${idx}`);
+                    if (nameEl && valueEl && nameEl.value.trim()) {
+                        params.push({ name: nameEl.value.trim(), value: valueEl.value.trim() });
+                    }
+                }
+            });
+            return params;
+        }
+
+        async function saveNewEndpoint() {
+            const sno = document.getElementById('ep-sno').value;
+            const source = document.getElementById('ep-source').value;
+            const instance = document.getElementById('ep-instance').value;
+            const apiType = document.getElementById('ep-apiType').value;
+            const integrationCode = document.getElementById('ep-integrationCode').value.trim();
+            const baseUrl = document.getElementById('ep-baseUrl').value.trim();
+            const path = document.getElementById('ep-path').value.trim();
+            const comments = document.getElementById('ep-comments').value.trim();
+            const offset = document.getElementById('ep-offset').value.trim();
+            const limit = document.getElementById('ep-limit').value.trim();
+            const params = collectParameters();
+
+            // Validation
+            if (!source || !instance || !integrationCode || !path) {
+                alert('Please fill in required fields: Source, Instance, Integration Code, and Path');
+                return;
+            }
+
+            // Build endpoint data for POST
+            const endpointData = {
+                items: [{
+                    sno: parseInt(sno) || nextSno,
+                    source: source,
+                    instanceName: instance,
+                    apiType: apiType || 'REST',
+                    integrationCode: integrationCode,
+                    baseUrl: baseUrl,
+                    endpointPath: path,
+                    comments: comments,
+                    offset: offset,
+                    limit: limit,
+                    parameters: params
+                }]
+            };
+
+            console.log('[Settings] Saving endpoint:', endpointData);
+
+            // POST to endpoint URL
+            if (endpointPostUrl) {
+                try {
+                    const response = await postWithBridge(endpointPostUrl, endpointData);
+                    console.log('[Settings] POST response:', response);
+
+                    if (response && response.status === 'success') {
+                        alert('Endpoint saved successfully!');
+                    } else if (response && response.status === 'error') {
+                        alert('Error saving endpoint: ' + (response.message || 'Unknown error'));
+                    } else {
+                        alert('Endpoint saved!');
+                    }
+                } catch (error) {
+                    console.error('[Settings] Error posting endpoint:', error);
+                    alert('Error saving endpoint: ' + error.message);
+                }
+            } else {
+                // Fallback: save to local cache
+                const newEndpoint = {
+                    sno: parseInt(sno) || nextSno,
+                    source: source,
+                    instanceName: instance,
+                    apiType: apiType || 'REST',
+                    integrationCode: integrationCode,
+                    url: baseUrl,
+                    base_url: baseUrl,
+                    path: path,
+                    comments: comments
+                };
+
+                settingsEndpoints.push(newEndpoint);
+                cachedEndpoints.push(newEndpoint);
+                localStorage.setItem('custom_endpoints', JSON.stringify(settingsEndpoints));
+                alert('Endpoint saved locally (no POST URL configured)');
+            }
+
+            closeReceiptsDialog();
+            renderEndpointsTable();
+        }
+
+        // POST helper function
+        async function postWithBridge(url, data) {
+            return new Promise((resolve, reject) => {
+                if (window.chrome && window.chrome.webview) {
+                    const handler = (event) => {
+                        const response = event.data;
+                        if (response.action === 'postResponse' && response.url === url) {
+                            window.chrome.webview.removeEventListener('message', handler);
+                            if (response.success) {
+                                resolve(response.data);
+                            } else {
+                                reject(new Error(response.error || 'POST failed'));
+                            }
+                        }
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+                    window.chrome.webview.postMessage({
+                        action: 'executePost',
+                        url: url,
+                        data: JSON.stringify(data),
+                        contentType: 'application/json'
+                    });
+
+                    setTimeout(() => reject(new Error('POST timeout')), 30000);
+                } else {
+                    // Fallback for testing
+                    console.log('[Settings] POST (mock):', url, data);
+                    resolve({ status: 'success', message: 'Saved (mock)' });
+                }
+            });
+        }
+
         function editEndpoint(idx) {
             const ep = settingsEndpoints[idx];
             if (!ep) return;
 
-            const code = ep.integrationCode || ep.source || ep.integration_code || '';
-            const baseUrl = ep.url || ep.base_url || '';
-            const path = ep.path || '';
-            const method = ep.method || 'GET';
-            const contentType = ep.contentType || ep.content_type || 'application/json';
-            const description = ep.description || '';
+            const sno = ep.sno || idx + 1;
+            const source = ep.source || ep.SOURCE || '';
+            const instance = ep.instanceName || ep.INSTANCE_NAME || ep.instance_name || '';
+            const apiType = ep.apiType || ep.API_TYPE || ep.api_type || 'REST';
+            const code = ep.integrationCode || ep.INTEGRATION_CODE || ep.integration_code || '';
+            const baseUrl = ep.url || ep.base_url || ep.baseUrl || ep.BASE_URL || '';
+            const path = ep.path || ep.PATH || ep.endpoint_path || '';
+            const comments = ep.comments || ep.COMMENTS || ep.description || '';
 
             document.getElementById('receiptsDialogTitle').textContent = 'Edit Endpoint';
             document.getElementById('receiptsDialogBody').innerHTML = `
-                <div class="rw-form-group">
-                    <label class="rw-label">Integration Code *</label>
-                    <input type="text" id="ep-integrationCode" class="rw-input" value="${code}">
+                <div class="rw-form-row">
+                    <div class="rw-form-group" style="width:80px;">
+                        <label class="rw-label">S.No</label>
+                        <input type="number" id="ep-sno" class="rw-input" value="${sno}" style="background:var(--rw-neutral-100);" readonly>
+                    </div>
+                    <div class="rw-form-group" style="flex:1;">
+                        <label class="rw-label">Source *</label>
+                        <input type="text" id="ep-source" class="rw-input" value="${source}">
+                    </div>
+                    <div class="rw-form-group" style="flex:1;">
+                        <label class="rw-label">Instance *</label>
+                        <input type="text" id="ep-instance" class="rw-input" value="${instance}">
+                    </div>
+                    <div class="rw-form-group" style="flex:1;">
+                        <label class="rw-label">API Type</label>
+                        <select id="ep-apiType" class="rw-input">
+                            <option value="REST" ${apiType === 'REST' ? 'selected' : ''}>REST</option>
+                            <option value="SOAP" ${apiType === 'SOAP' ? 'selected' : ''}>SOAP</option>
+                            <option value="EXCEL" ${apiType === 'EXCEL' ? 'selected' : ''}>EXCEL</option>
+                            <option value="JSON" ${apiType === 'JSON' ? 'selected' : ''}>JSON</option>
+                        </select>
+                    </div>
+                    <div class="rw-form-group" style="flex:1.5;">
+                        <label class="rw-label">Integration Code *</label>
+                        <input type="text" id="ep-integrationCode" class="rw-input" value="${code}">
+                    </div>
                 </div>
+
                 <div class="rw-form-group" style="margin-top:12px;">
-                    <label class="rw-label">Base URL *</label>
+                    <label class="rw-label">Base URL</label>
                     <input type="text" id="ep-baseUrl" class="rw-input" value="${baseUrl}">
                 </div>
+
                 <div class="rw-form-group" style="margin-top:12px;">
-                    <label class="rw-label">Path</label>
+                    <label class="rw-label">Path *</label>
                     <input type="text" id="ep-path" class="rw-input" value="${path}">
                 </div>
-                <div class="rw-form-row" style="margin-top:12px;">
-                    <div class="rw-form-group" style="flex:1;">
-                        <label class="rw-label">Method</label>
-                        <select id="ep-method" class="rw-input">
-                            <option value="GET" ${method === 'GET' ? 'selected' : ''}>GET</option>
-                            <option value="POST" ${method === 'POST' ? 'selected' : ''}>POST</option>
-                            <option value="PUT" ${method === 'PUT' ? 'selected' : ''}>PUT</option>
-                            <option value="DELETE" ${method === 'DELETE' ? 'selected' : ''}>DELETE</option>
-                        </select>
-                    </div>
-                    <div class="rw-form-group" style="flex:1;">
-                        <label class="rw-label">Content Type</label>
-                        <select id="ep-contentType" class="rw-input">
-                            <option value="application/json" ${contentType === 'application/json' ? 'selected' : ''}>application/json</option>
-                            <option value="application/xml" ${contentType === 'application/xml' ? 'selected' : ''}>application/xml</option>
-                            <option value="text/plain" ${contentType === 'text/plain' ? 'selected' : ''}>text/plain</option>
-                        </select>
-                    </div>
-                </div>
+
                 <div class="rw-form-group" style="margin-top:12px;">
-                    <label class="rw-label">Description</label>
-                    <input type="text" id="ep-description" class="rw-input" value="${description}">
+                    <label class="rw-label">Comments</label>
+                    <input type="text" id="ep-comments" class="rw-input" value="${comments}">
                 </div>
+
                 <div style="margin-top:20px;display:flex;gap:12px;justify-content:flex-end;">
                     <button class="rw-btn rw-btn-secondary" onclick="closeReceiptsDialog()">Cancel</button>
                     <button class="rw-btn rw-btn-primary" onclick="saveEditedEndpoint(${idx})">
@@ -2700,6 +3060,71 @@
                 </div>
             `;
             document.getElementById('receiptsDialogOverlay').classList.add('active');
+        }
+
+        async function saveEditedEndpoint(idx) {
+            const sno = document.getElementById('ep-sno').value;
+            const source = document.getElementById('ep-source').value.trim();
+            const instance = document.getElementById('ep-instance').value.trim();
+            const apiType = document.getElementById('ep-apiType').value;
+            const integrationCode = document.getElementById('ep-integrationCode').value.trim();
+            const baseUrl = document.getElementById('ep-baseUrl').value.trim();
+            const path = document.getElementById('ep-path').value.trim();
+            const comments = document.getElementById('ep-comments').value.trim();
+
+            if (!source || !instance || !integrationCode || !path) {
+                alert('Please fill in required fields');
+                return;
+            }
+
+            // Build endpoint data for POST
+            const endpointData = {
+                items: [{
+                    sno: parseInt(sno),
+                    source: source,
+                    instanceName: instance,
+                    apiType: apiType,
+                    integrationCode: integrationCode,
+                    baseUrl: baseUrl,
+                    endpointPath: path,
+                    comments: comments
+                }]
+            };
+
+            // POST to save
+            if (endpointPostUrl) {
+                try {
+                    const response = await postWithBridge(endpointPostUrl, endpointData);
+                    if (response && response.status === 'success') {
+                        alert('Endpoint updated successfully!');
+                    } else {
+                        alert('Endpoint updated!');
+                    }
+                } catch (error) {
+                    console.error('[Settings] Error updating endpoint:', error);
+                }
+            }
+
+            // Update local cache
+            settingsEndpoints[idx] = {
+                ...settingsEndpoints[idx],
+                sno: parseInt(sno),
+                source: source,
+                instanceName: instance,
+                apiType: apiType,
+                integrationCode: integrationCode,
+                url: baseUrl,
+                base_url: baseUrl,
+                baseUrl: baseUrl,
+                path: path,
+                comments: comments
+            };
+
+            cachedEndpoints = [...settingsEndpoints];
+            localStorage.setItem('custom_endpoints', JSON.stringify(settingsEndpoints));
+
+            closeReceiptsDialog();
+            renderEndpointsTable();
         }
 
         function testEndpoint(idx) {
@@ -2765,85 +3190,6 @@
                 responseDiv.style.color = '#ef4444';
                 responseDiv.textContent = `✗ Error\n\n${error.message}`;
             }
-        }
-
-        function saveNewEndpoint() {
-            const code = document.getElementById('ep-integrationCode').value.trim();
-            const baseUrl = document.getElementById('ep-baseUrl').value.trim();
-            const path = document.getElementById('ep-path').value.trim();
-            const method = document.getElementById('ep-method').value;
-            const contentType = document.getElementById('ep-contentType').value;
-            const description = document.getElementById('ep-description').value.trim();
-
-            if (!code || !baseUrl) {
-                alert('Integration Code and Base URL are required');
-                return;
-            }
-
-            const newEndpoint = {
-                integrationCode: code,
-                source: code,
-                url: baseUrl,
-                base_url: baseUrl,
-                path: path,
-                method: method,
-                contentType: contentType,
-                content_type: contentType,
-                description: description
-            };
-
-            // Add to local cache
-            settingsEndpoints.push(newEndpoint);
-            cachedEndpoints.push(newEndpoint);
-
-            // Save to localStorage
-            localStorage.setItem('custom_endpoints', JSON.stringify(settingsEndpoints));
-
-            console.log('[Settings] New endpoint saved:', newEndpoint);
-            alert('Endpoint saved successfully!');
-
-            closeReceiptsDialog();
-            renderEndpointsTable();
-        }
-
-        function saveEditedEndpoint(idx) {
-            const code = document.getElementById('ep-integrationCode').value.trim();
-            const baseUrl = document.getElementById('ep-baseUrl').value.trim();
-            const path = document.getElementById('ep-path').value.trim();
-            const method = document.getElementById('ep-method').value;
-            const contentType = document.getElementById('ep-contentType').value;
-            const description = document.getElementById('ep-description').value.trim();
-
-            if (!code || !baseUrl) {
-                alert('Integration Code and Base URL are required');
-                return;
-            }
-
-            // Update endpoint
-            settingsEndpoints[idx] = {
-                ...settingsEndpoints[idx],
-                integrationCode: code,
-                source: code,
-                url: baseUrl,
-                base_url: baseUrl,
-                path: path,
-                method: method,
-                contentType: contentType,
-                content_type: contentType,
-                description: description
-            };
-
-            // Update cached endpoints
-            cachedEndpoints = [...settingsEndpoints];
-
-            // Save to localStorage
-            localStorage.setItem('custom_endpoints', JSON.stringify(settingsEndpoints));
-
-            console.log('[Settings] Endpoint updated:', settingsEndpoints[idx]);
-            alert('Endpoint updated successfully!');
-
-            closeReceiptsDialog();
-            renderEndpointsTable();
         }
 
         function saveGeneralSettings() {

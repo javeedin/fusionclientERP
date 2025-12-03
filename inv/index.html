@@ -4773,6 +4773,12 @@ Click "Run Test" to execute the API call...
                                     <datalist id="poHtmlDateList"></datalist>
                                 </div>
                                 <div style="display: flex; gap: 8px; margin-left: auto; align-items: flex-end;">
+                                    <button onclick="sortPoHtmlByDate('asc')" title="Sort by Date (Oldest First)" style="padding: 6px 12px; background: #17a2b8; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
+                                        &#8593; Date
+                                    </button>
+                                    <button onclick="sortPoHtmlByDate('desc')" title="Sort by Date (Newest First)" style="padding: 6px 12px; background: #17a2b8; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
+                                        &#8595; Date
+                                    </button>
                                     <button onclick="expandAllPoHtmlGroups()" style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
                                         &#9660; Expand All
                                     </button>
@@ -5983,12 +5989,33 @@ Click "Run Test" to execute the API call...
 
             // Populate filters
             const uniqueVendors = [...new Set(data.map(r => r.vendor_name || r.VENDOR_NAME).filter(v => v && v !== '-'))];
-            // Collect unique dates from data
-            const uniqueDates = [...new Set(data.map(r => {
-                return r.CREATION_DATE || r.creation_date || r.created_date || r.CREATED_DATE ||
-                       r.PO_DATE || r.po_date || r.ORDER_DATE || r.order_date ||
-                       r.EXPECTED_RECEIPT_DATE || r.expected_receipt_date || null;
-            }).filter(d => d && d !== '-'))];
+
+            // Collect unique dates from both header data and line items
+            const allDatesRaw = new Set();
+            // From header data
+            data.forEach(r => {
+                const d = r.creation_date || r.CREATION_DATE || r.created_date || r.CREATED_DATE || '';
+                if (d) allDatesRaw.add(d);
+            });
+            // From line items
+            (poReceiptsLinesData || []).forEach(r => {
+                const d = r.creation_date || r.CREATION_DATE || r.created_date || r.CREATED_DATE || '';
+                if (d) allDatesRaw.add(d);
+            });
+
+            // Format dates for display in filter
+            const uniqueDates = [...allDatesRaw].map(rawDate => {
+                if (rawDate && rawDate.includes && rawDate.includes('T')) {
+                    try {
+                        const d = new Date(rawDate);
+                        return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                    } catch (e) {
+                        return rawDate;
+                    }
+                }
+                return rawDate;
+            }).filter(d => d && d !== '-');
+
             populatePoHtmlFilters(allDocNumbers, uniqueVendors, [...allItems], uniqueDates);
 
             // Store for filtering
@@ -6247,12 +6274,31 @@ Click "Run Test" to execute the API call...
                 });
             }
 
-            // Filter by date (partial match)
+            // Filter by date (partial match - check header and line items)
             if (dateFilter) {
+                // Build set of doc numbers with matching dates in line items
+                const docsWithDate = new Set();
+                (poReceiptsLinesData || []).forEach(line => {
+                    const lineDate = line.creation_date || line.CREATION_DATE || '';
+                    let formattedDate = lineDate;
+                    if (lineDate && lineDate.includes && lineDate.includes('T')) {
+                        try {
+                            const d = new Date(lineDate);
+                            formattedDate = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                        } catch (e) {}
+                    }
+                    if (formattedDate.toLowerCase().includes(dateFilter)) {
+                        const docNum = line.document_number || line.DOCUMENT_NUMBER;
+                        docsWithDate.add(docNum);
+                    }
+                });
+
                 filtered = filtered.filter(row => {
-                    const rowDate = (row.CREATION_DATE || row.creation_date || row.created_date || row.CREATED_DATE ||
-                                     row.PO_DATE || row.po_date || row.ORDER_DATE || row.order_date ||
-                                     row.EXPECTED_RECEIPT_DATE || row.expected_receipt_date || '').toLowerCase();
+                    const docNum = row.document_number || row.DOCUMENT_NUMBER || '';
+                    // Check if doc has matching date in line items
+                    if (docsWithDate.has(docNum)) return true;
+                    // Also check header date
+                    const rowDate = (row.creation_date || row.CREATION_DATE || row.created_date || row.CREATED_DATE || '').toLowerCase();
                     return rowDate.includes(dateFilter);
                 });
             }
@@ -6289,6 +6335,46 @@ Click "Run Test" to execute the API call...
             if (dateSelect) dateSelect.value = '';
 
             renderPoHtmlGroupedView(poReceiptsData);
+        }
+
+        // Sort POs by date
+        function sortPoHtmlByDate(order) {
+            const data = poHtmlFilteredData && poHtmlFilteredData.length > 0 ? [...poHtmlFilteredData] : [...(poReceiptsData || [])];
+
+            // Helper to get date from row or from line items
+            const getDateForDoc = (docNum) => {
+                // First try to get from line items
+                const line = (poReceiptsLinesData || []).find(l => (l.document_number || l.DOCUMENT_NUMBER) === docNum);
+                if (line) {
+                    const d = line.creation_date || line.CREATION_DATE || '';
+                    if (d) return new Date(d);
+                }
+                // Fallback to header data
+                const row = data.find(r => (r.document_number || r.DOCUMENT_NUMBER) === docNum);
+                if (row) {
+                    const d = row.creation_date || row.CREATION_DATE || row.created_date || row.CREATED_DATE || '';
+                    if (d) return new Date(d);
+                }
+                return new Date(0);
+            };
+
+            // Sort by document number (unique POs), then apply to data
+            const sortedData = data.sort((a, b) => {
+                const docA = a.document_number || a.DOCUMENT_NUMBER || '';
+                const docB = b.document_number || b.DOCUMENT_NUMBER || '';
+                const dateA = getDateForDoc(docA);
+                const dateB = getDateForDoc(docB);
+
+                if (order === 'asc') {
+                    return dateA - dateB;
+                } else {
+                    return dateB - dateA;
+                }
+            });
+
+            poHtmlFilteredData = sortedData;
+            renderPoHtmlGroupedView(sortedData);
+            console.log('[INV] Sorted POs by date:', order);
         }
 
         // Toggle selection for a single PO
@@ -6337,17 +6423,39 @@ Click "Run Test" to execute the API call...
                 return (row.document_number || row.DOCUMENT_NUMBER) === docNum;
             });
 
+            // Get lines for this PO to get creation_date if not in header
+            const lines = (poReceiptsLinesData || []).filter(line => {
+                return (line.document_number || line.DOCUMENT_NUMBER) === docNum;
+            });
+            const firstLine = lines.length > 0 ? lines[0] : {};
+
             if (poData) {
+                // Get creation_date from header or first line
+                let rawDate = poData.creation_date || poData.CREATION_DATE ||
+                             firstLine.creation_date || firstLine.CREATION_DATE ||
+                             poData.created_date || poData.CREATED_DATE || '';
+                let formattedDate = '-';
+                if (rawDate && rawDate.includes && rawDate.includes('T')) {
+                    try {
+                        const d = new Date(rawDate);
+                        formattedDate = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                    } catch (e) {
+                        formattedDate = rawDate;
+                    }
+                } else if (rawDate) {
+                    formattedDate = rawDate;
+                }
+
                 // Populate header details
                 document.getElementById('poDetailDocNumber').textContent = docNum;
-                document.getElementById('poDetailCreationDate').textContent = poData.CREATION_DATE || poData.creation_date || poData.created_date || poData.CREATED_DATE || '-';
-                document.getElementById('poDetailVendorName').textContent = poData.vendor_name || poData.VENDOR_NAME || '-';
-                document.getElementById('poDetailVendorSite').textContent = poData.vendor_site_code || poData.VENDOR_SITE_CODE || '-';
-                document.getElementById('poDetailShipTo').textContent = poData.ship_to_location || poData.SHIP_TO_LOCATION || '-';
-                document.getElementById('poDetailToOrg').textContent = poData.to_organization_code || poData.TO_ORGANIZATION_CODE || '-';
-                document.getElementById('poDetailItemCount').textContent = poData.no_of_items || poData.NO_OF_ITEMS || '-';
-                document.getElementById('poDetailDocType').textContent = poData.document_type || poData.DOCUMENT_TYPE || '-';
-                document.getElementById('poDetailDestination').textContent = poData.destination_type || poData.DESTINATION_TYPE || '-';
+                document.getElementById('poDetailCreationDate').textContent = formattedDate;
+                document.getElementById('poDetailVendorName').textContent = poData.vendor_name || poData.VENDOR_NAME || firstLine.vendor_name || firstLine.VENDOR_NAME || '-';
+                document.getElementById('poDetailVendorSite').textContent = poData.vendor_site_code || poData.VENDOR_SITE_CODE || firstLine.vendor_site_code || firstLine.VENDOR_SITE_CODE || '-';
+                document.getElementById('poDetailShipTo').textContent = poData.ship_to_location || poData.SHIP_TO_LOCATION || firstLine.ship_to_location || firstLine.SHIP_TO_LOCATION || '-';
+                document.getElementById('poDetailToOrg').textContent = poData.to_organization_code || poData.TO_ORGANIZATION_CODE || firstLine.to_organization_code || firstLine.TO_ORGANIZATION_CODE || '-';
+                document.getElementById('poDetailItemCount').textContent = lines.length || poData.no_of_items || poData.NO_OF_ITEMS || '-';
+                document.getElementById('poDetailDocType').textContent = poData.document_type || poData.DOCUMENT_TYPE || firstLine.document_type || firstLine.DOCUMENT_TYPE || '-';
+                document.getElementById('poDetailDestination').textContent = poData.destination_type || poData.DESTINATION_TYPE || firstLine.destination_type || firstLine.DESTINATION_TYPE || '-';
             }
 
             // Render lines table
@@ -6423,38 +6531,49 @@ Click "Run Test" to execute the API call...
             }
 
             let html = `
-                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                     <thead>
                         <tr style="background: #f0f0f0;">
-                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">Line #</th>
+                            <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd; font-weight: 600;">Line #</th>
                             <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">Item Number</th>
                             <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">Description</th>
-                            <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd; font-weight: 600;">Quantity</th>
+                            <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd; font-weight: 600;">Ordered Qty</th>
+                            <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd; font-weight: 600;">Available Qty</th>
                             <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd; font-weight: 600;">UOM</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">Routing</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600;">Dest Type</th>
                             <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd; font-weight: 600;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
             `;
 
-            let totalQty = 0;
+            let totalOrderedQty = 0;
+            let totalAvailQty = 0;
             lines.forEach((line, idx) => {
-                const lineNum = line.line_number || line.LINE_NUMBER || '-';
+                const docLineNum = line.document_line_number || line.DOCUMENT_LINE_NUMBER || line.line_number || line.LINE_NUMBER || '-';
                 const itemNum = line.item_number || line.ITEM_NUMBER || '-';
                 const itemDesc = line.item_description || line.ITEM_DESCRIPTION || '-';
-                const qty = parseFloat(line.quantity || line.QUANTITY || 0);
-                const uom = line.uom || line.UOM || line.unit_of_measure || '-';
-                totalQty += qty;
+                const orderedQty = parseFloat(line.ordered_quantity || line.ORDERED_QUANTITY || 0);
+                const availQty = parseFloat(line.available_quantity || line.AVAILABLE_QUANTITY || 0);
+                const uomCode = line.uom_code || line.UOM_CODE || line.uom || line.UOM || line.unit_of_measure || '-';
+                const routing = line.routing || line.ROUTING || line.routing_name || line.ROUTING_NAME || '-';
+                const destTypeCode = line.destination_type_code || line.DESTINATION_TYPE_CODE || line.destination_type || line.DESTINATION_TYPE || '-';
+                totalOrderedQty += orderedQty;
+                totalAvailQty += availQty;
 
                 html += `
                     <tr style="background: ${idx % 2 === 0 ? '#fff' : '#fafafa'}; border-bottom: 1px solid #eee;">
-                        <td style="padding: 10px;">${lineNum}</td>
+                        <td style="padding: 10px; text-align: center;">${docLineNum}</td>
                         <td style="padding: 10px; font-weight: 500;">${itemNum}</td>
                         <td style="padding: 10px;">${itemDesc}</td>
-                        <td style="padding: 10px; text-align: right;">${qty.toLocaleString()}</td>
-                        <td style="padding: 10px; text-align: center;">${uom}</td>
+                        <td style="padding: 10px; text-align: right;">${orderedQty.toLocaleString()}</td>
+                        <td style="padding: 10px; text-align: right;">${availQty > 0 ? availQty.toLocaleString() : '-'}</td>
+                        <td style="padding: 10px; text-align: center;">${uomCode}</td>
+                        <td style="padding: 10px;">${routing}</td>
+                        <td style="padding: 10px;">${destTypeCode}</td>
                         <td style="padding: 10px; text-align: center;">
-                            <button onclick="receiveLineItem('${docNum}', '${lineNum}')" style="padding: 4px 10px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">Receive</button>
+                            <button onclick="receiveLineItem('${docNum}', '${docLineNum}')" style="padding: 4px 10px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">Receive</button>
                         </td>
                     </tr>
                 `;
@@ -6465,8 +6584,9 @@ Click "Run Test" to execute the API call...
                     <tfoot>
                         <tr style="background: #f0f0f0; font-weight: 600;">
                             <td colspan="3" style="padding: 10px;">Total: ${lines.length} Line(s)</td>
-                            <td style="padding: 10px; text-align: right;">${totalQty.toLocaleString()}</td>
-                            <td colspan="2" style="padding: 10px;"></td>
+                            <td style="padding: 10px; text-align: right;">${totalOrderedQty.toLocaleString()}</td>
+                            <td style="padding: 10px; text-align: right;">${totalAvailQty > 0 ? totalAvailQty.toLocaleString() : ''}</td>
+                            <td colspan="4" style="padding: 10px;"></td>
                         </tr>
                     </tfoot>
                 </table>

@@ -1491,6 +1491,64 @@
             30% { transform: translateY(-6px); opacity: 1; }
         }
 
+        /* Autopilot Progress Tracker */
+        .ap-progress-tracker {
+            background: var(--rw-neutral-50);
+            border-radius: var(--rw-radius);
+            padding: 12px;
+            margin-top: 4px;
+        }
+
+        .ap-progress-title {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--rw-neutral-800);
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--rw-neutral-200);
+        }
+
+        .ap-progress-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .ap-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--rw-neutral-600);
+        }
+
+        .ap-step-icon {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--rw-neutral-400);
+        }
+
+        .ap-step.success .ap-step-text {
+            color: #22c55e;
+        }
+
+        .ap-step.error .ap-step-text {
+            color: #ef4444;
+        }
+
+        .ap-credentials-info {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 1px solid #86efac;
+            border-radius: var(--rw-radius);
+            padding: 10px 12px;
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
         /* Responsive */
         @media (max-width: 480px) {
             .autopilot-panel {
@@ -1649,6 +1707,10 @@
                 <!-- Settings -->
                 <div class="rw-nav-group">
                     <div class="rw-nav-group-header">System</div>
+                    <div class="rw-nav-item" onclick="navigateTo('instances')">
+                        <span class="rw-nav-icon">&#127760;</span>
+                        <span>Instances</span>
+                    </div>
                     <div class="rw-nav-item" onclick="navigateTo('settings')">
                         <span class="rw-nav-icon">&#9881;</span>
                         <span>Settings</span>
@@ -1945,6 +2007,7 @@
             'pick-slips': { name: 'Pick Slips', icon: '&#9745;' },
             'cycle-count': { name: 'Cycle Counts', icon: '&#10133;' },
             'physical-inv': { name: 'Physical Inventory', icon: '&#128203;' },
+            'instances': { name: 'Instances', icon: '&#127760;' },
             'settings': { name: 'Settings', icon: '&#9881;' }
         };
 
@@ -2096,6 +2159,9 @@
                     break;
                 case 'shipments':
                     renderShipmentsPage();
+                    break;
+                case 'instances':
+                    renderInstancesPage();
                     break;
                 default:
                     renderGenericPage(pageId);
@@ -2526,6 +2592,183 @@
         }
 
         // ==========================================
+        // GLOBAL MEMORY - Endpoints and Instances
+        // ==========================================
+        let globalEndpoints = [];      // All endpoints stored in memory
+        let globalInstances = [];      // All instances stored in memory
+        let globalInstancesUrl = '';   // URL to fetch instances
+
+        // Get credentials for an endpoint by matching its instance
+        function getCredentialsForEndpoint(endpoint) {
+            if (!endpoint) return null;
+
+            const instanceName = endpoint.instanceName || endpoint.instance_name || '';
+            const source = endpoint.source || '';
+
+            // Find matching instance
+            const instance = globalInstances.find(inst => {
+                const instName = inst.instanceName || inst.instance_name || inst.INSTANCE_NAME || '';
+                const instSource = inst.source || inst.SOURCE || '';
+                return instName.toLowerCase() === instanceName.toLowerCase() ||
+                       (instSource.toLowerCase() === source.toLowerCase() && instName);
+            });
+
+            if (instance) {
+                return {
+                    username: instance.username || instance.USERNAME || instance.user_name || '',
+                    password: instance.password || instance.PASSWORD || instance.pwd || '',
+                    instanceName: instance.instanceName || instance.instance_name || instance.INSTANCE_NAME || '',
+                    baseUrl: instance.baseUrl || instance.base_url || instance.BASE_URL || instance.url || ''
+                };
+            }
+            return null;
+        }
+
+        // Get endpoint by integration code
+        function getEndpointByCode(integrationCode) {
+            return globalEndpoints.find(ep =>
+                (ep.integrationCode || ep.integration_code || '').toUpperCase() === integrationCode.toUpperCase()
+            );
+        }
+
+        // ==========================================
+        // INSTANCES PAGE
+        // ==========================================
+        async function renderInstancesPage() {
+            const container = document.getElementById('content-instances');
+            container.innerHTML = `
+                <div class="rw-page-header">
+                    <h1 class="rw-page-title">Instances</h1>
+                    <p class="rw-page-subtitle">View and manage connection instances</p>
+                </div>
+                <div class="rw-card">
+                    <div class="rw-card-header">
+                        <h2 class="rw-card-title">All Instances</h2>
+                        <button class="rw-btn rw-btn-primary rw-btn-sm" onclick="refreshInstances()">
+                            &#8635; Refresh
+                        </button>
+                    </div>
+                    <div class="rw-card-body">
+                        <div id="instances-loading" style="text-align:center;padding:40px;">
+                            <div class="rw-spinner"></div>
+                            <p>Loading instances...</p>
+                        </div>
+                        <div id="instances-table" style="display:none;"></div>
+                    </div>
+                </div>
+            `;
+
+            // Load instances
+            await loadAndDisplayInstances();
+        }
+
+        async function loadAndDisplayInstances() {
+            const loadingEl = document.getElementById('instances-loading');
+            const tableEl = document.getElementById('instances-table');
+
+            try {
+                // Read instances file path
+                const instancesFilePath = 'C:\\fusionclient\\ERP\\settings\\apexinstances.txt';
+
+                if (window.chrome && window.chrome.webview) {
+                    const instancesUrl = await new Promise((resolve, reject) => {
+                        const handler = (event) => {
+                            const data = event.data;
+                            if (data.action === 'fileReadResult' && data.file === 'apexinstances_page') {
+                                window.chrome.webview.removeEventListener('message', handler);
+                                if (data.success && data.content) {
+                                    resolve(data.content.trim());
+                                } else {
+                                    reject(new Error('Failed to read instances file'));
+                                }
+                            }
+                        };
+                        window.chrome.webview.addEventListener('message', handler);
+                        window.chrome.webview.postMessage({
+                            action: 'readFile',
+                            filePath: instancesFilePath,
+                            fileId: 'apexinstances_page'
+                        });
+                        setTimeout(() => reject(new Error('Timeout')), 10000);
+                    });
+
+                    globalInstancesUrl = instancesUrl;
+
+                    // Fetch instances from URL
+                    const response = await fetchWithBridge(instancesUrl);
+
+                    if (response && response.items) {
+                        globalInstances = response.items;
+                        renderInstancesTable(response.items);
+                    } else {
+                        tableEl.innerHTML = '<p style="color:var(--rw-neutral-500);padding:20px;">No instances found</p>';
+                    }
+                } else {
+                    tableEl.innerHTML = '<p style="color:#ef4444;padding:20px;">WebView2 not available</p>';
+                }
+            } catch (error) {
+                console.error('[Instances] Error:', error);
+                tableEl.innerHTML = `<p style="color:#ef4444;padding:20px;">Error loading instances: ${error.message}</p>`;
+            }
+
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (tableEl) tableEl.style.display = 'block';
+        }
+
+        function renderInstancesTable(instances) {
+            const tableEl = document.getElementById('instances-table');
+
+            let html = `
+                <div class="rw-table-wrapper">
+                    <table class="rw-table">
+                        <thead>
+                            <tr>
+                                <th>S.No</th>
+                                <th>Source</th>
+                                <th>Instance Name</th>
+                                <th>Base URL</th>
+                                <th>Username</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            instances.forEach((inst, idx) => {
+                const sno = inst.sno || inst.SNO || idx + 1;
+                const source = inst.source || inst.SOURCE || '-';
+                const instanceName = inst.instanceName || inst.instance_name || inst.INSTANCE_NAME || '-';
+                const baseUrl = inst.baseUrl || inst.base_url || inst.BASE_URL || inst.url || '-';
+                const username = inst.username || inst.USERNAME || inst.user_name || '-';
+                const status = inst.status || inst.STATUS || 'Active';
+
+                html += `
+                    <tr>
+                        <td>${sno}</td>
+                        <td><span class="rw-badge rw-badge-info">${source}</span></td>
+                        <td style="font-weight:600;">${instanceName}</td>
+                        <td style="font-size:12px;word-break:break-all;">${baseUrl}</td>
+                        <td>${username}</td>
+                        <td><span class="rw-badge ${status === 'Active' ? 'rw-badge-success' : 'rw-badge-secondary'}">${status}</span></td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table></div>';
+            tableEl.innerHTML = html;
+        }
+
+        async function refreshInstances() {
+            const tableEl = document.getElementById('instances-table');
+            const loadingEl = document.getElementById('instances-loading');
+
+            if (tableEl) tableEl.style.display = 'none';
+            if (loadingEl) loadingEl.style.display = 'block';
+
+            await loadAndDisplayInstances();
+        }
+
+        // ==========================================
         // SETTINGS PAGE
         // ==========================================
         let settingsEndpoints = [];
@@ -2624,45 +2867,61 @@
         function renderEndpointsTable() {
             const container = document.getElementById('settings-allEndpointsTable');
 
+            // Also update global memory
+            globalEndpoints = [...settingsEndpoints];
+
             let html = `
-                <table class="rw-table">
+                <div class="rw-table-wrapper" style="overflow-x:auto;">
+                <table class="rw-table" style="min-width:1200px;">
                     <thead>
                         <tr>
-                            <th style="width:180px;">Integration Code</th>
+                            <th style="width:50px;">S.No</th>
+                            <th style="width:80px;">Source</th>
+                            <th style="width:120px;">Instance</th>
+                            <th style="width:70px;">API Type</th>
+                            <th style="width:160px;">Integration Code</th>
                             <th>Base URL</th>
-                            <th>Path</th>
-                            <th style="width:100px;">Method</th>
-                            <th style="width:150px;text-align:center;">Actions</th>
+                            <th>Endpoint Path</th>
+                            <th style="width:150px;">Comments</th>
+                            <th style="width:130px;text-align:center;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
             `;
 
             settingsEndpoints.forEach((ep, idx) => {
-                const code = ep.integrationCode || ep.source || ep.integration_code || 'Unknown';
-                const baseUrl = ep.url || ep.base_url || '-';
-                const path = ep.path || '-';
-                const method = ep.method || 'GET';
+                const sno = ep.sno || ep.SNO || idx + 1;
+                const source = ep.source || ep.SOURCE || '-';
+                const instanceName = ep.instanceName || ep.instance_name || ep.INSTANCE_NAME || '-';
+                const apiType = ep.apiType || ep.api_type || ep.API_TYPE || 'REST';
+                const code = ep.integrationCode || ep.integration_code || ep.INTEGRATION_CODE || 'Unknown';
+                const baseUrl = ep.baseUrl || ep.base_url || ep.url || ep.BASE_URL || '-';
+                const path = ep.endpointPath || ep.path || ep.ENDPOINT_PATH || '-';
+                const comments = ep.comments || ep.COMMENTS || '';
 
                 html += `
                     <tr>
+                        <td style="text-align:center;">${sno}</td>
+                        <td><span class="rw-badge rw-badge-info">${source}</span></td>
+                        <td style="font-size:12px;">${instanceName}</td>
+                        <td><span class="rw-badge rw-badge-secondary">${apiType}</span></td>
                         <td style="font-weight:600;color:var(--rw-red);">${code}</td>
-                        <td style="font-size:13px;word-break:break-all;">${baseUrl}</td>
-                        <td style="font-size:13px;word-break:break-all;">${path}</td>
-                        <td><span class="rw-badge rw-badge-info">${method}</span></td>
+                        <td style="font-size:11px;word-break:break-all;max-width:200px;">${baseUrl}</td>
+                        <td style="font-size:11px;word-break:break-all;max-width:200px;">${path}</td>
+                        <td style="font-size:11px;">${comments}</td>
                         <td style="text-align:center;">
-                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="editEndpoint(${idx})" style="margin-right:4px;">
-                                &#9998; Edit
+                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="editEndpoint(${idx})" style="margin-right:4px;" title="Edit">
+                                &#9998;
                             </button>
-                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="testEndpoint(${idx})">
-                                &#9654; Test
+                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="testEndpoint(${idx})" title="Test">
+                                &#9654;
                             </button>
                         </td>
                     </tr>
                 `;
             });
 
-            html += '</tbody></table>';
+            html += '</tbody></table></div>';
             container.innerHTML = html;
         }
 
@@ -4354,6 +4613,7 @@
             { id: 'pick-slips', name: 'Confirm Pick Slips', icon: '&#9745;', keywords: ['pick slips', 'confirm pick', 'slips'] },
             { id: 'cycle-count', name: 'Cycle Counts', icon: '&#10133;', keywords: ['cycle count', 'cycle counts', 'counting'] },
             { id: 'physical-inv', name: 'Physical Inventory', icon: '&#128203;', keywords: ['physical', 'physical inventory'] },
+            { id: 'instances', name: 'Instances', icon: '&#127760;', keywords: ['instances', 'connections', 'servers'] },
             { id: 'settings', name: 'Settings', icon: '&#9881;', keywords: ['settings', 'config', 'configuration', 'setup'] }
         ];
 
@@ -4560,15 +4820,67 @@
 
         // Fetch PO details from API
         async function apFetchPODetails(orderNumber) {
+            // Create progress tracker element
+            const progressId = 'ap-progress-' + Date.now();
+            apAddBotMessage(`<div id="${progressId}" class="ap-progress-tracker">
+                <div class="ap-progress-title">Fetching PO: ${orderNumber}</div>
+                <div class="ap-progress-steps">
+                    <div class="ap-step" id="${progressId}-step1">
+                        <span class="ap-step-icon">&#8987;</span>
+                        <span class="ap-step-text">Getting endpoint configuration...</span>
+                    </div>
+                    <div class="ap-step" id="${progressId}-step2">
+                        <span class="ap-step-icon">&#8987;</span>
+                        <span class="ap-step-text">Getting instance credentials...</span>
+                    </div>
+                    <div class="ap-step" id="${progressId}-step3">
+                        <span class="ap-step-icon">&#8987;</span>
+                        <span class="ap-step-text">Retrieving PO details...</span>
+                    </div>
+                </div>
+            </div>`);
+
+            const updateStep = (stepNum, success, text) => {
+                const step = document.getElementById(`${progressId}-step${stepNum}`);
+                if (step) {
+                    const icon = step.querySelector('.ap-step-icon');
+                    const textEl = step.querySelector('.ap-step-text');
+                    if (success) {
+                        icon.innerHTML = '&#10004;';
+                        icon.style.color = '#22c55e';
+                        step.classList.add('success');
+                    } else {
+                        icon.innerHTML = '&#10008;';
+                        icon.style.color = '#ef4444';
+                        step.classList.add('error');
+                    }
+                    if (text) textEl.textContent = text;
+                }
+            };
+
             try {
+                // Step 1: Get endpoint
                 const endpoint = apFindPOEndpoint();
 
                 if (!endpoint) {
-                    apAddBotMessage(`<span style="color:#ef4444;">Error: FUSION_PO_DETAILS endpoint not configured.</span>
-                        <p style="font-size:12px;margin-top:8px;">Please add the endpoint in Settings &gt; All Endpoints.</p>`);
+                    updateStep(1, false, 'FUSION_PO_DETAILS endpoint not configured');
+                    apAddBotMessage(`<p style="font-size:12px;color:#ef4444;">Please add the endpoint in Settings &gt; All Endpoints.</p>`);
                     return;
                 }
 
+                updateStep(1, true, `Endpoint found: ${endpoint.integrationCode || endpoint.integration_code}`);
+
+                // Step 2: Get credentials from instance
+                await apEnsureInstancesLoaded();
+                const credentials = getCredentialsForEndpoint(endpoint);
+
+                if (credentials && credentials.username) {
+                    updateStep(2, true, `Instance: ${credentials.instanceName} | User: ${credentials.username}`);
+                } else {
+                    updateStep(2, true, 'Using default credentials (no instance match)');
+                }
+
+                // Step 3: Fetch PO
                 const baseUrl = endpoint.baseUrl || endpoint.base_url || endpoint.url || '';
                 const path = endpoint.endpointPath || endpoint.path || '';
                 const fullUrl = baseUrl + path + '?q=OrderNumber=' + encodeURIComponent(orderNumber);
@@ -4579,17 +4891,71 @@
 
                 if (response && response.items && response.items.length > 0) {
                     const po = response.items[0];
-                    apAddBotMessage(`<span style="color:#22c55e;">✓ Found PO ${po.OrderNumber}</span>
-                        <p style="font-size:12px;margin-top:4px;">Opening details page...</p>`);
+                    updateStep(3, true, `PO ${po.OrderNumber} found - ${po.Status || 'N/A'}`);
 
-                    // Open PO details in a new tab
-                    openPODetailsTab(po);
+                    // Show credentials info
+                    if (credentials && credentials.username) {
+                        apAddBotMessage(`<div class="ap-credentials-info">
+                            <strong>&#128274; Connection Info:</strong>
+                            <div style="font-size:12px;margin-top:4px;">
+                                Instance: <strong>${credentials.instanceName}</strong><br>
+                                Username: <strong>${credentials.username}</strong><br>
+                                Password: <strong>${credentials.password ? '****' + credentials.password.slice(-4) : 'N/A'}</strong>
+                            </div>
+                        </div>`);
+                    }
+
+                    // Small delay then open tab
+                    setTimeout(() => {
+                        openPODetailsTab(po);
+                    }, 500);
                 } else {
-                    apAddBotMessage(`<span style="color:#ef4444;">No PO found with number "${orderNumber}"</span>`);
+                    updateStep(3, false, `No PO found with number "${orderNumber}"`);
                 }
             } catch (error) {
                 console.error('[Autopilot] Error fetching PO:', error);
-                apAddBotMessage(`<span style="color:#ef4444;">Error fetching PO: ${error.message}</span>`);
+                updateStep(3, false, `Error: ${error.message}`);
+            }
+        }
+
+        // Ensure instances are loaded in memory
+        async function apEnsureInstancesLoaded() {
+            if (globalInstances.length > 0) return;
+
+            try {
+                const instancesFilePath = 'C:\\fusionclient\\ERP\\settings\\apexinstances.txt';
+
+                if (window.chrome && window.chrome.webview) {
+                    const instancesUrl = await new Promise((resolve, reject) => {
+                        const handler = (event) => {
+                            const data = event.data;
+                            if (data.action === 'fileReadResult' && data.file === 'apexinstances_ap') {
+                                window.chrome.webview.removeEventListener('message', handler);
+                                if (data.success && data.content) {
+                                    resolve(data.content.trim());
+                                } else {
+                                    resolve('');
+                                }
+                            }
+                        };
+                        window.chrome.webview.addEventListener('message', handler);
+                        window.chrome.webview.postMessage({
+                            action: 'readFile',
+                            filePath: instancesFilePath,
+                            fileId: 'apexinstances_ap'
+                        });
+                        setTimeout(() => resolve(''), 5000);
+                    });
+
+                    if (instancesUrl) {
+                        const response = await fetchWithBridge(instancesUrl);
+                        if (response && response.items) {
+                            globalInstances = response.items;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('[Autopilot] Error loading instances:', error);
             }
         }
 

@@ -992,6 +992,101 @@
             color: var(--rw-neutral-700);
             margin-bottom: 8px;
         }
+
+        /* ==========================================
+           COLLAPSIBLE SIDEBAR STYLES
+           ========================================== */
+        .rw-sidebar {
+            transition: width 0.3s ease, min-width 0.3s ease;
+            min-width: 280px;
+        }
+
+        .rw-sidebar.collapsed {
+            width: 60px;
+            min-width: 60px;
+        }
+
+        .rw-sidebar.collapsed .rw-sidebar-header {
+            padding: 12px;
+        }
+
+        .rw-sidebar.collapsed .rw-sidebar-title,
+        .rw-sidebar.collapsed .rw-org-selector,
+        .rw-sidebar.collapsed .rw-nav-group-header,
+        .rw-sidebar.collapsed .rw-nav-item span:not(.rw-nav-icon) {
+            display: none;
+        }
+
+        .rw-sidebar.collapsed .rw-nav-item {
+            justify-content: center;
+            padding: 12px;
+        }
+
+        .rw-sidebar.collapsed .rw-nav-icon {
+            font-size: 20px;
+            width: auto;
+        }
+
+        .rw-sidebar-toggle {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 36px;
+            height: 36px;
+            background: var(--rw-neutral-100);
+            border: 1px solid var(--rw-neutral-200);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: var(--rw-neutral-600);
+            transition: all 0.2s;
+            z-index: 10;
+        }
+
+        .rw-sidebar-toggle:hover {
+            background: var(--rw-red-light);
+            color: var(--rw-red);
+            border-color: var(--rw-red);
+        }
+
+        .rw-sidebar.collapsed .rw-sidebar-toggle {
+            transform: translateX(-50%) rotate(180deg);
+        }
+
+        .rw-sidebar {
+            position: relative;
+        }
+
+        /* Serial Number Dialog */
+        .rw-serial-dialog {
+            max-width: 600px;
+        }
+
+        .rw-serial-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .rw-serial-table th,
+        .rw-serial-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--rw-neutral-100);
+        }
+
+        .rw-serial-table th {
+            background: var(--rw-neutral-50);
+            font-weight: 600;
+            color: var(--rw-neutral-700);
+        }
+
+        .rw-serial-table tbody tr:hover {
+            background: var(--rw-red-light);
+        }
     </style>
 </head>
 <body>
@@ -1139,6 +1234,10 @@
                     </div>
                 </div>
             </nav>
+            <!-- Sidebar Toggle Button -->
+            <button class="rw-sidebar-toggle" onclick="toggleSidebar()" title="Collapse/Expand Menu">
+                &#9664;
+            </button>
         </aside>
 
         <!-- Main Content -->
@@ -1286,6 +1385,20 @@
             <div class="rw-dialog-body" id="receiptsDialogBody"></div>
             <div class="rw-dialog-footer">
                 <button class="rw-btn rw-btn-secondary" onclick="closeReceiptsDialog()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Serial Number Dialog -->
+    <div class="rw-dialog-overlay" id="serialDialogOverlay">
+        <div class="rw-dialog rw-serial-dialog">
+            <div class="rw-dialog-header">
+                <h2 class="rw-dialog-title" id="serialDialogTitle">Serial Numbers</h2>
+                <button class="rw-dialog-close" onclick="closeSerialDialog()">&times;</button>
+            </div>
+            <div class="rw-dialog-body" id="serialDialogBody"></div>
+            <div class="rw-dialog-footer">
+                <button class="rw-btn rw-btn-secondary" onclick="closeSerialDialog()">Close</button>
             </div>
         </div>
     </div>
@@ -2460,26 +2573,392 @@
         }
 
         // ==========================================
-        // QUANTITIES PAGE (Placeholder)
+        // QUANTITIES PAGE (On-Hand Inventory)
         // ==========================================
+        let onHandData = [];
+        let filteredOnHandData = [];
+
         function renderQuantitiesPage() {
             const container = document.getElementById('content-quantities');
+            const savedOrg = localStorage.getItem('wms_org_code') || '';
+
             container.innerHTML = `
-                <div class="rw-page-header">
-                    <h1 class="rw-page-title">Manage Item Quantities</h1>
-                    <p class="rw-page-subtitle">View on-hand inventory quantities</p>
+                <div class="rw-page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h1 class="rw-page-title">Manage Item Quantities</h1>
+                        <p class="rw-page-subtitle">View on-hand inventory quantities by item, subinventory, and lot</p>
+                    </div>
                 </div>
+
                 <div class="rw-card">
+                    <div class="rw-card-header">
+                        <h2 class="rw-card-title">Search Criteria</h2>
+                    </div>
                     <div class="rw-card-body">
+                        <div class="rw-form-row">
+                            <div class="rw-form-group">
+                                <label class="rw-label">Organization Code *</label>
+                                <input type="text" id="qty-orgCode" class="rw-input" placeholder="e.g., AMS" value="${savedOrg}">
+                            </div>
+                            <div class="rw-form-group">
+                                <label class="rw-label">Subinventory</label>
+                                <input type="text" id="qty-subInventory" class="rw-input" placeholder="Enter subinventory...">
+                            </div>
+                            <div class="rw-form-group">
+                                <label class="rw-label">Item Number</label>
+                                <input type="text" id="qty-itemCode" class="rw-input" placeholder="Enter item number...">
+                            </div>
+                            <div class="rw-form-group">
+                                <label class="rw-label">Description</label>
+                                <input type="text" id="qty-itemDesc" class="rw-input" placeholder="Enter description...">
+                            </div>
+                            <div class="rw-form-group" style="flex-direction: row; gap: 8px; align-items: flex-end;">
+                                <button id="qty-searchBtn" class="rw-btn rw-btn-primary" onclick="searchOnHandQuantities()">
+                                    <span>&#128269;</span> Search
+                                </button>
+                                <button class="rw-btn rw-btn-secondary" onclick="clearOnHandSearch()">Clear</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rw-card">
+                    <div class="rw-stats-bar" id="qty-statsBar" style="display: none;">
+                        <div class="rw-stat-item">
+                            <span class="rw-stat-item-value" id="qty-totalRecords">0</span>
+                            <span class="rw-stat-item-label">Total Records</span>
+                        </div>
+                        <div class="rw-stat-item">
+                            <span class="rw-stat-item-value" id="qty-totalQty">0</span>
+                            <span class="rw-stat-item-label">Total Quantity</span>
+                        </div>
+                        <div class="rw-stat-item">
+                            <span class="rw-stat-item-value" id="qty-uniqueItems">0</span>
+                            <span class="rw-stat-item-label">Unique Items</span>
+                        </div>
+                    </div>
+                    <div class="rw-toolbar" id="qty-toolbar" style="display: none;">
+                        <input type="text" id="qty-filterInput" class="rw-filter-input" placeholder="Filter results..." oninput="filterOnHandResults()">
+                        <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="exportOnHandCSV()">&#128190; Export CSV</button>
+                    </div>
+                    <div class="rw-table-container" id="qty-resultsContainer">
                         <div class="rw-empty-state">
                             <div class="rw-empty-state-icon">&#128202;</div>
-                            <div class="rw-empty-state-title">Item Quantities Module</div>
-                            <p>This module will show on-hand quantities by item, subinventory, and serial numbers.</p>
+                            <div class="rw-empty-state-title">Search for On-Hand Quantities</div>
+                            <p>Enter search criteria and click Search to view inventory quantities</p>
                         </div>
                     </div>
                 </div>
             `;
         }
+
+        function clearOnHandSearch() {
+            document.getElementById('qty-orgCode').value = localStorage.getItem('wms_org_code') || '';
+            document.getElementById('qty-subInventory').value = '';
+            document.getElementById('qty-itemCode').value = '';
+            document.getElementById('qty-itemDesc').value = '';
+            if (document.getElementById('qty-filterInput')) {
+                document.getElementById('qty-filterInput').value = '';
+            }
+            onHandData = [];
+            filteredOnHandData = [];
+            document.getElementById('qty-statsBar').style.display = 'none';
+            document.getElementById('qty-toolbar').style.display = 'none';
+            document.getElementById('qty-resultsContainer').innerHTML = `
+                <div class="rw-empty-state">
+                    <div class="rw-empty-state-icon">&#128202;</div>
+                    <div class="rw-empty-state-title">Search for On-Hand Quantities</div>
+                    <p>Enter search criteria and click Search to view inventory quantities</p>
+                </div>
+            `;
+        }
+
+        async function searchOnHandQuantities() {
+            const orgCode = document.getElementById('qty-orgCode').value.trim();
+            const subInventory = document.getElementById('qty-subInventory').value.trim();
+            const itemCode = document.getElementById('qty-itemCode').value.trim();
+            const itemDesc = document.getElementById('qty-itemDesc').value.trim();
+
+            if (!orgCode) {
+                alert('Please enter an Organization Code');
+                return;
+            }
+
+            const btn = document.getElementById('qty-searchBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span>&#8987;</span> Searching...';
+
+            document.getElementById('qty-resultsContainer').innerHTML = `
+                <div class="rw-loading">
+                    <div class="rw-spinner"></div>
+                    <span>Loading on-hand quantities...</span>
+                </div>
+            `;
+
+            try {
+                // Load endpoints if not cached
+                if (cachedEndpoints.length === 0) {
+                    await loadAllEndpoints();
+                }
+
+                // Find INVENTORY_ON_HAND endpoint
+                const endpoint = cachedEndpoints.find(e =>
+                    (e.integrationCode || e.source || '').toUpperCase() === 'INVENTORY_ON_HAND'
+                );
+
+                if (!endpoint) {
+                    throw new Error('INVENTORY_ON_HAND endpoint not configured. Please add it in Settings.');
+                }
+
+                const baseUrl = (endpoint.url || '') + (endpoint.path || '');
+                let url = `${baseUrl}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                if (subInventory) url += `&p_sub_inventory_code=${encodeURIComponent(subInventory)}`;
+                if (itemCode) url += `&p_item_code=${encodeURIComponent(itemCode)}`;
+                if (itemDesc) url += `&p_item_desc=${encodeURIComponent(itemDesc)}`;
+
+                console.log('[Quantities] Fetching on-hand data from:', url);
+
+                const response = await fetchWithBridge(url);
+
+                if (response && response.items && response.items.length > 0) {
+                    onHandData = response.items;
+                    filteredOnHandData = [...onHandData];
+
+                    // Calculate stats
+                    const totalQty = onHandData.reduce((sum, item) => sum + (parseFloat(item.primaryquantity) || 0), 0);
+                    const uniqueItems = new Set(onHandData.map(item => item.item_number)).size;
+
+                    // Update stats bar
+                    document.getElementById('qty-statsBar').style.display = 'flex';
+                    document.getElementById('qty-toolbar').style.display = 'flex';
+                    document.getElementById('qty-totalRecords').textContent = onHandData.length;
+                    document.getElementById('qty-totalQty').textContent = formatQtyNumber(totalQty);
+                    document.getElementById('qty-uniqueItems').textContent = uniqueItems;
+
+                    // Render table
+                    renderOnHandTable(filteredOnHandData);
+
+                    console.log('[Quantities] Loaded', onHandData.length, 'on-hand records');
+                } else {
+                    onHandData = [];
+                    filteredOnHandData = [];
+                    document.getElementById('qty-statsBar').style.display = 'none';
+                    document.getElementById('qty-toolbar').style.display = 'none';
+                    document.getElementById('qty-resultsContainer').innerHTML = `
+                        <div class="rw-empty-state">
+                            <div class="rw-empty-state-icon">&#128196;</div>
+                            <div class="rw-empty-state-title">No Results Found</div>
+                            <p>No on-hand quantities found for the specified criteria</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('[Quantities] Error fetching on-hand data:', error);
+                document.getElementById('qty-statsBar').style.display = 'none';
+                document.getElementById('qty-toolbar').style.display = 'none';
+                document.getElementById('qty-resultsContainer').innerHTML = `
+                    <div class="rw-empty-state">
+                        <div class="rw-empty-state-icon" style="color: var(--rw-red);">&#9888;</div>
+                        <div class="rw-empty-state-title">Error Loading Data</div>
+                        <p style="color: var(--rw-red);">${error.message}</p>
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>&#128269;</span> Search';
+            }
+        }
+
+        function renderOnHandTable(data) {
+            const container = document.getElementById('qty-resultsContainer');
+
+            if (!data || data.length === 0) {
+                container.innerHTML = `
+                    <div class="rw-empty-state">
+                        <div class="rw-empty-state-icon">&#128196;</div>
+                        <div class="rw-empty-state-title">No Results</div>
+                        <p>No records match the filter criteria</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `<table class="rw-table"><thead><tr>
+                <th>Organization</th>
+                <th>Subinventory</th>
+                <th>Item Number</th>
+                <th>Description</th>
+                <th>Lot Number</th>
+                <th style="text-align: right;">Quantity</th>
+                <th>UOM</th>
+                <th>Status</th>
+                <th>Expiration</th>
+                <th>Serials</th>
+            </tr></thead><tbody>`;
+
+            data.forEach((item, idx) => {
+                const statusClass = (item.materialstatus || '').toLowerCase() === 'active' ? 'rw-badge-success' : 'rw-badge-info';
+                const expDate = item.expirationdate ? new Date(item.expirationdate).toLocaleDateString() : '-';
+                const hasSerial = item.srno_link && item.srno_link.length > 0;
+                const desc = truncateQtyText(item.item_description, 30);
+
+                html += `<tr>
+                    <td>${item.organization_code || '-'}</td>
+                    <td>${item.sub_inventory_code || '-'}</td>
+                    <td style="font-weight: 500;">${item.item_number || '-'}</td>
+                    <td title="${item.item_description || ''}">${desc}</td>
+                    <td>${item.lotnumber || '-'}</td>
+                    <td style="text-align: right; font-weight: 600;">${formatQtyNumber(item.primaryquantity)}</td>
+                    <td>${item.primary_uom_code || item.uom || '-'}</td>
+                    <td><span class="rw-badge ${statusClass}">${item.materialstatus || '-'}</span></td>
+                    <td>${expDate}</td>
+                    <td style="text-align: center;">
+                        ${hasSerial ? `<button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="showSerialNumbers('${encodeURIComponent(item.srno_link)}', '${item.item_number || ''}')">View</button>` : '-'}
+                    </td>
+                </tr>`;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function filterOnHandResults() {
+            const searchText = document.getElementById('qty-filterInput').value.toLowerCase().trim();
+
+            if (!searchText) {
+                filteredOnHandData = [...onHandData];
+            } else {
+                filteredOnHandData = onHandData.filter(item => {
+                    return (
+                        (item.organization_code || '').toLowerCase().includes(searchText) ||
+                        (item.sub_inventory_code || '').toLowerCase().includes(searchText) ||
+                        (item.item_number || '').toLowerCase().includes(searchText) ||
+                        (item.item_description || '').toLowerCase().includes(searchText) ||
+                        (item.lotnumber || '').toLowerCase().includes(searchText) ||
+                        (item.materialstatus || '').toLowerCase().includes(searchText)
+                    );
+                });
+            }
+
+            renderOnHandTable(filteredOnHandData);
+        }
+
+        async function showSerialNumbers(encodedUrl, itemNumber) {
+            const url = decodeURIComponent(encodedUrl);
+            document.getElementById('serialDialogTitle').textContent = 'Serial Numbers - ' + itemNumber;
+            document.getElementById('serialDialogBody').innerHTML = `
+                <div class="rw-loading">
+                    <div class="rw-spinner"></div>
+                    <span>Loading serial numbers...</span>
+                </div>
+            `;
+            document.getElementById('serialDialogOverlay').classList.add('active');
+
+            try {
+                const response = await fetchWithBridge(url);
+
+                if (response && response.items && response.items.length > 0) {
+                    let html = `<table class="rw-serial-table"><thead><tr>
+                        <th>Serial Number</th>
+                        <th>Status</th>
+                    </tr></thead><tbody>`;
+
+                    response.items.forEach(item => {
+                        html += `<tr>
+                            <td style="font-weight: 500;">${item.SerialNumber || item.serialNumber || item.serial_number || '-'}</td>
+                            <td>${item.Status || item.status || '-'}</td>
+                        </tr>`;
+                    });
+
+                    html += '</tbody></table>';
+                    document.getElementById('serialDialogBody').innerHTML = html;
+                } else {
+                    document.getElementById('serialDialogBody').innerHTML = `
+                        <div class="rw-empty-state" style="padding: 40px;">
+                            <div class="rw-empty-state-icon">&#128196;</div>
+                            <div class="rw-empty-state-title">No Serial Numbers</div>
+                            <p>No serial numbers found for this item</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('[Quantities] Error fetching serial numbers:', error);
+                document.getElementById('serialDialogBody').innerHTML = `
+                    <div class="rw-empty-state" style="padding: 40px;">
+                        <div class="rw-empty-state-icon" style="color: var(--rw-red);">&#9888;</div>
+                        <div class="rw-empty-state-title">Error</div>
+                        <p style="color: var(--rw-red);">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function closeSerialDialog() {
+            document.getElementById('serialDialogOverlay').classList.remove('active');
+        }
+
+        function exportOnHandCSV() {
+            if (filteredOnHandData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            const headers = ['Organization', 'Subinventory', 'Item Number', 'Description', 'Lot Number', 'Quantity', 'UOM', 'Status', 'Expiration Date'];
+            const rows = filteredOnHandData.map(item => [
+                item.organization_code || '',
+                item.sub_inventory_code || '',
+                item.item_number || '',
+                (item.item_description || '').replace(/"/g, '""'),
+                item.lotnumber || '',
+                item.primaryquantity || 0,
+                item.primary_uom_code || item.uom || '',
+                item.materialstatus || '',
+                item.expirationdate ? new Date(item.expirationdate).toLocaleDateString() : ''
+            ]);
+
+            let csv = headers.join(',') + '\n';
+            rows.forEach(row => {
+                csv += row.map(cell => `"${cell}"`).join(',') + '\n';
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'on_hand_quantities_' + new Date().toISOString().split('T')[0] + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Utility functions for quantities
+        function formatQtyNumber(num) {
+            if (num === null || num === undefined) return '0';
+            return parseFloat(num).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        }
+
+        function truncateQtyText(text, maxLength) {
+            if (!text) return '-';
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        }
+
+        // ==========================================
+        // SIDEBAR TOGGLE
+        // ==========================================
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.rw-sidebar');
+            const isCollapsed = sidebar.classList.toggle('collapsed');
+            localStorage.setItem('sidebar_collapsed', isCollapsed);
+        }
+
+        // Initialize sidebar state on load
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+            if (sidebarCollapsed) {
+                document.querySelector('.rw-sidebar').classList.add('collapsed');
+            }
+        });
     </script>
 </body>
 </html>

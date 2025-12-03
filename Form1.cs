@@ -943,8 +943,7 @@ namespace WMSApp
             redwoodHomeButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(180, 60, 45);
             redwoodHomeButton.Click += (s, e) =>
             {
-                string repoRoot = GetWebFilesBasePath();
-                string loginPath = Path.GetFullPath(Path.Combine(repoRoot, "Redwood", "login.html"));
+                string loginPath = @"C:\Users\Javeed Shaik\source\repos\javeedin\fusionclientERP\Redwood\login.html";
                 if (File.Exists(loginPath))
                 {
                     string fileUrl = "file:///" + loginPath.Replace("\\", "/");

@@ -923,6 +923,46 @@ namespace WMSApp
             moduleToolTip.SetToolTip(modulesButton, "Select a module to launch");
             leftPosition += 95;
 
+            // Redwood Home Button - Opens Redwood login page
+            Button redwoodHomeButton = new Button
+            {
+                Text = "🏠 Home",
+                Width = 75,
+                Height = 30,
+                Left = leftPosition,
+                Top = 10,
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand,
+                BackColor = Color.FromArgb(199, 70, 52), // Oracle Redwood coral red
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 8, FontStyle.Bold),
+                Tag = "REDWOOD_HOME"
+            };
+            redwoodHomeButton.FlatAppearance.BorderColor = Color.FromArgb(180, 60, 45);
+            redwoodHomeButton.FlatAppearance.BorderSize = 1;
+            redwoodHomeButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(180, 60, 45);
+            redwoodHomeButton.Click += (s, e) =>
+            {
+                string repoRoot = GetWebFilesBasePath();
+                string loginPath = Path.GetFullPath(Path.Combine(repoRoot, "Redwood", "login.html"));
+                if (File.Exists(loginPath))
+                {
+                    string fileUrl = "file:///" + loginPath.Replace("\\", "/");
+                    Navigate(fileUrl);
+                }
+                else
+                {
+                    MessageBox.Show(
+                        "Redwood login page not found at:\n" + loginPath,
+                        "Redwood Home",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                }
+            };
+            moduleToolTip.SetToolTip(redwoodHomeButton, "Open Redwood Home Page");
+            navPanel.Controls.Add(redwoodHomeButton);
+            leftPosition += 80;
+
             // Compact Oval URL panel container
             urlPanel = new Panel
             {

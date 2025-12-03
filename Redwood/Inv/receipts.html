@@ -641,9 +641,30 @@
         let filteredData = [];
         let selectedPOs = new Set();
         let cachedEndpoints = []; // Cache for endpoints loaded from APEX
-        const isWebView2 = !!(window.chrome && window.chrome.webview);
+
+        // =============================================
+        // IFRAME FIX: Use parent/top window for WebView2 when inside iframe
+        // =============================================
+        function getWebView() {
+            if (window.top && window.top.chrome && window.top.chrome.webview) {
+                return window.top.chrome.webview;
+            }
+            if (window.parent && window.parent.chrome && window.parent.chrome.webview) {
+                return window.parent.chrome.webview;
+            }
+            if (window.chrome && webview) {
+                return webview;
+            }
+            return null;
+        }
+
+        const webview = getWebView();
+        const isWebView2 = !!webview;
 
         log('INIT', 'Page loaded, WebView2 available:', isWebView2);
+        log('INIT', 'WebView source:', webview === window.chrome?.webview ? 'window' :
+                                       webview === window.parent?.chrome?.webview ? 'parent' :
+                                       webview === window.top?.chrome?.webview ? 'top' : 'none');
 
         // Load all endpoints from APEX REST API (via C# handler)
         async function loadAllEndpoints() {
@@ -666,7 +687,7 @@
                         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
 
                         if (data.requestId === requestId || data.action === 'getAllEndpointsResponse') {
-                            window.chrome.webview.removeEventListener('message', handler);
+                            webview.removeEventListener('message', handler);
 
                             log('ENDPOINTS', '*** RESPONSE RECEIVED ***');
                             log('ENDPOINTS', 'Success:', data.success);
@@ -698,17 +719,17 @@
                     }
                 };
 
-                window.chrome.webview.addEventListener('message', handler);
+                webview.addEventListener('message', handler);
 
                 log('ENDPOINTS', 'Sending getAllEndpoints request to C#...');
-                window.chrome.webview.postMessage({
+                webview.postMessage({
                     action: 'getAllEndpoints',
                     requestId: requestId
                 });
 
                 // Timeout after 15 seconds
                 setTimeout(() => {
-                    window.chrome.webview.removeEventListener('message', handler);
+                    webview.removeEventListener('message', handler);
                     log('ENDPOINTS', '*** TIMEOUT - No response after 15s ***');
                     resolve([]);
                 }, 15000);
@@ -775,7 +796,7 @@
             log('FETCH', 'URL:', url);
             log('FETCH', '========================================');
             return new Promise((resolve, reject) => {
-                if (window.chrome && window.chrome.webview) {
+                if (window.chrome && webview) {
                     const requestId = 'fetch_' + Date.now();
                     log('FETCH', 'Request ID:', requestId);
                     const handler = function(event) {
@@ -785,7 +806,7 @@
                             log('FETCH', 'Request ID match:', data.requestId === requestId);
                             log('FETCH', 'Success:', data.success);
                             if (data.requestId === requestId) {
-                                window.chrome.webview.removeEventListener('message', handler);
+                                webview.removeEventListener('message', handler);
                                 if (data.success) {
                                     let responseData = data.data;
                                     log('FETCH', 'Raw data type:', typeof responseData);
@@ -805,15 +826,15 @@
                             log('FETCH', 'Error parsing response:', e.message);
                         }
                     };
-                    window.chrome.webview.addEventListener('message', handler);
+                    webview.addEventListener('message', handler);
                     log('FETCH', 'Sending executeGet request to C#...');
-                    window.chrome.webview.postMessage({
+                    webview.postMessage({
                         action: 'executeGet',
                         requestId: requestId,
                         url: url
                     });
                     setTimeout(() => {
-                        window.chrome.webview.removeEventListener('message', handler);
+                        webview.removeEventListener('message', handler);
                         log('FETCH', '*** TIMEOUT - No response after 30s ***');
                         reject(new Error('Request timeout'));
                     }, 30000);

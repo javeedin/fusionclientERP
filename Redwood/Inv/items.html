@@ -516,55 +516,119 @@
 
         let itemsData = [];
         let filteredItems = [];
+        let cachedEndpoints = []; // Cache for endpoints loaded from APEX
         const isWebView2 = !!(window.chrome && window.chrome.webview);
 
         log('INIT', 'Page loaded, WebView2 available:', isWebView2);
 
-        // Get endpoint by integration code
-        async function getEndpointByCode(integrationCode) {
+        // Load all endpoints from APEX REST API (via C# handler)
+        async function loadAllEndpoints() {
+            log('ENDPOINTS', '========================================');
+            log('ENDPOINTS', 'loadAllEndpoints() - Loading from APEX REST API');
+            log('ENDPOINTS', '========================================');
+
+            return new Promise((resolve) => {
+                if (!isWebView2) {
+                    log('ENDPOINTS', 'WebView2 not available');
+                    resolve([]);
+                    return;
+                }
+
+                const requestId = 'getAllEndpoints_' + Date.now();
+                log('ENDPOINTS', 'Request ID:', requestId);
+
+                const handler = function(event) {
+                    try {
+                        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+
+                        if (data.requestId === requestId || data.action === 'getAllEndpointsResponse') {
+                            window.chrome.webview.removeEventListener('message', handler);
+
+                            log('ENDPOINTS', '*** RESPONSE RECEIVED ***');
+                            log('ENDPOINTS', 'Success:', data.success);
+                            log('ENDPOINTS', 'Source:', data.source || 'unknown');
+                            log('ENDPOINTS', 'Count:', data.endpoints?.length || 0);
+
+                            if (data.debug) {
+                                log('ENDPOINTS', 'Debug - Full URL:', data.debug.fullUrl || 'N/A');
+                                log('ENDPOINTS', 'Debug - Raw Response (first 500 chars):',
+                                    (data.debug.rawResponse || '').substring(0, 500));
+                            }
+
+                            if (data.success && data.endpoints) {
+                                cachedEndpoints = data.endpoints;
+                                log('ENDPOINTS', '*** SUCCESS - Cached', cachedEndpoints.length, 'endpoints ***');
+
+                                // Log available integration codes
+                                const codes = cachedEndpoints.map(e => e.integrationCode || e.source).filter(Boolean);
+                                log('ENDPOINTS', 'Available codes:', codes.join(', '));
+
+                                resolve(cachedEndpoints);
+                            } else {
+                                log('ENDPOINTS', '*** FAILED:', data.error || 'No endpoints returned', '***');
+                                resolve([]);
+                            }
+                        }
+                    } catch (e) {
+                        log('ENDPOINTS', 'Error parsing response:', e.message);
+                    }
+                };
+
+                window.chrome.webview.addEventListener('message', handler);
+
+                log('ENDPOINTS', 'Sending getAllEndpoints request to C#...');
+                window.chrome.webview.postMessage({
+                    action: 'getAllEndpoints',
+                    requestId: requestId
+                });
+
+                // Timeout after 15 seconds
+                setTimeout(() => {
+                    window.chrome.webview.removeEventListener('message', handler);
+                    log('ENDPOINTS', '*** TIMEOUT - No response after 15s ***');
+                    resolve([]);
+                }, 15000);
+            });
+        }
+
+        // Get endpoint by integration code from cached endpoints
+        function getEndpointByCode(integrationCode) {
             log('ENDPOINT', '========================================');
             log('ENDPOINT', 'getEndpointByCode() called');
             log('ENDPOINT', 'Integration Code:', integrationCode);
+            log('ENDPOINT', 'Cached endpoints count:', cachedEndpoints.length);
             log('ENDPOINT', '========================================');
+
             const instanceName = localStorage.getItem('wms_instance') || 'PROD';
             log('ENDPOINT', 'Instance:', instanceName);
-            return new Promise((resolve) => {
-                if (window.chrome && window.chrome.webview) {
-                    const requestId = 'endpoint_' + integrationCode + '_' + Date.now();
-                    log('ENDPOINT', 'Request ID:', requestId);
-                    const handler = function(event) {
-                        try {
-                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                            log('ENDPOINT', '*** RESPONSE ***');
-                            log('ENDPOINT', 'Request ID match:', data.requestId === requestId);
-                            log('ENDPOINT', 'Endpoint received:', data.endpoint || 'null');
-                            if (data.requestId === requestId && data.endpoint) {
-                                log('ENDPOINT', '*** SUCCESS - Endpoint:', data.endpoint, '***');
-                                resolve(data.endpoint);
-                                window.chrome.webview.removeEventListener('message', handler);
-                            }
-                        } catch (e) {
-                            log('ENDPOINT', 'Error parsing:', e.message);
-                        }
-                    };
-                    window.chrome.webview.addEventListener('message', handler);
-                    log('ENDPOINT', 'Sending getEndpoint request to C#...');
-                    window.chrome.webview.postMessage({
-                        action: 'getEndpoint',
-                        requestId: requestId,
-                        integrationCode: integrationCode,
-                        instanceName: instanceName
-                    });
-                    setTimeout(() => {
-                        window.chrome.webview.removeEventListener('message', handler);
-                        log('ENDPOINT', '*** TIMEOUT - No endpoint response ***');
-                        resolve(null);
-                    }, 5000);
-                } else {
-                    log('ENDPOINT', 'WebView2 not available');
-                    resolve(null);
-                }
+
+            // Find endpoint in cache
+            const endpoint = cachedEndpoints.find(e => {
+                const code = e.integrationCode || e.source || '';
+                const inst = e.instanceName || e.instance || 'PROD';
+                return code === integrationCode && inst === instanceName;
             });
+
+            if (endpoint) {
+                const fullUrl = (endpoint.url || '') + (endpoint.path || '');
+                log('ENDPOINT', '*** FOUND in cache:', fullUrl, '***');
+                return fullUrl;
+            }
+
+            // Try without instance match as fallback
+            const endpointAny = cachedEndpoints.find(e => {
+                const code = e.integrationCode || e.source || '';
+                return code === integrationCode;
+            });
+
+            if (endpointAny) {
+                const fullUrl = (endpointAny.url || '') + (endpointAny.path || '');
+                log('ENDPOINT', '*** FOUND (any instance):', fullUrl, '***');
+                return fullUrl;
+            }
+
+            log('ENDPOINT', '*** NOT FOUND in cache ***');
+            return null;
         }
 
         // Fetch with C# bridge
@@ -650,8 +714,15 @@
             container.innerHTML = '<div class="rw-empty-state"><div class="rw-spinner" style="width:40px;height:40px;border-width:3px;"></div><p style="margin-top:16px;">Loading items...</p></div>';
 
             try {
+                // Step 0: Load all endpoints from APEX if not already cached
+                if (cachedEndpoints.length === 0) {
+                    log('SEARCH', '--- Step 0: Loading Endpoints from APEX ---');
+                    await loadAllEndpoints();
+                    log('SEARCH', 'Endpoints loaded:', cachedEndpoints.length);
+                }
+
                 log('SEARCH', 'Getting endpoint for APEX_ITEM_MASTER...');
-                const endpoint = await getEndpointByCode('APEX_ITEM_MASTER');
+                const endpoint = getEndpointByCode('APEX_ITEM_MASTER');
                 log('SEARCH', 'Endpoint result:', endpoint || 'null');
 
                 if (!endpoint) {

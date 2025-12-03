@@ -719,8 +719,16 @@
         function getEndpointByCode(integrationCode) {
             log('ENDPOINT', '========================================');
             log('ENDPOINT', 'getEndpointByCode() called');
-            log('ENDPOINT', 'Integration Code:', integrationCode);
+            log('ENDPOINT', 'Looking for Integration Code:', integrationCode);
             log('ENDPOINT', 'Cached endpoints count:', cachedEndpoints.length);
+
+            // Debug: Log first 5 cached endpoints to see their structure
+            if (cachedEndpoints.length > 0) {
+                log('ENDPOINT', '--- First 5 cached endpoints ---');
+                cachedEndpoints.slice(0, 5).forEach((e, i) => {
+                    log('ENDPOINT', `  [${i}] integrationCode="${e.integrationCode}", source="${e.source}", instance="${e.instanceName}", url="${e.url}", path="${e.path}"`);
+                });
+            }
             log('ENDPOINT', '========================================');
 
             const instanceName = localStorage.getItem('wms_instance') || 'PROD';
@@ -730,7 +738,11 @@
             const endpoint = cachedEndpoints.find(e => {
                 const code = e.integrationCode || e.source || '';
                 const inst = e.instanceName || e.instance || 'PROD';
-                return code === integrationCode && inst === instanceName;
+                const match = code === integrationCode && inst === instanceName;
+                if (code.includes('PO') || code.includes('RECEIPT')) {
+                    log('ENDPOINT', `  Checking: code="${code}" vs "${integrationCode}", inst="${inst}" vs "${instanceName}" => ${match}`);
+                }
+                return match;
             });
 
             if (endpoint) {
@@ -752,6 +764,7 @@
             }
 
             log('ENDPOINT', '*** NOT FOUND in cache ***');
+            log('ENDPOINT', 'Available integration codes:', cachedEndpoints.map(e => e.integrationCode || e.source).join(', '));
             return null;
         }
 

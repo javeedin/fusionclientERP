@@ -2636,36 +2636,11 @@
         // ==========================================
         async function renderInstancesPage() {
             const container = document.getElementById('content-instances');
-            const savedUrl = localStorage.getItem('instances_url') || '';
 
             container.innerHTML = `
                 <div class="rw-page-header">
                     <h1 class="rw-page-title">Instances</h1>
                     <p class="rw-page-subtitle">View and manage connection instances</p>
-                </div>
-
-                <!-- URL Input Card -->
-                <div class="rw-card" style="margin-bottom:16px;">
-                    <div class="rw-card-header">
-                        <h3 class="rw-card-title">Instances API Configuration</h3>
-                    </div>
-                    <div class="rw-card-body">
-                        <div style="display:flex;gap:12px;align-items:flex-end;">
-                            <div style="flex:1;">
-                                <label class="rw-label">Instances URL (copy from apexinstances.txt)</label>
-                                <input type="text" id="instances-url-input" class="rw-input"
-                                    placeholder="https://your-apex-server/ords/..."
-                                    value="${savedUrl}"
-                                    style="font-size:12px;">
-                            </div>
-                            <button class="rw-btn rw-btn-primary" onclick="loadInstancesFromUrl()">
-                                &#9654; Load
-                            </button>
-                        </div>
-                        <p style="font-size:11px;color:var(--rw-neutral-500);margin-top:8px;">
-                            Copy the URL from: C:\\fusionclient\\ERP\\settings\\apexinstances.txt
-                        </p>
-                    </div>
                 </div>
 
                 <div class="rw-card">
@@ -2676,93 +2651,163 @@
                         </button>
                     </div>
                     <div class="rw-card-body">
-                        <div id="instances-loading" style="text-align:center;padding:40px;display:none;">
+                        <div id="instances-debug"></div>
+                        <div id="instances-loading" style="text-align:center;padding:40px;">
                             <div class="rw-spinner"></div>
                             <p>Loading instances...</p>
                         </div>
-                        <div id="instances-table">
-                            ${savedUrl ? '' : '<p style="color:var(--rw-neutral-500);padding:20px;text-align:center;">Enter the instances URL above and click Load</p>'}
-                        </div>
+                        <div id="instances-table" style="display:none;"></div>
                     </div>
                 </div>
             `;
 
-            // Auto-load if URL is saved
-            if (savedUrl) {
-                await loadInstancesFromUrl();
-            }
+            // Load instances by reading file first
+            await loadInstancesFromFile();
         }
 
-        // Load instances from URL input using C# GET handler
-        async function loadInstancesFromUrl() {
-            const urlInput = document.getElementById('instances-url-input');
-            const url = urlInput ? urlInput.value.trim() : '';
-
-            if (!url) {
-                alert('Please enter the instances URL');
-                return;
-            }
-
-            // Save URL for future use
-            localStorage.setItem('instances_url', url);
-            globalInstancesUrl = url;
-
+        // Read file and then GET instances
+        async function loadInstancesFromFile() {
+            const debugEl = document.getElementById('instances-debug');
             const loadingEl = document.getElementById('instances-loading');
             const tableEl = document.getElementById('instances-table');
 
-            if (loadingEl) loadingEl.style.display = 'block';
-            if (tableEl) tableEl.innerHTML = '';
+            const filePath = 'C:\\fusionclient\\ERP\\settings\\apexinstances.txt';
 
-            // Debug info
-            let debugHtml = '<div class="instances-debug" style="background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;padding:16px;margin-bottom:16px;font-family:monospace;font-size:12px;">';
+            // Debug HTML
+            let debugHtml = '<div style="background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;padding:16px;margin-bottom:16px;font-family:monospace;font-size:12px;">';
             debugHtml += '<strong style="color:#6c757d;">Debug Info:</strong><br><br>';
-            debugHtml += `<div style="margin-bottom:8px;"><span style="color:#0d6efd;">🔗 GET URL:</span> ${url}</div>`;
+            debugHtml += `<div style="margin-bottom:8px;"><span style="color:#0d6efd;">📁 Reading File:</span> ${filePath}</div>`;
+            debugEl.innerHTML = debugHtml + '</div>';
+
+            console.log('[Instances] Step 1: Reading file:', filePath);
 
             try {
-                console.log('[Instances] Fetching from URL:', url);
+                if (!window.chrome || !window.chrome.webview) {
+                    throw new Error('WebView2 not available');
+                }
 
-                // Use C# GET handler via fetchWithBridge
-                const response = await fetchWithBridge(url);
+                // Step 1: Read the file to get URL
+                console.log('[Instances] Sending readFile request to C#...');
+                const postMessage = {
+                    action: 'readFile',
+                    filePath: filePath,
+                    fileId: 'apexinstances'
+                };
+                console.log('[Instances] PostMessage:', JSON.stringify(postMessage));
 
-                console.log('[Instances] Response:', response);
-                debugHtml += `<div style="margin-bottom:8px;"><span style="color:#20c997;">📦 Response:</span></div>`;
+                debugHtml += `<div style="margin-bottom:8px;"><span style="color:#fd7e14;">📤 Request to C#:</span></div>`;
+                debugHtml += `<pre style="background:#1e1e1e;color:#fbbf24;padding:8px;border-radius:4px;font-size:11px;">${JSON.stringify(postMessage, null, 2)}</pre>`;
+                debugEl.innerHTML = debugHtml + '</div>';
+
+                const instancesUrl = await new Promise((resolve, reject) => {
+                    const handler = (event) => {
+                        const data = event.data;
+                        console.log('[Instances] C# Response:', data);
+
+                        // Check for file read response
+                        if (data.action === 'fileReadResult' || data.fileId === 'apexinstances' || data.file === 'apexinstances') {
+                            window.chrome.webview.removeEventListener('message', handler);
+
+                            debugHtml += `<div style="margin-bottom:8px;"><span style="color:#20c997;">📥 C# Response:</span></div>`;
+                            debugHtml += `<pre style="background:#1e1e1e;color:#4ade80;padding:8px;border-radius:4px;font-size:11px;">${JSON.stringify(data, null, 2)}</pre>`;
+                            debugEl.innerHTML = debugHtml + '</div>';
+
+                            if (data.success && data.content) {
+                                resolve(data.content.trim());
+                            } else {
+                                reject(new Error(data.error || 'No content in response'));
+                            }
+                        }
+                    };
+
+                    window.chrome.webview.addEventListener('message', handler);
+                    window.chrome.webview.postMessage(postMessage);
+
+                    // Timeout
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        debugHtml += `<div style="color:#dc3545;">⏱️ Timeout - No response from C# after 10 seconds</div>`;
+                        debugHtml += `<div style="margin-top:8px;padding:12px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:11px;">
+                            <strong>C# Handler Required:</strong><br>
+                            Your WebView2 C# code needs to handle the "readFile" action.<br><br>
+                            Expected request: { action: "readFile", filePath: "...", fileId: "apexinstances" }<br>
+                            Expected response: { action: "fileReadResult", file: "apexinstances", success: true, content: "URL from file" }
+                        </div>`;
+                        debugEl.innerHTML = debugHtml + '</div>';
+                        reject(new Error('Timeout - C# readFile handler not responding'));
+                    }, 10000);
+                });
+
+                // Step 2: Got URL from file
+                console.log('[Instances] Step 2: URL from file:', instancesUrl);
+                debugHtml += `<div style="margin-bottom:8px;"><span style="color:#198754;">🔗 URL from file:</span> ${instancesUrl}</div>`;
+                debugEl.innerHTML = debugHtml + '</div>';
+
+                globalInstancesUrl = instancesUrl;
+                localStorage.setItem('instances_url', instancesUrl);
+
+                // Step 3: GET instances from URL
+                console.log('[Instances] Step 3: Fetching instances from URL...');
+                debugHtml += `<div style="margin-bottom:8px;"><span style="color:#0d6efd;">📡 GET Request:</span> ${instancesUrl}</div>`;
+                debugEl.innerHTML = debugHtml + '</div>';
+
+                const response = await fetchWithBridge(instancesUrl);
+
+                console.log('[Instances] Step 4: Response:', response);
+                debugHtml += `<div style="margin-bottom:8px;"><span style="color:#20c997;">📦 GET Response:</span></div>`;
                 debugHtml += `<pre style="background:#1e1e1e;color:#4ade80;padding:12px;border-radius:4px;overflow-x:auto;max-height:200px;">${JSON.stringify(response, null, 2)}</pre>`;
 
                 if (response && response.items) {
                     globalInstances = response.items;
                     debugHtml += `<div style="margin-top:8px;color:#198754;">✓ Found ${response.items.length} instances</div>`;
                     debugHtml += '</div>';
-                    tableEl.innerHTML = debugHtml;
+                    debugEl.innerHTML = debugHtml;
                     renderInstancesTable(response.items);
                 } else {
                     debugHtml += `<div style="margin-top:8px;color:#dc3545;">✗ No items array in response</div>`;
                     debugHtml += '</div>';
-                    tableEl.innerHTML = debugHtml + '<p style="color:var(--rw-neutral-500);padding:20px;">No instances found</p>';
+                    debugEl.innerHTML = debugHtml;
+                    tableEl.innerHTML = '<p style="color:var(--rw-neutral-500);padding:20px;">No instances found</p>';
                 }
+
             } catch (error) {
                 console.error('[Instances] Error:', error);
                 debugHtml += `<div style="color:#dc3545;">✗ Error: ${error.message}</div>`;
                 debugHtml += '</div>';
-                tableEl.innerHTML = debugHtml + `<p style="color:#ef4444;padding:20px;">Error: ${error.message}</p>`;
+                debugEl.innerHTML = debugHtml;
+                tableEl.innerHTML = `<p style="color:#ef4444;padding:20px;">Error: ${error.message}</p>`;
             }
 
             if (loadingEl) loadingEl.style.display = 'none';
+            if (tableEl) tableEl.style.display = 'block';
         }
 
-        // Refresh instances - just reload from saved URL
+        // Refresh instances
         async function refreshInstances() {
-            await loadInstancesFromUrl();
+            await loadInstancesFromFile();
         }
 
         // Legacy function for backward compatibility
         async function loadAndDisplayInstances() {
-            await loadInstancesFromUrl();
+            await loadInstancesFromFile();
+        }
+
+        // Load from manual URL (fallback)
+        async function loadInstancesFromUrl() {
+            const url = localStorage.getItem('instances_url');
+            if (url) {
+                globalInstancesUrl = url;
+                const response = await fetchWithBridge(url);
+                if (response && response.items) {
+                    globalInstances = response.items;
+                }
+            }
         }
 
         function renderInstancesTable(instances) {
             const tableEl = document.getElementById('instances-table');
-            const existingDebug = tableEl.querySelector('.instances-debug');
-            const debugHtml = existingDebug ? existingDebug.outerHTML : '';
+            const existingDebug = tableEl ? tableEl.querySelector('.instances-debug') : null;
+            const prevDebugHtml = existingDebug ? existingDebug.outerHTML : '';
 
             let html = `
                 <div class="rw-table-wrapper">
@@ -2801,7 +2846,7 @@
             });
 
             html += '</tbody></table></div>';
-            tableEl.innerHTML = debugHtml + html;
+            tableEl.innerHTML = prevDebugHtml + html;
         }
 
         // ==========================================

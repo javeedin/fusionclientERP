@@ -511,36 +511,59 @@
             });
         }
 
-        // Fetch with bridge
+        // Fetch with C# bridge (executeGet action for REST calls)
         async function fetchWithBridge(url) {
             return new Promise((resolve, reject) => {
                 if (window.chrome && window.chrome.webview) {
                     const requestId = 'fetch_' + Date.now();
                     const handler = function(event) {
+                        console.log('[Redwood] Raw message received:', event.data);
                         try {
                             const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            console.log('[Redwood] Message data:', data);
                             if (data.requestId === requestId) {
                                 window.chrome.webview.removeEventListener('message', handler);
-                                if (data.error) {
-                                    reject(new Error(data.error));
+                                console.log('[Redwood] RequestId matched! Success:', data.success);
+                                if (data.success) {
+                                    // Parse the nested JSON data if it's a string
+                                    let responseData = data.data;
+                                    console.log('[Redwood] Response data type:', typeof responseData);
+                                    if (typeof responseData === 'string') {
+                                        console.log('[Redwood] Parsing string response data...');
+                                        responseData = JSON.parse(responseData);
+                                    }
+                                    console.log('[Redwood] Final response data:', responseData);
+                                    resolve(responseData);
                                 } else {
-                                    resolve(data);
+                                    console.error('[Redwood] Request failed:', data.error);
+                                    reject(new Error(data.error || 'Request failed'));
                                 }
                             }
-                        } catch (e) {}
+                        } catch (e) {
+                            console.error('[Redwood] Error parsing response:', e);
+                        }
                     };
                     window.chrome.webview.addEventListener('message', handler);
+
+                    // Use executeGet action for REST API calls
                     window.chrome.webview.postMessage({
-                        action: 'fetch',
+                        action: 'executeGet',
                         requestId: requestId,
                         url: url
                     });
+
+                    // Timeout after 30 seconds
                     setTimeout(() => {
                         window.chrome.webview.removeEventListener('message', handler);
                         reject(new Error('Request timeout'));
                     }, 30000);
                 } else {
-                    reject(new Error('WebView bridge not available'));
+                    // Direct fetch for testing outside WebView
+                    console.log('[Redwood] WebView not available, using direct fetch');
+                    fetch(url)
+                        .then(res => res.json())
+                        .then(data => resolve(data))
+                        .catch(err => reject(err));
                 }
             });
         }

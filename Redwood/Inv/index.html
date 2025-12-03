@@ -2665,7 +2665,7 @@
             await loadInstancesFromFile();
         }
 
-        // Read file and then GET instances
+        // Load instances using the existing loadInstancesData() function
         async function loadInstancesFromFile() {
             const debugEl = document.getElementById('instances-debug');
             const loadingEl = document.getElementById('instances-loading');
@@ -2676,83 +2676,26 @@
             // Debug HTML
             let debugHtml = '<div style="background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;padding:16px;margin-bottom:16px;font-family:monospace;font-size:12px;">';
             debugHtml += '<strong style="color:#6c757d;">Debug Info:</strong><br><br>';
-            debugHtml += `<div style="margin-bottom:8px;"><span style="color:#0d6efd;">📁 Reading File:</span> ${filePath}</div>`;
+            debugHtml += `<div style="margin-bottom:8px;"><span style="color:#0d6efd;">Step 1:</span> Reading file ${filePath}</div>`;
             debugEl.innerHTML = debugHtml + '</div>';
 
-            console.log('[Instances] Step 1: Reading file:', filePath);
+            console.log('[Instances] Loading instances using loadInstancesData()...');
 
             try {
-                if (!window.chrome || !window.chrome.webview) {
-                    throw new Error('WebView2 not available');
-                }
+                // Use the existing loadInstancesData() function that already works
+                // It reads apexinstances.txt, gets the URL, fetches data, stores in instancesData
+                const instances = await loadInstancesData();
 
-                // Step 1: Read the file to get URL
-                console.log('[Instances] Sending readFile request to C#...');
+                debugHtml += `<div style="margin-bottom:8px;"><span style="color:#198754;">Step 2:</span> loadInstancesData() completed</div>`;
 
-                const instancesUrl = await new Promise((resolve, reject) => {
-                    const handler = (event) => {
-                        const data = event.data;
-                        console.log('[Instances] C# Response:', data);
-
-                        // Check for file read response
-                        if (data.action === 'fileReadResult' && data.file === 'apexinstances') {
-                            window.chrome.webview.removeEventListener('message', handler);
-
-                            debugHtml += `<div style="margin-bottom:8px;"><span style="color:#20c997;">📥 C# Response:</span></div>`;
-                            debugHtml += `<pre style="background:#1e1e1e;color:#4ade80;padding:8px;border-radius:4px;font-size:11px;">${JSON.stringify(data, null, 2)}</pre>`;
-                            debugEl.innerHTML = debugHtml + '</div>';
-
-                            if (data.success && data.content) {
-                                resolve(data.content.trim());
-                            } else {
-                                reject(new Error(data.error || 'No content in response'));
-                            }
-                        }
-                    };
-
-                    window.chrome.webview.addEventListener('message', handler);
-
-                    // Send request - same format as loadInstancesData()
-                    window.chrome.webview.postMessage({
-                        action: 'readFile',
-                        filePath: filePath,
-                        fileId: 'apexinstances'
-                    });
-
-                    // Timeout after 5 seconds (same as loadInstancesData)
-                    setTimeout(() => {
-                        window.chrome.webview.removeEventListener('message', handler);
-                        reject(new Error('Timeout waiting for file read'));
-                    }, 5000);
-                });
-
-                // Step 2: Got URL from file
-                console.log('[Instances] Step 2: URL from file:', instancesUrl);
-                debugHtml += `<div style="margin-bottom:8px;"><span style="color:#198754;">🔗 URL from file:</span> ${instancesUrl}</div>`;
-                debugEl.innerHTML = debugHtml + '</div>';
-
-                globalInstancesUrl = instancesUrl;
-                localStorage.setItem('instances_url', instancesUrl);
-
-                // Step 3: GET instances from URL
-                console.log('[Instances] Step 3: Fetching instances from URL...');
-                debugHtml += `<div style="margin-bottom:8px;"><span style="color:#0d6efd;">📡 GET Request:</span> ${instancesUrl}</div>`;
-                debugEl.innerHTML = debugHtml + '</div>';
-
-                const response = await fetchWithBridge(instancesUrl);
-
-                console.log('[Instances] Step 4: Response:', response);
-                debugHtml += `<div style="margin-bottom:8px;"><span style="color:#20c997;">📦 GET Response:</span></div>`;
-                debugHtml += `<pre style="background:#1e1e1e;color:#4ade80;padding:12px;border-radius:4px;overflow-x:auto;max-height:200px;">${JSON.stringify(response, null, 2)}</pre>`;
-
-                if (response && response.items) {
-                    globalInstances = response.items;
-                    debugHtml += `<div style="margin-top:8px;color:#198754;">✓ Found ${response.items.length} instances</div>`;
+                if (instances && instances.length > 0) {
+                    globalInstances = instances;
+                    debugHtml += `<div style="margin-top:8px;color:#198754;">Found ${instances.length} instances</div>`;
                     debugHtml += '</div>';
                     debugEl.innerHTML = debugHtml;
-                    renderInstancesTable(response.items);
+                    renderInstancesTable(instances);
                 } else {
-                    debugHtml += `<div style="margin-top:8px;color:#dc3545;">✗ No items array in response</div>`;
+                    debugHtml += `<div style="margin-top:8px;color:#dc3545;">No instances found</div>`;
                     debugHtml += '</div>';
                     debugEl.innerHTML = debugHtml;
                     tableEl.innerHTML = '<p style="color:var(--rw-neutral-500);padding:20px;">No instances found</p>';
@@ -2760,7 +2703,7 @@
 
             } catch (error) {
                 console.error('[Instances] Error:', error);
-                debugHtml += `<div style="color:#dc3545;">✗ Error: ${error.message}</div>`;
+                debugHtml += `<div style="color:#dc3545;">Error: ${error.message}</div>`;
                 debugHtml += '</div>';
                 debugEl.innerHTML = debugHtml;
                 tableEl.innerHTML = `<p style="color:#ef4444;padding:20px;">Error: ${error.message}</p>`;

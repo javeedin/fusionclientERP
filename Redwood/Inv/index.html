@@ -2688,16 +2688,6 @@
 
                 // Step 1: Read the file to get URL
                 console.log('[Instances] Sending readFile request to C#...');
-                const postMessage = {
-                    action: 'readFile',
-                    filePath: filePath,
-                    fileId: 'apexinstances'
-                };
-                console.log('[Instances] PostMessage:', JSON.stringify(postMessage));
-
-                debugHtml += `<div style="margin-bottom:8px;"><span style="color:#fd7e14;">📤 Request to C#:</span></div>`;
-                debugHtml += `<pre style="background:#1e1e1e;color:#fbbf24;padding:8px;border-radius:4px;font-size:11px;">${JSON.stringify(postMessage, null, 2)}</pre>`;
-                debugEl.innerHTML = debugHtml + '</div>';
 
                 const instancesUrl = await new Promise((resolve, reject) => {
                     const handler = (event) => {
@@ -2705,7 +2695,7 @@
                         console.log('[Instances] C# Response:', data);
 
                         // Check for file read response
-                        if (data.action === 'fileReadResult' || data.fileId === 'apexinstances' || data.file === 'apexinstances') {
+                        if (data.action === 'fileReadResult' && data.file === 'apexinstances') {
                             window.chrome.webview.removeEventListener('message', handler);
 
                             debugHtml += `<div style="margin-bottom:8px;"><span style="color:#20c997;">📥 C# Response:</span></div>`;
@@ -2721,21 +2711,19 @@
                     };
 
                     window.chrome.webview.addEventListener('message', handler);
-                    window.chrome.webview.postMessage(postMessage);
 
-                    // Timeout
+                    // Send request - same format as loadInstancesData()
+                    window.chrome.webview.postMessage({
+                        action: 'readFile',
+                        filePath: filePath,
+                        fileId: 'apexinstances'
+                    });
+
+                    // Timeout after 5 seconds (same as loadInstancesData)
                     setTimeout(() => {
                         window.chrome.webview.removeEventListener('message', handler);
-                        debugHtml += `<div style="color:#dc3545;">⏱️ Timeout - No response from C# after 10 seconds</div>`;
-                        debugHtml += `<div style="margin-top:8px;padding:12px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:11px;">
-                            <strong>C# Handler Required:</strong><br>
-                            Your WebView2 C# code needs to handle the "readFile" action.<br><br>
-                            Expected request: { action: "readFile", filePath: "...", fileId: "apexinstances" }<br>
-                            Expected response: { action: "fileReadResult", file: "apexinstances", success: true, content: "URL from file" }
-                        </div>`;
-                        debugEl.innerHTML = debugHtml + '</div>';
-                        reject(new Error('Timeout - C# readFile handler not responding'));
-                    }, 10000);
+                        reject(new Error('Timeout waiting for file read'));
+                    }, 5000);
                 });
 
                 // Step 2: Got URL from file

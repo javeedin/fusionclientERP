@@ -2745,33 +2745,57 @@
                     <table class="rw-table">
                         <thead>
                             <tr>
-                                <th>S.No</th>
+                                <th>ID</th>
+                                <th>Instance</th>
                                 <th>Source</th>
-                                <th>Instance Name</th>
                                 <th>Base URL</th>
                                 <th>Username</th>
-                                <th>Status</th>
+                                <th>Password</th>
+                                <th>No Auth</th>
+                                <th>Creation Date</th>
                             </tr>
                         </thead>
                         <tbody>
             `;
 
             instances.forEach((inst, idx) => {
-                const sno = inst.sno || inst.SNO || idx + 1;
+                const instanceId = inst.instance_id || inst.INSTANCE_ID || idx + 1;
+                const instance = inst.instance || inst.INSTANCE || inst.instanceName || inst.instance_name || '-';
                 const source = inst.source || inst.SOURCE || '-';
-                const instanceName = inst.instanceName || inst.instance_name || inst.INSTANCE_NAME || '-';
-                const baseUrl = inst.baseUrl || inst.base_url || inst.BASE_URL || inst.url || '-';
-                const username = inst.username || inst.USERNAME || inst.user_name || '-';
-                const status = inst.status || inst.STATUS || 'Active';
+                const baseUrl = inst.base_url || inst.BASE_URL || inst.baseUrl || '-';
+                const username = inst.username || inst.USERNAME || '-';
+                const password = inst.password || inst.PASSWORD || '';
+                const noAuth = inst.no_authorization || inst.NO_AUTHORIZATION || 'N';
+                const creationDate = inst.creation_date || inst.CREATION_DATE || '-';
+
+                // Format date if present
+                let formattedDate = '-';
+                if (creationDate && creationDate !== '-') {
+                    try {
+                        const date = new Date(creationDate);
+                        formattedDate = date.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                        });
+                    } catch (e) {
+                        formattedDate = creationDate;
+                    }
+                }
+
+                // Mask password for display
+                const maskedPassword = password ? '********' : '-';
 
                 html += `
                     <tr>
-                        <td>${sno}</td>
+                        <td>${instanceId}</td>
+                        <td style="font-weight:600;">${instance}</td>
                         <td><span class="rw-badge rw-badge-info">${source}</span></td>
-                        <td style="font-weight:600;">${instanceName}</td>
-                        <td style="font-size:12px;word-break:break-all;">${baseUrl}</td>
+                        <td style="font-size:12px;word-break:break-all;max-width:250px;">${baseUrl}</td>
                         <td>${username}</td>
-                        <td><span class="rw-badge ${status === 'Active' ? 'rw-badge-success' : 'rw-badge-secondary'}">${status}</span></td>
+                        <td style="color:var(--rw-neutral-500);">${maskedPassword}</td>
+                        <td><span class="rw-badge ${noAuth === 'Y' ? 'rw-badge-warning' : 'rw-badge-success'}">${noAuth}</span></td>
+                        <td style="font-size:12px;color:var(--rw-neutral-600);">${formattedDate}</td>
                     </tr>
                 `;
             });

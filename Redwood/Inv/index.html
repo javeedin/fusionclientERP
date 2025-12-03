@@ -2666,49 +2666,88 @@
             const loadingEl = document.getElementById('instances-loading');
             const tableEl = document.getElementById('instances-table');
 
+            // Debug info container
+            let debugHtml = '<div class="instances-debug" style="background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;padding:16px;margin-bottom:16px;font-family:monospace;font-size:12px;">';
+            debugHtml += '<strong style="color:#6c757d;">Debug Info:</strong><br><br>';
+
             try {
                 // Read instances file path
                 const instancesFilePath = 'C:\\fusionclient\\ERP\\settings\\apexinstances.txt';
+
+                console.log('[Instances] Step 1: Reading file:', instancesFilePath);
+                debugHtml += `<div style="margin-bottom:8px;"><span style="color:#0d6efd;">📁 File Path:</span> ${instancesFilePath}</div>`;
 
                 if (window.chrome && window.chrome.webview) {
                     const instancesUrl = await new Promise((resolve, reject) => {
                         const handler = (event) => {
                             const data = event.data;
+                            console.log('[Instances] WebView2 message received:', data);
+
                             if (data.action === 'fileReadResult' && data.file === 'apexinstances_page') {
                                 window.chrome.webview.removeEventListener('message', handler);
+                                console.log('[Instances] File read result:', data);
+
                                 if (data.success && data.content) {
+                                    console.log('[Instances] File content:', data.content);
                                     resolve(data.content.trim());
                                 } else {
-                                    reject(new Error('Failed to read instances file'));
+                                    console.error('[Instances] File read failed:', data.error || 'No content');
+                                    reject(new Error('Failed to read instances file: ' + (data.error || 'No content')));
                                 }
                             }
                         };
+
                         window.chrome.webview.addEventListener('message', handler);
+
+                        console.log('[Instances] Sending readFile request...');
                         window.chrome.webview.postMessage({
                             action: 'readFile',
                             filePath: instancesFilePath,
                             fileId: 'apexinstances_page'
                         });
-                        setTimeout(() => reject(new Error('Timeout')), 10000);
+
+                        setTimeout(() => {
+                            console.error('[Instances] Timeout waiting for file read response');
+                            reject(new Error('Timeout waiting for file read response'));
+                        }, 10000);
                     });
+
+                    console.log('[Instances] Step 2: URL from file:', instancesUrl);
+                    debugHtml += `<div style="margin-bottom:8px;"><span style="color:#198754;">🔗 Instances URL:</span> ${instancesUrl}</div>`;
 
                     globalInstancesUrl = instancesUrl;
 
                     // Fetch instances from URL
+                    console.log('[Instances] Step 3: Fetching from URL...');
+                    debugHtml += `<div style="margin-bottom:8px;"><span style="color:#fd7e14;">⏳ Fetching data...</span></div>`;
+
                     const response = await fetchWithBridge(instancesUrl);
+
+                    console.log('[Instances] Step 4: Response received:', response);
+                    debugHtml += `<div style="margin-bottom:8px;"><span style="color:#20c997;">📦 Response:</span></div>`;
+                    debugHtml += `<pre style="background:#1e1e1e;color:#4ade80;padding:12px;border-radius:4px;overflow-x:auto;max-height:200px;">${JSON.stringify(response, null, 2)}</pre>`;
 
                     if (response && response.items) {
                         globalInstances = response.items;
+                        debugHtml += `<div style="margin-top:8px;color:#198754;">✓ Found ${response.items.length} instances</div>`;
+                        debugHtml += '</div>';
+                        tableEl.innerHTML = debugHtml;
                         renderInstancesTable(response.items);
                     } else {
-                        tableEl.innerHTML = '<p style="color:var(--rw-neutral-500);padding:20px;">No instances found</p>';
+                        debugHtml += `<div style="margin-top:8px;color:#dc3545;">✗ No items array in response</div>`;
+                        debugHtml += '</div>';
+                        tableEl.innerHTML = debugHtml + '<p style="color:var(--rw-neutral-500);padding:20px;">No instances found</p>';
                     }
                 } else {
-                    tableEl.innerHTML = '<p style="color:#ef4444;padding:20px;">WebView2 not available</p>';
+                    debugHtml += `<div style="color:#dc3545;">✗ WebView2 not available</div>`;
+                    debugHtml += '</div>';
+                    tableEl.innerHTML = debugHtml + '<p style="color:#ef4444;padding:20px;">WebView2 not available</p>';
                 }
             } catch (error) {
                 console.error('[Instances] Error:', error);
-                tableEl.innerHTML = `<p style="color:#ef4444;padding:20px;">Error loading instances: ${error.message}</p>`;
+                debugHtml += `<div style="color:#dc3545;">✗ Error: ${error.message}</div>`;
+                debugHtml += '</div>';
+                tableEl.innerHTML = debugHtml + `<p style="color:#ef4444;padding:20px;">Error loading instances: ${error.message}</p>`;
             }
 
             if (loadingEl) loadingEl.style.display = 'none';
@@ -2717,6 +2756,8 @@
 
         function renderInstancesTable(instances) {
             const tableEl = document.getElementById('instances-table');
+            const existingDebug = tableEl.querySelector('.instances-debug');
+            const debugHtml = existingDebug ? existingDebug.outerHTML : '';
 
             let html = `
                 <div class="rw-table-wrapper">
@@ -2755,7 +2796,7 @@
             });
 
             html += '</tbody></table></div>';
-            tableEl.innerHTML = html;
+            tableEl.innerHTML = debugHtml + html;
         }
 
         async function refreshInstances() {

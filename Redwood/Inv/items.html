@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Items - Redwood</title>
+    <style>
+        /* Oracle Redwood Design System */
+        :root {
+            --rw-red: #c74634;
+            --rw-red-hover: #a83a2b;
+            --rw-red-light: #fef4f3;
+            --rw-neutral-900: #161513;
+            --rw-neutral-800: #312d2a;
+            --rw-neutral-700: #4a4744;
+            --rw-neutral-600: #5a5754;
+            --rw-neutral-500: #6b6966;
+            --rw-neutral-400: #8a8886;
+            --rw-neutral-300: #b8b6b4;
+            --rw-neutral-200: #d5d4d3;
+            --rw-neutral-100: #ebebea;
+            --rw-neutral-50: #f7f6f6;
+            --rw-white: #ffffff;
+            --rw-success: #1e7e34;
+            --rw-success-bg: #e6f4ea;
+            --rw-info: #0056b3;
+            --rw-info-bg: #e7f1ff;
+            --rw-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --rw-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --rw-radius: 8px;
+            --rw-radius-lg: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Oracle Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: var(--rw-neutral-50);
+            color: var(--rw-neutral-800);
+            line-height: 1.5;
+        }
+
+        .rw-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .rw-page-header {
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .rw-page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+        }
+
+        .rw-page-subtitle {
+            font-size: 14px;
+            color: var(--rw-neutral-500);
+            margin-top: 4px;
+        }
+
+        .rw-card {
+            background: var(--rw-white);
+            border-radius: var(--rw-radius-lg);
+            box-shadow: var(--rw-shadow);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .rw-card-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .rw-card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+        }
+
+        .rw-card-body {
+            padding: 20px 24px;
+        }
+
+        .rw-form-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .rw-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 180px;
+        }
+
+        .rw-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--rw-neutral-700);
+        }
+
+        .rw-input, .rw-select {
+            padding: 10px 14px;
+            border: 1px solid var(--rw-neutral-300);
+            border-radius: var(--rw-radius);
+            font-size: 14px;
+            color: var(--rw-neutral-800);
+            background: var(--rw-white);
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .rw-input:focus, .rw-select:focus {
+            outline: none;
+            border-color: var(--rw-red);
+            box-shadow: 0 0 0 3px var(--rw-red-light);
+        }
+
+        .rw-btn {
+            padding: 10px 20px;
+            border-radius: var(--rw-radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+        }
+
+        .rw-btn-primary {
+            background: var(--rw-red);
+            color: var(--rw-white);
+        }
+
+        .rw-btn-primary:hover {
+            background: var(--rw-red-hover);
+        }
+
+        .rw-btn-primary:disabled {
+            background: var(--rw-neutral-300);
+            cursor: not-allowed;
+        }
+
+        .rw-btn-secondary {
+            background: var(--rw-white);
+            color: var(--rw-neutral-700);
+            border: 1px solid var(--rw-neutral-300);
+        }
+
+        .rw-btn-secondary:hover {
+            background: var(--rw-neutral-50);
+        }
+
+        .rw-btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        /* Stats Bar */
+        .rw-stats-bar {
+            display: flex;
+            gap: 32px;
+            padding: 16px 24px;
+            background: var(--rw-neutral-50);
+            border-bottom: 1px solid var(--rw-neutral-100);
+        }
+
+        .rw-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .rw-stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--rw-red);
+        }
+
+        .rw-stat-label {
+            font-size: 12px;
+            color: var(--rw-neutral-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Table */
+        .rw-table-container {
+            overflow-x: auto;
+        }
+
+        .rw-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .rw-table th {
+            text-align: left;
+            padding: 12px 16px;
+            background: var(--rw-neutral-50);
+            font-weight: 600;
+            color: var(--rw-neutral-700);
+            border-bottom: 2px solid var(--rw-neutral-200);
+            white-space: nowrap;
+        }
+
+        .rw-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+            color: var(--rw-neutral-800);
+        }
+
+        .rw-table tbody tr:hover {
+            background: var(--rw-red-light);
+        }
+
+        .rw-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .rw-badge-success {
+            background: var(--rw-success-bg);
+            color: var(--rw-success);
+        }
+
+        .rw-badge-info {
+            background: var(--rw-info-bg);
+            color: var(--rw-info);
+        }
+
+        /* Toolbar */
+        .rw-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 24px;
+            background: var(--rw-white);
+            border-bottom: 1px solid var(--rw-neutral-100);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .rw-filter-input {
+            padding: 6px 12px;
+            border: 1px solid var(--rw-neutral-200);
+            border-radius: var(--rw-radius);
+            font-size: 13px;
+            width: 200px;
+        }
+
+        .rw-filter-input:focus {
+            outline: none;
+            border-color: var(--rw-red);
+        }
+
+        /* Empty State */
+        .rw-empty-state {
+            text-align: center;
+            padding: 60px 24px;
+            color: var(--rw-neutral-500);
+        }
+
+        .rw-empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .rw-empty-state-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--rw-neutral-700);
+            margin-bottom: 8px;
+        }
+
+        /* Spinner */
+        .rw-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--rw-neutral-200);
+            border-top-color: var(--rw-red);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Dialog */
+        .rw-dialog-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .rw-dialog-overlay.active {
+            display: flex;
+        }
+
+        .rw-dialog {
+            background: var(--rw-white);
+            border-radius: var(--rw-radius-lg);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .rw-dialog-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .rw-dialog-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+        }
+
+        .rw-dialog-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 20px;
+            color: var(--rw-neutral-500);
+            border-radius: var(--rw-radius);
+        }
+
+        .rw-dialog-close:hover {
+            background: var(--rw-neutral-100);
+        }
+
+        .rw-dialog-body {
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .rw-dialog-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--rw-neutral-100);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .rw-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .rw-detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .rw-detail-label {
+            font-size: 12px;
+            color: var(--rw-neutral-500);
+            text-transform: uppercase;
+        }
+
+        .rw-detail-value {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--rw-neutral-800);
+        }
+
+        @media (max-width: 768px) {
+            .rw-container { padding: 16px; }
+            .rw-form-row { flex-direction: column; }
+            .rw-form-group { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="rw-container">
+        <div class="rw-page-header">
+            <div>
+                <h1 class="rw-page-title">Manage Inventory Items</h1>
+                <p class="rw-page-subtitle">Search and view inventory item master data</p>
+            </div>
+        </div>
+
+        <!-- Search Card -->
+        <div class="rw-card">
+            <div class="rw-card-header">
+                <h2 class="rw-card-title">Search Criteria</h2>
+            </div>
+            <div class="rw-card-body">
+                <div class="rw-form-row">
+                    <div class="rw-form-group">
+                        <label class="rw-label" for="orgCode">Organization Code</label>
+                        <input type="text" id="orgCode" class="rw-input" placeholder="e.g., AMS" value="">
+                    </div>
+                    <div class="rw-form-group">
+                        <label class="rw-label" for="itemNumber">Item Number</label>
+                        <input type="text" id="itemNumber" class="rw-input" placeholder="Enter item number...">
+                    </div>
+                    <div class="rw-form-group">
+                        <label class="rw-label" for="itemDesc">Description</label>
+                        <input type="text" id="itemDesc" class="rw-input" placeholder="Enter description...">
+                    </div>
+                    <div class="rw-form-group" style="flex-direction: row; gap: 8px; align-items: flex-end;">
+                        <button id="searchBtn" class="rw-btn rw-btn-primary" onclick="searchItems()">
+                            <span>&#128269;</span> Search
+                        </button>
+                        <button class="rw-btn rw-btn-secondary" onclick="clearSearch()">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Card -->
+        <div class="rw-card">
+            <div class="rw-stats-bar" id="statsBar" style="display: none;">
+                <div class="rw-stat">
+                    <span class="rw-stat-value" id="totalItems">0</span>
+                    <span class="rw-stat-label">Total Items</span>
+                </div>
+                <div class="rw-stat">
+                    <span class="rw-stat-value" id="activeItems">0</span>
+                    <span class="rw-stat-label">Active</span>
+                </div>
+                <div class="rw-stat">
+                    <span class="rw-stat-value" id="uniqueOrgs">0</span>
+                    <span class="rw-stat-label">Organizations</span>
+                </div>
+            </div>
+            <div class="rw-toolbar" id="toolbar" style="display: none;">
+                <div>
+                    <input type="text" id="filterInput" class="rw-filter-input" placeholder="Filter results..." oninput="filterResults()">
+                </div>
+                <div>
+                    <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="exportToCSV()">
+                        &#128190; Export CSV
+                    </button>
+                </div>
+            </div>
+            <div class="rw-table-container" id="resultsContainer">
+                <div class="rw-empty-state">
+                    <div class="rw-empty-state-icon">&#128451;</div>
+                    <div class="rw-empty-state-title">Search for Items</div>
+                    <p>Enter search criteria and click Search to find inventory items</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Item Details Dialog -->
+    <div class="rw-dialog-overlay" id="dialogOverlay">
+        <div class="rw-dialog">
+            <div class="rw-dialog-header">
+                <h2 class="rw-dialog-title" id="dialogTitle">Item Details</h2>
+                <button class="rw-dialog-close" onclick="closeDialog()">&times;</button>
+            </div>
+            <div class="rw-dialog-body" id="dialogBody">
+            </div>
+            <div class="rw-dialog-footer">
+                <button class="rw-btn rw-btn-secondary" onclick="closeDialog()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let itemsData = [];
+        let filteredItems = [];
+
+        // Get endpoint by integration code
+        async function getEndpointByCode(integrationCode) {
+            const instanceName = localStorage.getItem('wms_instance') || 'PROD';
+            return new Promise((resolve) => {
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'endpoint_' + integrationCode + '_' + Date.now();
+                    const handler = function(event) {
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            if (data.requestId === requestId && data.endpoint) {
+                                resolve(data.endpoint);
+                                window.chrome.webview.removeEventListener('message', handler);
+                            }
+                        } catch (e) {}
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+                    window.chrome.webview.postMessage({
+                        action: 'getEndpoint',
+                        requestId: requestId,
+                        integrationCode: integrationCode,
+                        instanceName: instanceName
+                    });
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        resolve(null);
+                    }, 5000);
+                } else {
+                    resolve(null);
+                }
+            });
+        }
+
+        // Fetch with C# bridge
+        async function fetchWithBridge(url) {
+            return new Promise((resolve, reject) => {
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'fetch_' + Date.now();
+                    const handler = function(event) {
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            if (data.requestId === requestId) {
+                                window.chrome.webview.removeEventListener('message', handler);
+                                if (data.success) {
+                                    let responseData = data.data;
+                                    if (typeof responseData === 'string') {
+                                        responseData = JSON.parse(responseData);
+                                    }
+                                    resolve(responseData);
+                                } else {
+                                    reject(new Error(data.error || 'Request failed'));
+                                }
+                            }
+                        } catch (e) {}
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+                    window.chrome.webview.postMessage({
+                        action: 'executeGet',
+                        requestId: requestId,
+                        url: url
+                    });
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        reject(new Error('Request timeout'));
+                    }, 30000);
+                } else {
+                    reject(new Error('WebView not available'));
+                }
+            });
+        }
+
+        // Search items
+        async function searchItems() {
+            const btn = document.getElementById('searchBtn');
+            const orgCode = document.getElementById('orgCode').value.trim();
+            const itemNumber = document.getElementById('itemNumber').value.trim();
+            const itemDescVal = document.getElementById('itemDesc').value.trim();
+
+            if (!orgCode) {
+                alert('Please enter Organization Code');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="rw-spinner"></span> Searching...';
+
+            const container = document.getElementById('resultsContainer');
+            container.innerHTML = '<div class="rw-empty-state"><div class="rw-spinner" style="width:40px;height:40px;border-width:3px;"></div><p style="margin-top:16px;">Loading items...</p></div>';
+
+            try {
+                const endpoint = await getEndpointByCode('APEX_ITEM_MASTER');
+                if (!endpoint) {
+                    throw new Error('APEX_ITEM_MASTER endpoint not configured');
+                }
+
+                let url = `${endpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                if (itemNumber) url += `&p_item_number=${encodeURIComponent(itemNumber)}`;
+                if (itemDescVal) url += `&p_item_description=${encodeURIComponent(itemDescVal)}`;
+
+                const response = await fetchWithBridge(url);
+
+                if (response && response.items) {
+                    itemsData = response.items;
+                    filteredItems = [...itemsData];
+                    renderResults(filteredItems);
+                    updateStats(filteredItems);
+                    document.getElementById('statsBar').style.display = 'flex';
+                    document.getElementById('toolbar').style.display = 'flex';
+                } else {
+                    itemsData = [];
+                    filteredItems = [];
+                    renderResults([]);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                container.innerHTML = `<div class="rw-empty-state"><div class="rw-empty-state-icon" style="color:var(--rw-red);">&#9888;</div><div class="rw-empty-state-title">Error</div><p>${error.message}</p></div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>&#128269;</span> Search';
+            }
+        }
+
+        // Render results
+        function renderResults(data) {
+            const container = document.getElementById('resultsContainer');
+
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="rw-empty-state"><div class="rw-empty-state-icon">&#128466;</div><div class="rw-empty-state-title">No Items Found</div><p>Try adjusting your search criteria</p></div>';
+                document.getElementById('statsBar').style.display = 'none';
+                document.getElementById('toolbar').style.display = 'none';
+                return;
+            }
+
+            let html = `
+                <table class="rw-table">
+                    <thead>
+                        <tr>
+                            <th>Item Number</th>
+                            <th>Description</th>
+                            <th>Organization</th>
+                            <th>UOM</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            data.forEach((item, idx) => {
+                const itemNum = item.item_number || item.ITEM_NUMBER || '-';
+                const desc = item.description || item.DESCRIPTION || item.item_description || '-';
+                const org = item.organization_code || item.ORGANIZATION_CODE || '-';
+                const uom = item.primary_uom_code || item.PRIMARY_UOM_CODE || item.uom || '-';
+                const category = item.category_name || item.CATEGORY_NAME || '-';
+                const status = item.item_status || item.ITEM_STATUS || 'Active';
+                const statusClass = status.toLowerCase() === 'active' ? 'rw-badge-success' : 'rw-badge-info';
+
+                html += `
+                    <tr>
+                        <td style="font-weight: 500;">${itemNum}</td>
+                        <td>${desc}</td>
+                        <td>${org}</td>
+                        <td>${uom}</td>
+                        <td>${category}</td>
+                        <td><span class="rw-badge ${statusClass}">${status}</span></td>
+                        <td>
+                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="viewItemDetails(${idx})">
+                                View
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Update stats
+        function updateStats(data) {
+            document.getElementById('totalItems').textContent = data.length;
+            const active = data.filter(item => {
+                const status = (item.item_status || item.ITEM_STATUS || 'Active').toLowerCase();
+                return status === 'active';
+            }).length;
+            document.getElementById('activeItems').textContent = active;
+            const orgs = new Set(data.map(item => item.organization_code || item.ORGANIZATION_CODE)).size;
+            document.getElementById('uniqueOrgs').textContent = orgs;
+        }
+
+        // Filter results
+        function filterResults() {
+            const filterVal = document.getElementById('filterInput').value.toLowerCase().trim();
+            if (!filterVal) {
+                filteredItems = [...itemsData];
+            } else {
+                filteredItems = itemsData.filter(item => {
+                    const itemNum = (item.item_number || item.ITEM_NUMBER || '').toLowerCase();
+                    const desc = (item.description || item.DESCRIPTION || '').toLowerCase();
+                    return itemNum.includes(filterVal) || desc.includes(filterVal);
+                });
+            }
+            renderResults(filteredItems);
+            updateStats(filteredItems);
+        }
+
+        // View item details
+        function viewItemDetails(idx) {
+            const item = filteredItems[idx];
+            if (!item) return;
+
+            document.getElementById('dialogTitle').textContent = 'Item: ' + (item.item_number || item.ITEM_NUMBER || 'Unknown');
+
+            const fields = [
+                { label: 'Item Number', value: item.item_number || item.ITEM_NUMBER || '-' },
+                { label: 'Description', value: item.description || item.DESCRIPTION || item.item_description || '-' },
+                { label: 'Organization', value: item.organization_code || item.ORGANIZATION_CODE || '-' },
+                { label: 'Primary UOM', value: item.primary_uom_code || item.PRIMARY_UOM_CODE || '-' },
+                { label: 'Category', value: item.category_name || item.CATEGORY_NAME || '-' },
+                { label: 'Status', value: item.item_status || item.ITEM_STATUS || 'Active' },
+                { label: 'Item Type', value: item.item_type || item.ITEM_TYPE || '-' },
+                { label: 'Inventory Item', value: item.inventory_item_flag || item.INVENTORY_ITEM_FLAG || '-' },
+                { label: 'Purchasable', value: item.purchasing_enabled_flag || item.PURCHASING_ENABLED_FLAG || '-' },
+                { label: 'Shippable', value: item.shippable_item_flag || item.SHIPPABLE_ITEM_FLAG || '-' }
+            ];
+
+            document.getElementById('dialogBody').innerHTML = `
+                <div class="rw-detail-grid">
+                    ${fields.map(f => `
+                        <div class="rw-detail-item">
+                            <span class="rw-detail-label">${f.label}</span>
+                            <span class="rw-detail-value">${f.value}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            document.getElementById('dialogOverlay').classList.add('active');
+        }
+
+        // Close dialog
+        function closeDialog() {
+            document.getElementById('dialogOverlay').classList.remove('active');
+        }
+
+        // Clear search
+        function clearSearch() {
+            document.getElementById('itemNumber').value = '';
+            document.getElementById('itemDesc').value = '';
+            document.getElementById('filterInput').value = '';
+            document.getElementById('resultsContainer').innerHTML = '<div class="rw-empty-state"><div class="rw-empty-state-icon">&#128451;</div><div class="rw-empty-state-title">Search for Items</div><p>Enter search criteria and click Search to find inventory items</p></div>';
+            document.getElementById('statsBar').style.display = 'none';
+            document.getElementById('toolbar').style.display = 'none';
+            itemsData = [];
+            filteredItems = [];
+        }
+
+        // Export to CSV
+        function exportToCSV() {
+            if (filteredItems.length === 0) {
+                alert('No data to export');
+                return;
+            }
+            const headers = ['Item Number', 'Description', 'Organization', 'UOM', 'Category', 'Status'];
+            const rows = filteredItems.map(item => [
+                item.item_number || item.ITEM_NUMBER || '',
+                item.description || item.DESCRIPTION || '',
+                item.organization_code || item.ORGANIZATION_CODE || '',
+                item.primary_uom_code || item.PRIMARY_UOM_CODE || '',
+                item.category_name || item.CATEGORY_NAME || '',
+                item.item_status || item.ITEM_STATUS || ''
+            ]);
+
+            let csv = headers.join(',') + '\n';
+            rows.forEach(row => {
+                csv += row.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',') + '\n';
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'items_export.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedOrg = localStorage.getItem('wms_org_code') || localStorage.getItem('wms_default_org') || 'AMS';
+            document.getElementById('orgCode').value = savedOrg;
+
+            document.getElementById('dialogOverlay').addEventListener('click', function(e) {
+                if (e.target === this) closeDialog();
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeDialog();
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory - Oracle Redwood</title>
+    <style>
+        /* Oracle Redwood Design System */
+        :root {
+            --rw-red: #c74634;
+            --rw-red-hover: #a83a2b;
+            --rw-red-light: #fef4f3;
+            --rw-red-dark: #8b2f24;
+            --rw-neutral-900: #161513;
+            --rw-neutral-800: #312d2a;
+            --rw-neutral-700: #4a4744;
+            --rw-neutral-600: #5a5754;
+            --rw-neutral-500: #6b6966;
+            --rw-neutral-400: #8a8886;
+            --rw-neutral-300: #b8b6b4;
+            --rw-neutral-200: #d5d4d3;
+            --rw-neutral-100: #ebebea;
+            --rw-neutral-50: #f7f6f6;
+            --rw-white: #ffffff;
+            --rw-success: #1e7e34;
+            --rw-success-bg: #e6f4ea;
+            --rw-info: #0056b3;
+            --rw-info-bg: #e7f1ff;
+            --rw-warning: #856404;
+            --rw-warning-bg: #fff3cd;
+            --rw-shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --rw-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --rw-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --rw-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+            --rw-radius: 8px;
+            --rw-radius-lg: 12px;
+            --rw-radius-xl: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Oracle Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--rw-neutral-50);
+            color: var(--rw-neutral-800);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* Global Header */
+        .rw-global-header {
+            background: linear-gradient(135deg, var(--rw-red) 0%, var(--rw-red-dark) 100%);
+            color: var(--rw-white);
+            padding: 0 24px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .rw-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .rw-logo {
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .rw-app-name {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .rw-header-nav {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .rw-nav-link {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 8px 12px;
+            border-radius: var(--rw-radius);
+            transition: all 0.15s;
+        }
+
+        .rw-nav-link:hover, .rw-nav-link.active {
+            color: var(--rw-white);
+            background: rgba(255,255,255,0.15);
+        }
+
+        .rw-header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .rw-user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: var(--rw-radius);
+        }
+
+        .rw-user-avatar {
+            width: 32px;
+            height: 32px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .rw-user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .rw-user-name {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .rw-user-org {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        /* Page Layout */
+        .rw-page {
+            display: flex;
+            min-height: calc(100vh - 56px);
+        }
+
+        /* Sidebar */
+        .rw-sidebar {
+            width: 280px;
+            background: var(--rw-white);
+            border-right: 1px solid var(--rw-neutral-200);
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 56px;
+            height: calc(100vh - 56px);
+            overflow-y: auto;
+        }
+
+        .rw-sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+        }
+
+        .rw-sidebar-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--rw-neutral-500);
+            margin-bottom: 12px;
+        }
+
+        .rw-org-selector {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--rw-neutral-300);
+            border-radius: var(--rw-radius);
+            font-size: 14px;
+            color: var(--rw-neutral-800);
+            background: var(--rw-white);
+            cursor: pointer;
+        }
+
+        .rw-org-selector:focus {
+            outline: none;
+            border-color: var(--rw-red);
+            box-shadow: 0 0 0 3px var(--rw-red-light);
+        }
+
+        .rw-sidebar-nav {
+            flex: 1;
+            padding: 16px 0;
+            overflow-y: auto;
+        }
+
+        .rw-nav-group {
+            margin-bottom: 8px;
+        }
+
+        .rw-nav-group-header {
+            padding: 10px 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--rw-neutral-500);
+        }
+
+        .rw-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            color: var(--rw-neutral-700);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.15s;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+        }
+
+        .rw-nav-item:hover {
+            background: var(--rw-red-light);
+            color: var(--rw-red);
+        }
+
+        .rw-nav-item.active {
+            background: var(--rw-red-light);
+            color: var(--rw-red);
+            border-left-color: var(--rw-red);
+            font-weight: 500;
+        }
+
+        .rw-nav-icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .rw-main {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        /* Page Header */
+        .rw-page-header {
+            margin-bottom: 24px;
+        }
+
+        .rw-page-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+            margin-bottom: 8px;
+        }
+
+        .rw-page-subtitle {
+            font-size: 14px;
+            color: var(--rw-neutral-500);
+        }
+
+        /* Dashboard Cards */
+        .rw-dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .rw-stat-card {
+            background: var(--rw-white);
+            border-radius: var(--rw-radius-lg);
+            padding: 24px;
+            box-shadow: var(--rw-shadow);
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            transition: all 0.2s;
+        }
+
+        .rw-stat-card:hover {
+            box-shadow: var(--rw-shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .rw-stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--rw-radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .rw-stat-icon.red { background: var(--rw-red-light); color: var(--rw-red); }
+        .rw-stat-icon.green { background: var(--rw-success-bg); color: var(--rw-success); }
+        .rw-stat-icon.blue { background: var(--rw-info-bg); color: var(--rw-info); }
+        .rw-stat-icon.yellow { background: var(--rw-warning-bg); color: var(--rw-warning); }
+
+        .rw-stat-content {
+            flex: 1;
+        }
+
+        .rw-stat-value {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+            line-height: 1.2;
+        }
+
+        .rw-stat-label {
+            font-size: 13px;
+            color: var(--rw-neutral-500);
+            margin-top: 4px;
+        }
+
+        /* Task Cards */
+        .rw-section {
+            background: var(--rw-white);
+            border-radius: var(--rw-radius-lg);
+            box-shadow: var(--rw-shadow);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .rw-section-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .rw-section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+        }
+
+        .rw-task-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1px;
+            background: var(--rw-neutral-100);
+        }
+
+        .rw-task-item {
+            background: var(--rw-white);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .rw-task-item:hover {
+            background: var(--rw-red-light);
+        }
+
+        .rw-task-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--rw-neutral-50);
+            border-radius: var(--rw-radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--rw-red);
+            transition: all 0.15s;
+        }
+
+        .rw-task-item:hover .rw-task-icon {
+            background: var(--rw-red);
+            color: var(--rw-white);
+        }
+
+        .rw-task-info {
+            flex: 1;
+        }
+
+        .rw-task-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--rw-neutral-800);
+        }
+
+        .rw-task-desc {
+            font-size: 12px;
+            color: var(--rw-neutral-500);
+            margin-top: 2px;
+        }
+
+        /* Quick Links */
+        .rw-quick-links {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 20px 24px;
+        }
+
+        .rw-quick-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--rw-neutral-50);
+            border-radius: 20px;
+            color: var(--rw-neutral-700);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+
+        .rw-quick-link:hover {
+            background: var(--rw-red);
+            color: var(--rw-white);
+        }
+
+        /* Content Area (for loaded pages) */
+        .rw-content-area {
+            display: none;
+        }
+
+        .rw-content-area.active {
+            display: block;
+        }
+
+        /* Buttons */
+        .rw-btn {
+            padding: 10px 20px;
+            border-radius: var(--rw-radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+        }
+
+        .rw-btn-primary {
+            background: var(--rw-red);
+            color: var(--rw-white);
+        }
+
+        .rw-btn-primary:hover {
+            background: var(--rw-red-hover);
+        }
+
+        .rw-btn-secondary {
+            background: var(--rw-white);
+            color: var(--rw-neutral-700);
+            border: 1px solid var(--rw-neutral-300);
+        }
+
+        .rw-btn-secondary:hover {
+            background: var(--rw-neutral-50);
+        }
+
+        /* Loading */
+        .rw-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            color: var(--rw-neutral-500);
+        }
+
+        .rw-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--rw-neutral-200);
+            border-top-color: var(--rw-red);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .rw-sidebar {
+                width: 240px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .rw-sidebar {
+                display: none;
+            }
+
+            .rw-main {
+                padding: 16px;
+            }
+
+            .rw-dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Global Header -->
+    <header class="rw-global-header">
+        <div class="rw-header-left">
+            <div class="rw-logo">O</div>
+            <span class="rw-app-name">Fusion Client ERP</span>
+        </div>
+        <nav class="rw-header-nav">
+            <a href="#" class="rw-nav-link active">Inventory</a>
+            <a href="../AR/index.html" class="rw-nav-link">Receivables</a>
+            <a href="../AP/index.html" class="rw-nav-link">Payables</a>
+            <a href="../OM/index.html" class="rw-nav-link">Order Management</a>
+        </nav>
+        <div class="rw-header-right">
+            <div class="rw-user-info">
+                <div class="rw-user-avatar" id="userAvatar">U</div>
+                <div class="rw-user-details">
+                    <span class="rw-user-name" id="userName">User</span>
+                    <span class="rw-user-org" id="userOrg">Organization</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Layout -->
+    <div class="rw-page">
+        <!-- Sidebar -->
+        <aside class="rw-sidebar">
+            <div class="rw-sidebar-header">
+                <div class="rw-sidebar-title">Organization</div>
+                <select class="rw-org-selector" id="orgSelector">
+                    <option value="">Select Organization...</option>
+                </select>
+            </div>
+            <nav class="rw-sidebar-nav">
+                <!-- Inventory -->
+                <div class="rw-nav-group">
+                    <div class="rw-nav-group-header">Inventory</div>
+                    <div class="rw-nav-item active" onclick="navigateTo('home')">
+                        <span class="rw-nav-icon">&#127968;</span>
+                        <span>Home</span>
+                    </div>
+                    <div class="rw-nav-item" onclick="navigateTo('items')">
+                        <span class="rw-nav-icon">&#128451;</span>
+                        <span>Manage Items</span>
+                    </div>
+                    <div class="rw-nav-item" onclick="navigateTo('quantities')">
+                        <span class="rw-nav-icon">&#128230;</span>
+                        <span>Item Quantities</span>
+                    </div>
+                    <div class="rw-nav-item" onclick="navigateTo('lots')">
+                        <span class="rw-nav-icon">&#127991;</span>
+                        <span>Manage Lots</span>
+                    </div>
+                    <div class="rw-nav-item" onclick="navigateTo('serials')">
+                        <span class="rw-nav-icon">&#128271;</span>
+                        <span>Serial Numbers</span>
+                    </div>
+                </div>
+
+                <!-- Transactions -->
+                <div class="rw-nav-group">
+                    <div class="rw-nav-group-header">Transactions</div>
+                    <div class="rw-nav-item" onclick="navigateTo('misc-txn')">
+                        <span class="rw-nav-icon">&#128221;</span>
+                        <span>Miscellaneous Transaction</span>
+                    </div>
+                    <div class="rw-nav-item" onclick="navigateTo('subinv-transfer')">
+                        <span class="rw-nav-icon">&#8644;</span>
+                        <span>Subinventory Transfer</span>
+                    </div>
+                    <div class="rw-nav-item" onclick="navigateTo('interorg-transfer')">
+                        <span class="rw-nav-icon">&#127970;</span>
+                        <span>Interorg Transfer</span>
+                    </div>
+                </div>
+
+                <!-- Receipts -->
+                <div class="rw-nav-group">
+                    <div class="rw-nav-group-header">Receipts</div>
+                    <div class="rw-nav-item" onclick="navigateTo('receipts')">
+                        <span class="rw-nav-icon">&#128230;</span>
+                        <span>Receive Shipments</span>
+                    </div>
+                    <div class="rw-nav-item" onclick="navigateTo('inbound')">
+                        <span class="rw-nav-icon">&#128666;</span>
+                        <span>Inbound Shipments</span>
+                    </div>
+                    <div class="rw-nav-item" onclick="navigateTo('putaway')">
+                        <span class="rw-nav-icon">&#128229;</span>
+                        <span>Put Away</span>
+                    </div>
+                    <div class="rw-nav-item" onclick="navigateTo('inspect')">
+                        <span class="rw-nav-icon">&#128269;</span>
+                        <span>Inspect Receipts</span>
+                    </div>
+                </div>
+
+                <!-- Shipments -->
+                <div class="rw-nav-group">
+                    <div class="rw-nav-group-header">Shipments</div>
+                    <div class="rw-nav-item" onclick="navigateTo('shipments')">
+                        <span class="rw-nav-icon">&#128666;</span>
+                        <span>Manage Shipments</span>
+                    </div>
+                    <div class="rw-nav-item" onclick="navigateTo('shipment-lines')">
+                        <span class="rw-nav-icon">&#128196;</span>
+                        <span>Shipment Lines</span>
+                    </div>
+                    <div class="rw-nav-item" onclick="navigateTo('pick-wave')">
+                        <span class="rw-nav-icon">&#127754;</span>
+                        <span>Pick Wave</span>
+                    </div>
+                    <div class="rw-nav-item" onclick="navigateTo('pick-slips')">
+                        <span class="rw-nav-icon">&#9745;</span>
+                        <span>Confirm Pick Slips</span>
+                    </div>
+                </div>
+
+                <!-- Counts -->
+                <div class="rw-nav-group">
+                    <div class="rw-nav-group-header">Counts</div>
+                    <div class="rw-nav-item" onclick="navigateTo('cycle-count')">
+                        <span class="rw-nav-icon">&#10133;</span>
+                        <span>Cycle Counts</span>
+                    </div>
+                    <div class="rw-nav-item" onclick="navigateTo('physical-inv')">
+                        <span class="rw-nav-icon">&#128203;</span>
+                        <span>Physical Inventory</span>
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="rw-main">
+            <!-- Home Dashboard -->
+            <div class="rw-content-area active" id="content-home">
+                <div class="rw-page-header">
+                    <h1 class="rw-page-title">Inventory Management</h1>
+                    <p class="rw-page-subtitle">Welcome to the Inventory module. Manage items, transactions, receipts, and shipments.</p>
+                </div>
+
+                <!-- Dashboard Stats -->
+                <div class="rw-dashboard-grid">
+                    <div class="rw-stat-card">
+                        <div class="rw-stat-icon red">&#128230;</div>
+                        <div class="rw-stat-content">
+                            <div class="rw-stat-value" id="statPendingReceipts">-</div>
+                            <div class="rw-stat-label">Pending Receipts</div>
+                        </div>
+                    </div>
+                    <div class="rw-stat-card">
+                        <div class="rw-stat-icon green">&#128666;</div>
+                        <div class="rw-stat-content">
+                            <div class="rw-stat-value" id="statOpenShipments">-</div>
+                            <div class="rw-stat-label">Open Shipments</div>
+                        </div>
+                    </div>
+                    <div class="rw-stat-card">
+                        <div class="rw-stat-icon blue">&#128451;</div>
+                        <div class="rw-stat-content">
+                            <div class="rw-stat-value" id="statTotalItems">-</div>
+                            <div class="rw-stat-label">Total Items</div>
+                        </div>
+                    </div>
+                    <div class="rw-stat-card">
+                        <div class="rw-stat-icon yellow">&#9888;</div>
+                        <div class="rw-stat-content">
+                            <div class="rw-stat-value" id="statPendingTxns">-</div>
+                            <div class="rw-stat-label">Pending Transactions</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="rw-section">
+                    <div class="rw-section-header">
+                        <h2 class="rw-section-title">Quick Actions</h2>
+                    </div>
+                    <div class="rw-task-grid">
+                        <div class="rw-task-item" onclick="navigateTo('receipts')">
+                            <div class="rw-task-icon">&#128230;</div>
+                            <div class="rw-task-info">
+                                <div class="rw-task-name">Receive Expected Shipments</div>
+                                <div class="rw-task-desc">Process incoming PO receipts</div>
+                            </div>
+                        </div>
+                        <div class="rw-task-item" onclick="navigateTo('items')">
+                            <div class="rw-task-icon">&#128451;</div>
+                            <div class="rw-task-info">
+                                <div class="rw-task-name">Manage Inventory Items</div>
+                                <div class="rw-task-desc">View and manage item master</div>
+                            </div>
+                        </div>
+                        <div class="rw-task-item" onclick="navigateTo('misc-txn')">
+                            <div class="rw-task-icon">&#128221;</div>
+                            <div class="rw-task-info">
+                                <div class="rw-task-name">Miscellaneous Transaction</div>
+                                <div class="rw-task-desc">Create inventory adjustments</div>
+                            </div>
+                        </div>
+                        <div class="rw-task-item" onclick="navigateTo('subinv-transfer')">
+                            <div class="rw-task-icon">&#8644;</div>
+                            <div class="rw-task-info">
+                                <div class="rw-task-name">Subinventory Transfer</div>
+                                <div class="rw-task-desc">Move items between subinventories</div>
+                            </div>
+                        </div>
+                        <div class="rw-task-item" onclick="navigateTo('shipments')">
+                            <div class="rw-task-icon">&#128666;</div>
+                            <div class="rw-task-info">
+                                <div class="rw-task-name">Manage Shipments</div>
+                                <div class="rw-task-desc">View and manage outbound shipments</div>
+                            </div>
+                        </div>
+                        <div class="rw-task-item" onclick="navigateTo('cycle-count')">
+                            <div class="rw-task-icon">&#10133;</div>
+                            <div class="rw-task-info">
+                                <div class="rw-task-name">Cycle Counts</div>
+                                <div class="rw-task-desc">Manage inventory cycle counts</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- All Tasks -->
+                <div class="rw-section">
+                    <div class="rw-section-header">
+                        <h2 class="rw-section-title">All Tasks</h2>
+                    </div>
+                    <div class="rw-quick-links" id="allTasksLinks">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items Page -->
+            <div class="rw-content-area" id="content-items">
+                <iframe src="items.html" style="width:100%; height:calc(100vh - 120px); border:none;"></iframe>
+            </div>
+
+            <!-- Receipts Page -->
+            <div class="rw-content-area" id="content-receipts">
+                <iframe src="receipts.html" style="width:100%; height:calc(100vh - 120px); border:none;"></iframe>
+            </div>
+
+            <!-- Shipments Page -->
+            <div class="rw-content-area" id="content-shipments">
+                <iframe src="shipments.html" style="width:100%; height:calc(100vh - 120px); border:none;"></iframe>
+            </div>
+
+            <!-- Generic Page Template -->
+            <div class="rw-content-area" id="content-generic">
+                <div class="rw-page-header">
+                    <h1 class="rw-page-title" id="genericPageTitle">Page Title</h1>
+                    <p class="rw-page-subtitle" id="genericPageSubtitle">Page description</p>
+                </div>
+                <div class="rw-section">
+                    <div class="rw-section-header">
+                        <h2 class="rw-section-title">Content</h2>
+                    </div>
+                    <div class="rw-loading">
+                        <div class="rw-spinner"></div>
+                        <p>This feature is under development</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // All available tasks
+        const allTasks = [
+            { id: 'items', name: 'Manage Inventory Items', icon: '&#128451;' },
+            { id: 'quantities', name: 'Manage Item Quantities', icon: '&#128230;' },
+            { id: 'misc-txn', name: 'Create Miscellaneous Transaction', icon: '&#128221;' },
+            { id: 'subinv-transfer', name: 'Create Subinventory Transfer', icon: '&#8644;' },
+            { id: 'interorg-transfer', name: 'Create Interorganization Transfer', icon: '&#127970;' },
+            { id: 'lots', name: 'Manage Lots', icon: '&#127991;' },
+            { id: 'serials', name: 'Manage Serial Numbers', icon: '&#128271;' },
+            { id: 'reservations', name: 'Manage Reservations and Picks', icon: '&#128203;' },
+            { id: 'receipts', name: 'Receive Expected Shipments', icon: '&#128230;' },
+            { id: 'inbound', name: 'Manage Inbound Shipments', icon: '&#128666;' },
+            { id: 'putaway', name: 'Put Away Receipts', icon: '&#128229;' },
+            { id: 'inspect', name: 'Inspect Receipts', icon: '&#128269;' },
+            { id: 'shipments', name: 'Manage Shipments', icon: '&#128666;' },
+            { id: 'shipment-lines', name: 'Manage Shipment Lines', icon: '&#128196;' },
+            { id: 'pick-wave', name: 'Create Pick Wave', icon: '&#127754;' },
+            { id: 'pick-slips', name: 'Confirm Pick Slips', icon: '&#9745;' },
+            { id: 'cycle-count', name: 'Manage Cycle Counts', icon: '&#10133;' },
+            { id: 'physical-inv', name: 'Manage Physical Inventories', icon: '&#128203;' }
+        ];
+
+        // Current page
+        let currentPage = 'home';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load user info
+            const username = localStorage.getItem('wms_username') || 'User';
+            const orgName = localStorage.getItem('wms_org_name') || 'Organization';
+            const orgCode = localStorage.getItem('wms_org_code') || '';
+
+            document.getElementById('userName').textContent = username;
+            document.getElementById('userOrg').textContent = orgName || orgCode;
+            document.getElementById('userAvatar').textContent = username.charAt(0).toUpperCase();
+
+            // Populate org selector
+            populateOrgSelector();
+
+            // Populate all tasks links
+            populateAllTasks();
+
+            // Load dashboard stats
+            loadDashboardStats();
+        });
+
+        // Populate organization selector
+        function populateOrgSelector() {
+            const selector = document.getElementById('orgSelector');
+            const orgsJson = localStorage.getItem('wms_organizations');
+            const currentOrgCode = localStorage.getItem('wms_org_code');
+
+            if (orgsJson) {
+                try {
+                    const orgs = JSON.parse(orgsJson);
+                    orgs.forEach(org => {
+                        const option = document.createElement('option');
+                        option.value = org.organization_code || org.ORGANIZATION_CODE;
+                        option.textContent = `${org.organization_code || org.ORGANIZATION_CODE} - ${org.organization_name || org.ORGANIZATION_NAME || ''}`;
+                        if (option.value === currentOrgCode) {
+                            option.selected = true;
+                        }
+                        selector.appendChild(option);
+                    });
+                } catch (e) {
+                    console.error('Error parsing organizations:', e);
+                }
+            }
+
+            selector.addEventListener('change', function() {
+                localStorage.setItem('wms_org_code', this.value);
+                location.reload();
+            });
+        }
+
+        // Populate all tasks
+        function populateAllTasks() {
+            const container = document.getElementById('allTasksLinks');
+            container.innerHTML = allTasks.map(task =>
+                `<a href="#" class="rw-quick-link" onclick="navigateTo('${task.id}'); return false;">
+                    <span>${task.icon}</span>
+                    <span>${task.name}</span>
+                </a>`
+            ).join('');
+        }
+
+        // Navigate to page
+        function navigateTo(pageId) {
+            // Hide all content areas
+            document.querySelectorAll('.rw-content-area').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // Update nav items
+            document.querySelectorAll('.rw-nav-item').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // Show appropriate content
+            const contentEl = document.getElementById('content-' + pageId);
+            if (contentEl) {
+                contentEl.classList.add('active');
+            } else {
+                // Show generic page
+                const genericEl = document.getElementById('content-generic');
+                const task = allTasks.find(t => t.id === pageId);
+                if (task) {
+                    document.getElementById('genericPageTitle').textContent = task.name;
+                    document.getElementById('genericPageSubtitle').textContent = 'Manage ' + task.name.toLowerCase();
+                }
+                genericEl.classList.add('active');
+            }
+
+            // Update active nav item
+            document.querySelectorAll('.rw-nav-item').forEach(el => {
+                if (el.textContent.toLowerCase().includes(pageId.replace('-', ' '))) {
+                    el.classList.add('active');
+                }
+            });
+
+            currentPage = pageId;
+        }
+
+        // Load dashboard stats
+        async function loadDashboardStats() {
+            // These would be loaded from APIs
+            document.getElementById('statPendingReceipts').textContent = '-';
+            document.getElementById('statOpenShipments').textContent = '-';
+            document.getElementById('statTotalItems').textContent = '-';
+            document.getElementById('statPendingTxns').textContent = '-';
+        }
+
+        // Get endpoint by integration code
+        async function getEndpointByCode(integrationCode) {
+            const instanceName = localStorage.getItem('wms_instance') || 'PROD';
+            return new Promise((resolve) => {
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'endpoint_' + integrationCode + '_' + Date.now();
+                    const handler = function(event) {
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            if (data.requestId === requestId && data.endpoint) {
+                                resolve(data.endpoint);
+                                window.chrome.webview.removeEventListener('message', handler);
+                            }
+                        } catch (e) {}
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+                    window.chrome.webview.postMessage({
+                        action: 'getEndpoint',
+                        requestId: requestId,
+                        integrationCode: integrationCode,
+                        instanceName: instanceName
+                    });
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        resolve(null);
+                    }, 5000);
+                } else {
+                    resolve(null);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

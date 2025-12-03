@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Shipments</title>
+    <style>
+        :root {
+            --rw-red: #c74634;
+            --rw-red-hover: #a83a2b;
+            --rw-red-light: #fef4f3;
+            --rw-neutral-900: #161513;
+            --rw-neutral-800: #312d2a;
+            --rw-neutral-700: #4a4744;
+            --rw-neutral-500: #6b6966;
+            --rw-neutral-400: #8a8886;
+            --rw-neutral-300: #b8b6b4;
+            --rw-neutral-200: #d5d4d3;
+            --rw-neutral-100: #ebebea;
+            --rw-neutral-50: #f7f6f6;
+            --rw-white: #ffffff;
+            --rw-success: #1e7e34;
+            --rw-success-bg: #e6f4ea;
+            --rw-info: #0056b3;
+            --rw-info-bg: #e7f1ff;
+            --rw-warning: #856404;
+            --rw-warning-bg: #fff3cd;
+            --rw-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --rw-radius: 8px;
+            --rw-radius-lg: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Oracle Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: var(--rw-neutral-50);
+            color: var(--rw-neutral-800);
+            line-height: 1.5;
+        }
+
+        .rw-container { max-width: 1600px; margin: 0 auto; padding: 24px; }
+
+        .rw-page-header {
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .rw-page-title { font-size: 24px; font-weight: 600; color: var(--rw-neutral-900); }
+        .rw-page-subtitle { font-size: 14px; color: var(--rw-neutral-500); margin-top: 4px; }
+
+        .rw-card {
+            background: var(--rw-white);
+            border-radius: var(--rw-radius-lg);
+            box-shadow: var(--rw-shadow);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .rw-card-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .rw-card-title { font-size: 16px; font-weight: 600; color: var(--rw-neutral-900); }
+        .rw-card-body { padding: 20px 24px; }
+
+        .rw-form-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+        .rw-form-group { display: flex; flex-direction: column; gap: 6px; min-width: 160px; }
+        .rw-label { font-size: 13px; font-weight: 500; color: var(--rw-neutral-700); }
+
+        .rw-input, .rw-select {
+            padding: 10px 14px;
+            border: 1px solid var(--rw-neutral-300);
+            border-radius: var(--rw-radius);
+            font-size: 14px;
+            color: var(--rw-neutral-800);
+            background: var(--rw-white);
+        }
+
+        .rw-input:focus, .rw-select:focus {
+            outline: none;
+            border-color: var(--rw-red);
+            box-shadow: 0 0 0 3px var(--rw-red-light);
+        }
+
+        .rw-btn {
+            padding: 10px 20px;
+            border-radius: var(--rw-radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+        }
+
+        .rw-btn-primary { background: var(--rw-red); color: var(--rw-white); }
+        .rw-btn-primary:hover { background: var(--rw-red-hover); }
+        .rw-btn-primary:disabled { background: var(--rw-neutral-300); cursor: not-allowed; }
+        .rw-btn-secondary { background: var(--rw-white); color: var(--rw-neutral-700); border: 1px solid var(--rw-neutral-300); }
+        .rw-btn-secondary:hover { background: var(--rw-neutral-50); }
+        .rw-btn-sm { padding: 6px 12px; font-size: 13px; }
+
+        .rw-stats-bar {
+            display: flex;
+            gap: 32px;
+            padding: 16px 24px;
+            background: var(--rw-neutral-50);
+            border-bottom: 1px solid var(--rw-neutral-100);
+        }
+
+        .rw-stat { display: flex; flex-direction: column; gap: 4px; }
+        .rw-stat-value { font-size: 24px; font-weight: 600; color: var(--rw-red); }
+        .rw-stat-label { font-size: 12px; color: var(--rw-neutral-500); text-transform: uppercase; }
+
+        .rw-table-container { overflow-x: auto; }
+
+        .rw-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .rw-table th {
+            text-align: left;
+            padding: 12px 16px;
+            background: var(--rw-neutral-50);
+            font-weight: 600;
+            color: var(--rw-neutral-700);
+            border-bottom: 2px solid var(--rw-neutral-200);
+            white-space: nowrap;
+        }
+        .rw-table td { padding: 14px 16px; border-bottom: 1px solid var(--rw-neutral-100); }
+        .rw-table tbody tr:hover { background: var(--rw-red-light); }
+
+        .rw-badge {
+            display: inline-flex;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .rw-badge-success { background: var(--rw-success-bg); color: var(--rw-success); }
+        .rw-badge-warning { background: var(--rw-warning-bg); color: var(--rw-warning); }
+        .rw-badge-info { background: var(--rw-info-bg); color: var(--rw-info); }
+
+        .rw-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 24px;
+            background: var(--rw-white);
+            border-bottom: 1px solid var(--rw-neutral-100);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .rw-filter-input {
+            padding: 6px 12px;
+            border: 1px solid var(--rw-neutral-200);
+            border-radius: var(--rw-radius);
+            font-size: 13px;
+            width: 200px;
+        }
+
+        .rw-empty-state {
+            text-align: center;
+            padding: 60px 24px;
+            color: var(--rw-neutral-500);
+        }
+        .rw-empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+        .rw-empty-state-title { font-size: 18px; font-weight: 600; color: var(--rw-neutral-700); margin-bottom: 8px; }
+
+        .rw-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--rw-neutral-200);
+            border-top-color: var(--rw-red);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) {
+            .rw-container { padding: 16px; }
+            .rw-form-row { flex-direction: column; }
+            .rw-form-group { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="rw-container">
+        <div class="rw-page-header">
+            <div>
+                <h1 class="rw-page-title">Manage Shipments</h1>
+                <p class="rw-page-subtitle">View and manage outbound shipments</p>
+            </div>
+            <button id="loadBtn" class="rw-btn rw-btn-primary" onclick="loadShipments()">
+                <span>&#8635;</span> Load Shipments
+            </button>
+        </div>
+
+        <div class="rw-card">
+            <div class="rw-card-body">
+                <div class="rw-form-row">
+                    <div class="rw-form-group">
+                        <label class="rw-label" for="orgCode">Organization Code</label>
+                        <input type="text" id="orgCode" class="rw-input" placeholder="e.g., AMS" value="">
+                    </div>
+                    <div class="rw-form-group">
+                        <label class="rw-label" for="shipmentNum">Shipment Number</label>
+                        <input type="text" id="shipmentNum" class="rw-input" placeholder="Filter by shipment...">
+                    </div>
+                    <div class="rw-form-group">
+                        <label class="rw-label" for="statusFilter">Status</label>
+                        <select id="statusFilter" class="rw-select">
+                            <option value="">All Statuses</option>
+                            <option value="OPEN">Open</option>
+                            <option value="SHIPPED">Shipped</option>
+                            <option value="CLOSED">Closed</option>
+                        </select>
+                    </div>
+                    <div class="rw-form-group" style="flex-direction: row; gap: 8px;">
+                        <button class="rw-btn rw-btn-primary" onclick="loadShipments()">
+                            <span>&#128269;</span> Search
+                        </button>
+                        <button class="rw-btn rw-btn-secondary" onclick="clearFilters()">Clear</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="rw-card">
+            <div class="rw-stats-bar" id="statsBar" style="display: none;">
+                <div class="rw-stat">
+                    <span class="rw-stat-value" id="totalShipments">0</span>
+                    <span class="rw-stat-label">Total Shipments</span>
+                </div>
+                <div class="rw-stat">
+                    <span class="rw-stat-value" id="openShipments">0</span>
+                    <span class="rw-stat-label">Open</span>
+                </div>
+                <div class="rw-stat">
+                    <span class="rw-stat-value" id="shippedCount">0</span>
+                    <span class="rw-stat-label">Shipped</span>
+                </div>
+            </div>
+            <div class="rw-toolbar" id="toolbar" style="display: none;">
+                <div>
+                    <input type="text" id="filterInput" class="rw-filter-input" placeholder="Filter results..." oninput="filterResults()">
+                </div>
+                <div>
+                    <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="exportToCSV()">&#128190; Export</button>
+                </div>
+            </div>
+            <div class="rw-table-container" id="resultsContainer">
+                <div class="rw-empty-state">
+                    <div class="rw-empty-state-icon">&#128666;</div>
+                    <div class="rw-empty-state-title">Load Shipments</div>
+                    <p>Enter organization code and click "Load Shipments" to view data</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let shipmentsData = [];
+        let filteredData = [];
+
+        async function getEndpointByCode(integrationCode) {
+            const instanceName = localStorage.getItem('wms_instance') || 'PROD';
+            return new Promise((resolve) => {
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'endpoint_' + integrationCode + '_' + Date.now();
+                    const handler = function(event) {
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            if (data.requestId === requestId && data.endpoint) {
+                                resolve(data.endpoint);
+                                window.chrome.webview.removeEventListener('message', handler);
+                            }
+                        } catch (e) {}
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+                    window.chrome.webview.postMessage({
+                        action: 'getEndpoint',
+                        requestId: requestId,
+                        integrationCode: integrationCode,
+                        instanceName: instanceName
+                    });
+                    setTimeout(() => { window.chrome.webview.removeEventListener('message', handler); resolve(null); }, 5000);
+                } else { resolve(null); }
+            });
+        }
+
+        async function fetchWithBridge(url) {
+            return new Promise((resolve, reject) => {
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'fetch_' + Date.now();
+                    const handler = function(event) {
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            if (data.requestId === requestId) {
+                                window.chrome.webview.removeEventListener('message', handler);
+                                if (data.success) {
+                                    let responseData = data.data;
+                                    if (typeof responseData === 'string') responseData = JSON.parse(responseData);
+                                    resolve(responseData);
+                                } else { reject(new Error(data.error || 'Request failed')); }
+                            }
+                        } catch (e) {}
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+                    window.chrome.webview.postMessage({ action: 'executeGet', requestId: requestId, url: url });
+                    setTimeout(() => { window.chrome.webview.removeEventListener('message', handler); reject(new Error('Timeout')); }, 30000);
+                } else { reject(new Error('WebView not available')); }
+            });
+        }
+
+        async function loadShipments() {
+            const btn = document.getElementById('loadBtn');
+            const orgCode = document.getElementById('orgCode').value.trim();
+
+            if (!orgCode) { alert('Please enter Organization Code'); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="rw-spinner"></span> Loading...';
+
+            const container = document.getElementById('resultsContainer');
+            container.innerHTML = '<div class="rw-empty-state"><div class="rw-spinner" style="width:40px;height:40px;border-width:3px;"></div><p style="margin-top:16px;">Loading shipments...</p></div>';
+
+            try {
+                const endpoint = await getEndpointByCode('APEX_SHIPMENTS');
+                if (!endpoint) throw new Error('APEX_SHIPMENTS endpoint not configured');
+
+                let url = `${endpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                const shipmentNum = document.getElementById('shipmentNum').value.trim();
+                const statusFilter = document.getElementById('statusFilter').value;
+                if (shipmentNum) url += `&p_shipment_number=${encodeURIComponent(shipmentNum)}`;
+                if (statusFilter) url += `&p_status=${encodeURIComponent(statusFilter)}`;
+
+                const response = await fetchWithBridge(url);
+
+                if (response && response.items) {
+                    shipmentsData = response.items;
+                    filteredData = [...shipmentsData];
+                    renderResults(filteredData);
+                    updateStats(filteredData);
+                    document.getElementById('statsBar').style.display = 'flex';
+                    document.getElementById('toolbar').style.display = 'flex';
+                } else {
+                    shipmentsData = [];
+                    filteredData = [];
+                    renderResults([]);
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="rw-empty-state"><div class="rw-empty-state-icon" style="color:var(--rw-red);">&#9888;</div><div class="rw-empty-state-title">Error</div><p>${error.message}</p></div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>&#8635;</span> Load Shipments';
+            }
+        }
+
+        function renderResults(data) {
+            const container = document.getElementById('resultsContainer');
+
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="rw-empty-state"><div class="rw-empty-state-icon">&#128466;</div><div class="rw-empty-state-title">No Shipments Found</div><p>Try adjusting your search criteria</p></div>';
+                document.getElementById('statsBar').style.display = 'none';
+                document.getElementById('toolbar').style.display = 'none';
+                return;
+            }
+
+            let html = `<table class="rw-table"><thead><tr>
+                <th>Shipment Number</th>
+                <th>Ship Date</th>
+                <th>Customer</th>
+                <th>Ship To</th>
+                <th>Carrier</th>
+                <th>Status</th>
+                <th>Lines</th>
+                <th>Actions</th>
+            </tr></thead><tbody>`;
+
+            data.forEach((item, idx) => {
+                const shipNum = item.shipment_number || item.SHIPMENT_NUMBER || '-';
+                const shipDate = item.ship_date || item.SHIP_DATE || '-';
+                const customer = item.customer_name || item.CUSTOMER_NAME || '-';
+                const shipTo = item.ship_to_location || item.SHIP_TO_LOCATION || '-';
+                const carrier = item.carrier_name || item.CARRIER_NAME || '-';
+                const status = item.status || item.STATUS || 'Open';
+                const lines = item.line_count || item.LINE_COUNT || 0;
+
+                const statusClass = status.toLowerCase() === 'open' ? 'rw-badge-warning' :
+                                   status.toLowerCase() === 'shipped' ? 'rw-badge-success' : 'rw-badge-info';
+
+                html += `<tr>
+                    <td style="font-weight: 500;">${shipNum}</td>
+                    <td>${formatDate(shipDate)}</td>
+                    <td>${customer}</td>
+                    <td>${shipTo}</td>
+                    <td>${carrier}</td>
+                    <td><span class="rw-badge ${statusClass}">${status}</span></td>
+                    <td>${lines}</td>
+                    <td><button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="viewDetails(${idx})">View</button></td>
+                </tr>`;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr || dateStr === '-') return '-';
+            if (dateStr.includes('T')) {
+                try { return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
+                catch (e) { return dateStr; }
+            }
+            return dateStr;
+        }
+
+        function updateStats(data) {
+            document.getElementById('totalShipments').textContent = data.length;
+            const open = data.filter(s => (s.status || s.STATUS || '').toLowerCase() === 'open').length;
+            const shipped = data.filter(s => (s.status || s.STATUS || '').toLowerCase() === 'shipped').length;
+            document.getElementById('openShipments').textContent = open;
+            document.getElementById('shippedCount').textContent = shipped;
+        }
+
+        function filterResults() {
+            const filter = document.getElementById('filterInput').value.toLowerCase().trim();
+            if (!filter) { filteredData = [...shipmentsData]; }
+            else {
+                filteredData = shipmentsData.filter(item => {
+                    const shipNum = (item.shipment_number || item.SHIPMENT_NUMBER || '').toLowerCase();
+                    const customer = (item.customer_name || item.CUSTOMER_NAME || '').toLowerCase();
+                    return shipNum.includes(filter) || customer.includes(filter);
+                });
+            }
+            renderResults(filteredData);
+            updateStats(filteredData);
+        }
+
+        function viewDetails(idx) {
+            const item = filteredData[idx];
+            if (!item) return;
+            alert('Shipment Details: ' + (item.shipment_number || item.SHIPMENT_NUMBER) + '\n\nThis feature is under development.');
+        }
+
+        function clearFilters() {
+            document.getElementById('shipmentNum').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('filterInput').value = '';
+        }
+
+        function exportToCSV() {
+            if (filteredData.length === 0) { alert('No data to export'); return; }
+            const headers = ['Shipment Number', 'Ship Date', 'Customer', 'Ship To', 'Carrier', 'Status'];
+            const rows = filteredData.map(item => [
+                item.shipment_number || item.SHIPMENT_NUMBER || '',
+                item.ship_date || item.SHIP_DATE || '',
+                item.customer_name || item.CUSTOMER_NAME || '',
+                item.ship_to_location || item.SHIP_TO_LOCATION || '',
+                item.carrier_name || item.CARRIER_NAME || '',
+                item.status || item.STATUS || ''
+            ]);
+
+            let csv = headers.join(',') + '\n';
+            rows.forEach(row => { csv += row.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',') + '\n'; });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'shipments_export.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedOrg = localStorage.getItem('wms_org_code') || localStorage.getItem('wms_default_org') || 'AMS';
+            document.getElementById('orgCode').value = savedOrg;
+        });
+    </script>
+</body>
+</html>

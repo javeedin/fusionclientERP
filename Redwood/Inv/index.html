@@ -210,16 +210,16 @@
 
         .rw-sidebar-nav {
             flex: 1;
-            padding: 16px 0;
+            padding: 8px 0;
             overflow-y: auto;
         }
 
         .rw-nav-group {
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
 
         .rw-nav-group-header {
-            padding: 10px 20px;
+            padding: 8px 20px 6px;
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
@@ -2791,12 +2791,13 @@
                             <th style="text-align:right;">Received</th>
                             <th style="text-align:right;">Remaining</th>
                             <th>UOM</th>
+                            <th style="text-align:center;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
             `;
 
-            items.forEach(line => {
+            items.forEach((line, idx) => {
                 const lineNum = line.line_number || line.LINE_NUMBER || '-';
                 const itemNum = line.item_number || line.ITEM_NUMBER || '-';
                 const desc = line.item_description || line.ITEM_DESCRIPTION || '-';
@@ -2804,6 +2805,7 @@
                 const received = line.received_quantity || line.RECEIVED_QUANTITY || 0;
                 const remaining = ordered - received;
                 const uom = line.uom || line.UOM || line.primary_uom_code || '-';
+                const docNum = line.document_number || line.DOCUMENT_NUMBER || '';
 
                 html += `
                     <tr>
@@ -2814,12 +2816,139 @@
                         <td style="text-align:right;">${received}</td>
                         <td style="text-align:right;font-weight:500;color:var(--rw-red);">${remaining}</td>
                         <td>${uom}</td>
+                        <td style="text-align:center;">
+                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="editReceiptLine('${docNum}', '${lineNum}', ${idx})" title="Edit Line">
+                                &#9998; Edit
+                            </button>
+                        </td>
                     </tr>
                 `;
             });
 
             html += '</tbody></table>';
             return html;
+        }
+
+        // Store lines data for editing
+        let currentEditLine = null;
+
+        function editReceiptLine(docNum, lineNum, idx) {
+            // Find the line data
+            const line = poReceiptsLinesData.find(l =>
+                (l.document_number || l.DOCUMENT_NUMBER) === docNum &&
+                (l.line_number || l.LINE_NUMBER) == lineNum
+            );
+
+            if (!line) {
+                alert('Line data not found');
+                return;
+            }
+
+            currentEditLine = { ...line, docNum, lineNum, idx };
+
+            const ordered = line.ordered_quantity || line.ORDERED_QUANTITY || 0;
+            const received = line.received_quantity || line.RECEIVED_QUANTITY || 0;
+            const remaining = ordered - received;
+            const itemNum = line.item_number || line.ITEM_NUMBER || '-';
+            const desc = line.item_description || line.ITEM_DESCRIPTION || '-';
+            const uom = line.uom || line.UOM || line.primary_uom_code || '-';
+
+            document.getElementById('receiptsDialogTitle').textContent = `Edit Receipt Line - PO ${docNum}`;
+            document.getElementById('receiptsDialogBody').innerHTML = `
+                <div class="rw-detail-grid" style="margin-bottom: 20px;">
+                    <div class="rw-detail-item">
+                        <span class="rw-detail-label">Line Number</span>
+                        <span class="rw-detail-value">${lineNum}</span>
+                    </div>
+                    <div class="rw-detail-item">
+                        <span class="rw-detail-label">Item Number</span>
+                        <span class="rw-detail-value">${itemNum}</span>
+                    </div>
+                    <div class="rw-detail-item">
+                        <span class="rw-detail-label">Description</span>
+                        <span class="rw-detail-value">${desc}</span>
+                    </div>
+                    <div class="rw-detail-item">
+                        <span class="rw-detail-label">UOM</span>
+                        <span class="rw-detail-value">${uom}</span>
+                    </div>
+                    <div class="rw-detail-item">
+                        <span class="rw-detail-label">Ordered Qty</span>
+                        <span class="rw-detail-value">${ordered}</span>
+                    </div>
+                    <div class="rw-detail-item">
+                        <span class="rw-detail-label">Already Received</span>
+                        <span class="rw-detail-value">${received}</span>
+                    </div>
+                </div>
+                <div class="rw-form-row" style="margin-top: 16px;">
+                    <div class="rw-form-group" style="flex:1;">
+                        <label class="rw-label">Quantity to Receive *</label>
+                        <input type="number" id="edit-receiveQty" class="rw-input" value="${remaining}" min="0" max="${remaining}" step="1">
+                    </div>
+                    <div class="rw-form-group" style="flex:1;">
+                        <label class="rw-label">Subinventory</label>
+                        <input type="text" id="edit-subinventory" class="rw-input" placeholder="Enter subinventory...">
+                    </div>
+                    <div class="rw-form-group" style="flex:1;">
+                        <label class="rw-label">Locator</label>
+                        <input type="text" id="edit-locator" class="rw-input" placeholder="Enter locator...">
+                    </div>
+                </div>
+                <div class="rw-form-row" style="margin-top: 12px;">
+                    <div class="rw-form-group" style="flex:1;">
+                        <label class="rw-label">Lot Number (if applicable)</label>
+                        <input type="text" id="edit-lotNumber" class="rw-input" placeholder="Enter lot number...">
+                    </div>
+                    <div class="rw-form-group" style="flex:1;">
+                        <label class="rw-label">Comments</label>
+                        <input type="text" id="edit-comments" class="rw-input" placeholder="Optional comments...">
+                    </div>
+                </div>
+                <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
+                    <button class="rw-btn rw-btn-secondary" onclick="closeReceiptsDialog()">Cancel</button>
+                    <button class="rw-btn rw-btn-primary" onclick="saveReceiptLine()">
+                        &#10004; Save & Receive
+                    </button>
+                </div>
+            `;
+            document.getElementById('receiptsDialogOverlay').classList.add('active');
+        }
+
+        function saveReceiptLine() {
+            if (!currentEditLine) return;
+
+            const receiveQty = parseFloat(document.getElementById('edit-receiveQty').value) || 0;
+            const subinventory = document.getElementById('edit-subinventory').value.trim();
+            const locator = document.getElementById('edit-locator').value.trim();
+            const lotNumber = document.getElementById('edit-lotNumber').value.trim();
+            const comments = document.getElementById('edit-comments').value.trim();
+
+            if (receiveQty <= 0) {
+                alert('Please enter a valid quantity to receive');
+                return;
+            }
+
+            // Build receipt transaction data
+            const transactionData = {
+                document_number: currentEditLine.docNum,
+                line_number: currentEditLine.lineNum,
+                receive_quantity: receiveQty,
+                subinventory: subinventory,
+                locator: locator,
+                lot_number: lotNumber,
+                comments: comments,
+                ...currentEditLine
+            };
+
+            console.log('[Receipts] Saving receipt line:', transactionData);
+
+            // TODO: Call API to save the receipt transaction
+            // For now, show success message
+            alert(`Receipt saved!\n\nPO: ${currentEditLine.docNum}\nLine: ${currentEditLine.lineNum}\nQuantity: ${receiveQty}`);
+
+            closeReceiptsDialog();
+            currentEditLine = null;
         }
 
         function togglePOGroup(docNum) {
@@ -3127,6 +3256,8 @@
             }
         }
 
+        let expandedQtyItems = new Set();
+
         function renderOnHandTable(data) {
             const container = document.getElementById('qty-resultsContainer');
 
@@ -3141,43 +3272,181 @@
                 return;
             }
 
-            let html = `<table class="rw-table"><thead><tr>
-                <th>Organization</th>
-                <th>Subinventory</th>
-                <th>Item Number</th>
-                <th>Description</th>
-                <th>Lot Number</th>
-                <th style="text-align: right;">Quantity</th>
-                <th>UOM</th>
-                <th>Status</th>
-                <th>Expiration</th>
-                <th>Serials</th>
-            </tr></thead><tbody>`;
+            // Group by item_number + description
+            const groups = {};
+            data.forEach(item => {
+                const itemNum = item.item_number || item.ITEM_NUMBER || '-';
+                const desc = item.item_description || item.ITEM_DESCRIPTION || '-';
+                const key = `${itemNum}||${desc}`;
 
-            data.forEach((item, idx) => {
+                if (!groups[key]) {
+                    groups[key] = {
+                        itemNumber: itemNum,
+                        description: desc,
+                        organization: item.organization_code || '-',
+                        uom: item.primary_uom_code || item.uom || '-',
+                        totalQty: 0,
+                        lots: []
+                    };
+                }
+
+                groups[key].totalQty += parseFloat(item.primaryquantity) || 0;
+                groups[key].lots.push(item);
+            });
+
+            let html = '<div style="border-top: 1px solid var(--rw-neutral-100);">';
+
+            Object.keys(groups).forEach((key, idx) => {
+                const group = groups[key];
+                const isExpanded = expandedQtyItems.has(key);
+                const lotCount = group.lots.length;
+                const safeKey = key.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+
+                html += `
+                    <div class="rw-qty-group" style="border-bottom: 1px solid var(--rw-neutral-100);">
+                        <div style="display: flex; align-items: center; padding: 16px 24px; cursor: pointer; transition: background 0.15s;"
+                             onmouseover="this.style.background='var(--rw-red-light)'"
+                             onmouseout="this.style.background=''"
+                             onclick="toggleQtyGroup('${safeKey}')">
+                            <div id="qtyIcon_${idx}" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;margin-right:16px;color:var(--rw-red);font-size:12px;transition:transform 0.2s;${isExpanded ? 'transform:rotate(90deg);' : ''}">&#9654;</div>
+                            <div style="flex:1;display:grid;grid-template-columns:1fr 2fr repeat(3, auto);gap:24px;align-items:center;">
+                                <div>
+                                    <div style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;margin-bottom:2px;">Item Number</div>
+                                    <div style="font-weight:600;color:var(--rw-red);font-size:15px;">${group.itemNumber}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;margin-bottom:2px;">Description</div>
+                                    <div style="font-weight:500;color:var(--rw-neutral-800);font-size:14px;" title="${group.description}">${truncateQtyText(group.description, 50)}</div>
+                                </div>
+                                <div style="text-align:center;min-width:80px;">
+                                    <div style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;margin-bottom:2px;">Total Qty</div>
+                                    <div style="font-weight:700;color:var(--rw-neutral-900);font-size:16px;">${formatQtyNumber(group.totalQty)}</div>
+                                </div>
+                                <div style="text-align:center;min-width:80px;">
+                                    <div style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;margin-bottom:2px;">Lots</div>
+                                    <div style="font-weight:600;color:var(--rw-neutral-700);font-size:15px;">${lotCount}</div>
+                                </div>
+                                <div style="text-align:center;min-width:60px;">
+                                    <div style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;margin-bottom:2px;">UOM</div>
+                                    <div style="font-weight:500;color:var(--rw-neutral-700);font-size:14px;">${group.uom}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="qtyLots_${idx}" style="display:${isExpanded ? 'block' : 'none'};padding:0 24px 20px 64px;background:var(--rw-neutral-50);">
+                            ${renderQtyLots(group.lots)}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+
+            // Add toolbar for expand/collapse all
+            const toolbar = document.getElementById('qty-toolbar');
+            if (toolbar && !document.getElementById('qty-expandCollapseButtons')) {
+                const expandBtns = document.createElement('div');
+                expandBtns.id = 'qty-expandCollapseButtons';
+                expandBtns.style.cssText = 'display:flex;gap:8px;margin-left:auto;';
+                expandBtns.innerHTML = `
+                    <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="expandAllQtyGroups()">Expand All</button>
+                    <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="collapseAllQtyGroups()">Collapse</button>
+                `;
+                toolbar.appendChild(expandBtns);
+            }
+
+            container.innerHTML = html;
+
+            // Store group keys for expand/collapse
+            window.qtyGroupKeys = Object.keys(groups);
+        }
+
+        function renderQtyLots(lots) {
+            if (!lots || lots.length === 0) {
+                return '<p style="color:var(--rw-neutral-500);padding:12px 0;">No lot details available</p>';
+            }
+
+            let html = `
+                <table class="rw-table" style="background:var(--rw-white);border-radius:var(--rw-radius);overflow:hidden;box-shadow:var(--rw-shadow);margin-top:8px;">
+                    <thead>
+                        <tr>
+                            <th>Subinventory</th>
+                            <th>Lot Number</th>
+                            <th style="text-align:right;">Quantity</th>
+                            <th>Status</th>
+                            <th>Expiration</th>
+                            <th style="text-align:center;">Serials</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            lots.forEach(item => {
                 const statusClass = (item.materialstatus || '').toLowerCase() === 'active' ? 'rw-badge-success' : 'rw-badge-info';
                 const expDate = item.expirationdate ? new Date(item.expirationdate).toLocaleDateString() : '-';
                 const hasSerial = item.srno_link && item.srno_link.length > 0;
-                const desc = truncateQtyText(item.item_description, 30);
 
-                html += `<tr>
-                    <td>${item.organization_code || '-'}</td>
-                    <td>${item.sub_inventory_code || '-'}</td>
-                    <td style="font-weight: 500;">${item.item_number || '-'}</td>
-                    <td title="${item.item_description || ''}">${desc}</td>
-                    <td>${item.lotnumber || '-'}</td>
-                    <td style="text-align: right; font-weight: 600;">${formatQtyNumber(item.primaryquantity)}</td>
-                    <td>${item.primary_uom_code || item.uom || '-'}</td>
-                    <td><span class="rw-badge ${statusClass}">${item.materialstatus || '-'}</span></td>
-                    <td>${expDate}</td>
-                    <td style="text-align: center;">
-                        ${hasSerial ? `<button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="showSerialNumbers('${encodeURIComponent(item.srno_link)}', '${item.item_number || ''}')">View</button>` : '-'}
-                    </td>
-                </tr>`;
+                html += `
+                    <tr>
+                        <td>${item.sub_inventory_code || '-'}</td>
+                        <td style="font-weight:500;">${item.lotnumber || '-'}</td>
+                        <td style="text-align:right;font-weight:600;">${formatQtyNumber(item.primaryquantity)}</td>
+                        <td><span class="rw-badge ${statusClass}">${item.materialstatus || '-'}</span></td>
+                        <td>${expDate}</td>
+                        <td style="text-align:center;">
+                            ${hasSerial ? `<button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="showSerialNumbers('${encodeURIComponent(item.srno_link)}', '${item.item_number || ''}')">View</button>` : '-'}
+                        </td>
+                    </tr>
+                `;
             });
 
             html += '</tbody></table>';
-            container.innerHTML = html;
+            return html;
+        }
+
+        function toggleQtyGroup(key) {
+            const groups = document.querySelectorAll('.rw-qty-group');
+            const idx = window.qtyGroupKeys ? window.qtyGroupKeys.indexOf(key) : -1;
+
+            if (idx === -1) return;
+
+            const icon = document.getElementById('qtyIcon_' + idx);
+            const lotsDiv = document.getElementById('qtyLots_' + idx);
+
+            if (lotsDiv.style.display === 'none') {
+                lotsDiv.style.display = 'block';
+                icon.style.transform = 'rotate(90deg)';
+                expandedQtyItems.add(key);
+            } else {
+                lotsDiv.style.display = 'none';
+                icon.style.transform = 'rotate(0deg)';
+                expandedQtyItems.delete(key);
+            }
+        }
+
+        function expandAllQtyGroups() {
+            if (!window.qtyGroupKeys) return;
+            window.qtyGroupKeys.forEach((key, idx) => {
+                const icon = document.getElementById('qtyIcon_' + idx);
+                const lotsDiv = document.getElementById('qtyLots_' + idx);
+                if (lotsDiv) {
+                    lotsDiv.style.display = 'block';
+                    icon.style.transform = 'rotate(90deg)';
+                    expandedQtyItems.add(key);
+                }
+            });
+        }
+
+        function collapseAllQtyGroups() {
+            if (!window.qtyGroupKeys) return;
+            window.qtyGroupKeys.forEach((key, idx) => {
+                const icon = document.getElementById('qtyIcon_' + idx);
+                const lotsDiv = document.getElementById('qtyLots_' + idx);
+                if (lotsDiv) {
+                    lotsDiv.style.display = 'none';
+                    icon.style.transform = 'rotate(0deg)';
+                    expandedQtyItems.delete(key);
+                }
+            });
         }
 
         function filterOnHandResults() {

@@ -654,6 +654,19 @@
                         <span>Physical Inventory</span>
                     </div>
                 </div>
+
+                <!-- Settings -->
+                <div class="rw-nav-group">
+                    <div class="rw-nav-group-header">System</div>
+                    <div class="rw-nav-item" onclick="navigateTo('settings')">
+                        <span class="rw-nav-icon">&#9881;</span>
+                        <span>Settings</span>
+                    </div>
+                    <div class="rw-nav-item" onclick="goHome()">
+                        <span class="rw-nav-icon">&#127968;</span>
+                        <span>Back to Home</span>
+                    </div>
+                </div>
             </nav>
         </aside>
 
@@ -773,6 +786,11 @@
             <!-- Shipments Page -->
             <div class="rw-content-area" id="content-shipments">
                 <iframe src="shipments.html" style="width:100%; height:calc(100vh - 120px); border:none;"></iframe>
+            </div>
+
+            <!-- Settings Page -->
+            <div class="rw-content-area" id="content-settings">
+                <iframe src="settings.html" style="width:100%; height:calc(100vh - 120px); border:none;"></iframe>
             </div>
 
             <!-- Generic Page Template -->
@@ -957,6 +975,11 @@
                     resolve(null);
                 }
             });
+        }
+
+        // Navigate back to home page
+        function goHome() {
+            window.location.href = '../home.html';
         }
     </script>
 </body>

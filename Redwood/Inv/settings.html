@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Inventory</title>
+    <style>
+        :root {
+            --rw-red: #c74634;
+            --rw-red-hover: #a83a2b;
+            --rw-red-light: #fef4f3;
+            --rw-neutral-900: #161513;
+            --rw-neutral-800: #312d2a;
+            --rw-neutral-700: #4a4744;
+            --rw-neutral-500: #6b6966;
+            --rw-neutral-400: #8a8886;
+            --rw-neutral-300: #b8b6b4;
+            --rw-neutral-200: #d5d4d3;
+            --rw-neutral-100: #ebebea;
+            --rw-neutral-50: #f7f6f6;
+            --rw-white: #ffffff;
+            --rw-success: #1e7e34;
+            --rw-success-bg: #e6f4ea;
+            --rw-info: #0056b3;
+            --rw-info-bg: #e7f1ff;
+            --rw-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --rw-radius: 8px;
+            --rw-radius-lg: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Oracle Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: var(--rw-neutral-50);
+            color: var(--rw-neutral-800);
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            font-size: 14px;
+            color: var(--rw-neutral-500);
+        }
+
+        .settings-section {
+            background: var(--rw-white);
+            border-radius: var(--rw-radius-lg);
+            box-shadow: var(--rw-shadow);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+            background: var(--rw-neutral-50);
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+        }
+
+        .section-desc {
+            font-size: 13px;
+            color: var(--rw-neutral-500);
+            margin-top: 4px;
+        }
+
+        .section-body {
+            padding: 0;
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-item-info {
+            flex: 1;
+        }
+
+        .settings-item-label {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--rw-neutral-800);
+            margin-bottom: 4px;
+        }
+
+        .settings-item-desc {
+            font-size: 13px;
+            color: var(--rw-neutral-500);
+        }
+
+        .settings-item-value {
+            font-size: 14px;
+            color: var(--rw-neutral-700);
+            background: var(--rw-neutral-50);
+            padding: 8px 16px;
+            border-radius: var(--rw-radius);
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .settings-input {
+            padding: 10px 14px;
+            border: 1px solid var(--rw-neutral-300);
+            border-radius: var(--rw-radius);
+            font-size: 14px;
+            color: var(--rw-neutral-800);
+            min-width: 200px;
+        }
+
+        .settings-input:focus {
+            outline: none;
+            border-color: var(--rw-red);
+            box-shadow: 0 0 0 3px var(--rw-red-light);
+        }
+
+        .settings-select {
+            padding: 10px 14px;
+            border: 1px solid var(--rw-neutral-300);
+            border-radius: var(--rw-radius);
+            font-size: 14px;
+            color: var(--rw-neutral-800);
+            min-width: 200px;
+            background: var(--rw-white);
+            cursor: pointer;
+        }
+
+        .settings-select:focus {
+            outline: none;
+            border-color: var(--rw-red);
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            width: 52px;
+            height: 28px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--rw-neutral-300);
+            transition: 0.3s;
+            border-radius: 28px;
+        }
+
+        .toggle-slider::before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            transition: 0.3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: var(--rw-red);
+        }
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(24px);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border-radius: var(--rw-radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--rw-red);
+            color: var(--rw-white);
+        }
+
+        .btn-primary:hover {
+            background: var(--rw-red-hover);
+        }
+
+        .btn-secondary {
+            background: var(--rw-white);
+            color: var(--rw-neutral-700);
+            border: 1px solid var(--rw-neutral-300);
+        }
+
+        .btn-secondary:hover {
+            background: var(--rw-neutral-50);
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            padding: 20px 24px;
+            background: var(--rw-neutral-50);
+            border-top: 1px solid var(--rw-neutral-100);
+        }
+
+        /* Alert */
+        .alert {
+            padding: 14px 20px;
+            border-radius: var(--rw-radius);
+            margin-bottom: 24px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .alert.show { display: flex; align-items: center; gap: 12px; }
+
+        .alert-success { background: var(--rw-success-bg); color: var(--rw-success); }
+        .alert-info { background: var(--rw-info-bg); color: var(--rw-info); }
+        .alert-error { background: #fee2e2; color: #dc2626; }
+
+        /* Info Cards */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            padding: 20px 24px;
+        }
+
+        .info-card {
+            background: var(--rw-neutral-50);
+            border-radius: var(--rw-radius);
+            padding: 16px;
+        }
+
+        .info-card-label {
+            font-size: 12px;
+            color: var(--rw-neutral-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .info-card-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--rw-neutral-800);
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 16px; }
+            .settings-item { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .settings-input, .settings-select { width: 100%; }
+            .info-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Settings</h1>
+            <p class="page-subtitle">Configure application preferences and view system information</p>
+        </div>
+
+        <div id="alertBox" class="alert"></div>
+
+        <!-- User & Session Info -->
+        <div class="settings-section">
+            <div class="section-header">
+                <div class="section-title">Session Information</div>
+                <div class="section-desc">Current user session details</div>
+            </div>
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-card-label">Username</div>
+                    <div class="info-card-value" id="infoUsername">-</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-label">Instance</div>
+                    <div class="info-card-value" id="infoInstance">-</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-label">Organization</div>
+                    <div class="info-card-value" id="infoOrg">-</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-label">Login Time</div>
+                    <div class="info-card-value" id="infoLoginTime">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Organization Settings -->
+        <div class="settings-section">
+            <div class="section-header">
+                <div class="section-title">Organization</div>
+                <div class="section-desc">Set your default inventory organization</div>
+            </div>
+            <div class="section-body">
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">Default Organization</div>
+                        <div class="settings-item-desc">Select the organization to use by default when loading data</div>
+                    </div>
+                    <select id="defaultOrg" class="settings-select">
+                        <option value="">Select Organization...</option>
+                    </select>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">Organization Code</div>
+                        <div class="settings-item-desc">Manually enter an organization code</div>
+                    </div>
+                    <input type="text" id="orgCode" class="settings-input" placeholder="e.g., AMS">
+                </div>
+            </div>
+        </div>
+
+        <!-- Display Settings -->
+        <div class="settings-section">
+            <div class="section-header">
+                <div class="section-title">Display</div>
+                <div class="section-desc">Customize how data is displayed</div>
+            </div>
+            <div class="section-body">
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">Auto-expand Groups</div>
+                        <div class="settings-item-desc">Automatically expand PO groups when loading data</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autoExpand">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">Show Line Totals</div>
+                        <div class="settings-item-desc">Display quantity totals in line item tables</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showTotals" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">Default Page Size</div>
+                        <div class="settings-item-desc">Number of records to display per page</div>
+                    </div>
+                    <select id="pageSize" class="settings-select">
+                        <option value="25">25 records</option>
+                        <option value="50" selected>50 records</option>
+                        <option value="100">100 records</option>
+                        <option value="200">200 records</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Settings -->
+        <div class="settings-section">
+            <div class="section-header">
+                <div class="section-title">API Configuration</div>
+                <div class="section-desc">View and test API connections</div>
+            </div>
+            <div class="section-body">
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">API Status</div>
+                        <div class="settings-item-desc">Current connection status to backend services</div>
+                    </div>
+                    <span class="settings-item-value" id="apiStatus">Checking...</span>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">Test Connection</div>
+                        <div class="settings-item-desc">Verify API connectivity to the selected instance</div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="testConnection()">
+                        &#128279; Test Connection
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Management -->
+        <div class="settings-section">
+            <div class="section-header">
+                <div class="section-title">Data Management</div>
+                <div class="section-desc">Manage cached data and preferences</div>
+            </div>
+            <div class="section-body">
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">Clear Cache</div>
+                        <div class="settings-item-desc">Remove all cached data and refresh from server</div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="clearCache()">
+                        &#128465; Clear Cache
+                    </button>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-label">Reset Settings</div>
+                        <div class="settings-item-desc">Reset all settings to default values</div>
+                    </div>
+                    <button class="btn btn-danger" onclick="resetSettings()">
+                        &#128260; Reset All
+                    </button>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">
+                    &#128190; Save Settings
+                </button>
+            </div>
+        </div>
+
+        <!-- Version Info -->
+        <div class="settings-section">
+            <div class="section-header">
+                <div class="section-title">About</div>
+            </div>
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-card-label">Application</div>
+                    <div class="info-card-value">FusionClientERP</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-label">Version</div>
+                    <div class="info-card-value">v2025.12.01</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-label">Module</div>
+                    <div class="info-card-value">Inventory</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-label">UI Framework</div>
+                    <div class="info-card-value">Oracle Redwood</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const isWebView2 = !!(window.chrome && window.chrome.webview);
+
+        function showAlert(message, type) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.innerHTML = `<span>${type === 'success' ? '&#9989;' : type === 'error' ? '&#9888;' : '&#8505;'}</span> ${message}`;
+            alertBox.className = 'alert alert-' + type + ' show';
+            setTimeout(() => alertBox.classList.remove('show'), 5000);
+        }
+
+        function loadSettings() {
+            // Session Info
+            document.getElementById('infoUsername').textContent = localStorage.getItem('erp_username') || localStorage.getItem('wms_username') || '-';
+            document.getElementById('infoInstance').textContent = localStorage.getItem('erp_instanceName') || localStorage.getItem('wms_instance') || '-';
+            document.getElementById('infoOrg').textContent = localStorage.getItem('wms_org_name') || localStorage.getItem('wms_org_code') || '-';
+
+            const loginTime = localStorage.getItem('erp_loginTime');
+            if (loginTime) {
+                document.getElementById('infoLoginTime').textContent = new Date(loginTime).toLocaleString();
+            }
+
+            // Organization
+            const orgCode = localStorage.getItem('wms_org_code') || localStorage.getItem('wms_default_org') || '';
+            document.getElementById('orgCode').value = orgCode;
+
+            // Populate org dropdown
+            const orgsJson = localStorage.getItem('wms_organizations');
+            if (orgsJson) {
+                try {
+                    const orgs = JSON.parse(orgsJson);
+                    const select = document.getElementById('defaultOrg');
+                    orgs.forEach(org => {
+                        const opt = document.createElement('option');
+                        opt.value = org.organization_code || org.ORGANIZATION_CODE;
+                        opt.textContent = `${org.organization_code || org.ORGANIZATION_CODE} - ${org.organization_name || org.ORGANIZATION_NAME || ''}`;
+                        if (opt.value === orgCode) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                } catch (e) {}
+            }
+
+            // Display settings
+            document.getElementById('autoExpand').checked = localStorage.getItem('inv_autoExpand') === 'true';
+            document.getElementById('showTotals').checked = localStorage.getItem('inv_showTotals') !== 'false';
+            document.getElementById('pageSize').value = localStorage.getItem('inv_pageSize') || '50';
+
+            // Check API status
+            checkApiStatus();
+        }
+
+        function checkApiStatus() {
+            const statusEl = document.getElementById('apiStatus');
+            if (isWebView2) {
+                statusEl.textContent = 'Connected';
+                statusEl.style.color = '#1e7e34';
+            } else {
+                statusEl.textContent = 'Browser Mode';
+                statusEl.style.color = '#856404';
+            }
+        }
+
+        function testConnection() {
+            showAlert('Testing connection...', 'info');
+
+            if (isWebView2) {
+                window.chrome.webview.postMessage({
+                    action: 'testConnection',
+                    requestId: 'test_' + Date.now()
+                });
+                setTimeout(() => showAlert('Connection test completed', 'success'), 1500);
+            } else {
+                setTimeout(() => showAlert('WebView2 not available in browser mode', 'error'), 500);
+            }
+        }
+
+        function saveSettings() {
+            // Save organization
+            const orgCode = document.getElementById('orgCode').value.trim();
+            const defaultOrg = document.getElementById('defaultOrg').value;
+
+            if (orgCode) {
+                localStorage.setItem('wms_org_code', orgCode);
+                localStorage.setItem('wms_default_org', orgCode);
+            } else if (defaultOrg) {
+                localStorage.setItem('wms_org_code', defaultOrg);
+                localStorage.setItem('wms_default_org', defaultOrg);
+            }
+
+            // Save display settings
+            localStorage.setItem('inv_autoExpand', document.getElementById('autoExpand').checked);
+            localStorage.setItem('inv_showTotals', document.getElementById('showTotals').checked);
+            localStorage.setItem('inv_pageSize', document.getElementById('pageSize').value);
+
+            showAlert('Settings saved successfully', 'success');
+        }
+
+        function clearCache() {
+            if (confirm('Clear all cached data? You will need to reload data after this.')) {
+                // Clear data caches but keep user settings
+                localStorage.removeItem('inv_cachedItems');
+                localStorage.removeItem('inv_cachedReceipts');
+                localStorage.removeItem('inv_cachedShipments');
+                showAlert('Cache cleared successfully', 'success');
+            }
+        }
+
+        function resetSettings() {
+            if (confirm('Reset all settings to default values? This cannot be undone.')) {
+                localStorage.removeItem('inv_autoExpand');
+                localStorage.removeItem('inv_showTotals');
+                localStorage.removeItem('inv_pageSize');
+                localStorage.removeItem('wms_org_code');
+                localStorage.removeItem('wms_default_org');
+                showAlert('Settings reset to defaults', 'success');
+                setTimeout(() => location.reload(), 1000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadSettings);
+
+        // Listen for org dropdown changes
+        document.getElementById('defaultOrg').addEventListener('change', function() {
+            document.getElementById('orgCode').value = this.value;
+        });
+    </script>
+</body>
+</html>

@@ -5943,19 +5943,19 @@ Click "Run Test" to execute the API call...
             const groupedData = {};
             const allItems = new Set();
 
-            // Group all rows by document_number - each row becomes a line item
+            // First pass: group header data and count rows per document
             data.forEach((row, idx) => {
                 const docNum = row.document_number || row.DOCUMENT_NUMBER || '-';
                 if (!groupedData[docNum]) {
                     groupedData[docNum] = {
                         header: row,
-                        items: []
+                        items: [],
+                        headerRowCount: 0  // Count rows from header data
                     };
                 }
-                // Add this row as a line item in the group
-                groupedData[docNum].items.push(row);
+                groupedData[docNum].headerRowCount++;
 
-                // Track unique item numbers for filter
+                // Track items from header data as well
                 const itemNum = row.item_number || row.ITEM_NUMBER;
                 if (itemNum && itemNum !== '-') {
                     allItems.add(itemNum);
@@ -5964,9 +5964,21 @@ Click "Run Test" to execute the API call...
 
             // Debug: Log grouped data
             const allDocNumbers = Object.keys(groupedData);
-            console.log('[INV] Grouped:', allDocNumbers.length, 'unique POs from', data.length, 'total rows');
+            console.log('[INV] Unique document numbers:', allDocNumbers.length, allDocNumbers);
+            // Debug: Log each group's headerRowCount
             allDocNumbers.forEach(doc => {
-                console.log('[INV] PO:', doc, '| Lines:', groupedData[doc].items.length);
+                console.log('[INV] Doc:', doc, 'headerRowCount:', groupedData[doc].headerRowCount);
+            });
+
+            (poReceiptsLinesData || []).forEach(line => {
+                const lineDocNum = line.document_number || line.DOCUMENT_NUMBER;
+                if (groupedData[lineDocNum]) {
+                    groupedData[lineDocNum].items.push(line);
+                    const itemNum = line.item_number || line.ITEM_NUMBER;
+                    if (itemNum && itemNum !== '-') {
+                        allItems.add(itemNum);
+                    }
+                }
             });
 
             // Populate filters
@@ -5996,8 +6008,8 @@ Click "Run Test" to execute the API call...
                 const toOrgCode = header.to_organization_code || header.TO_ORGANIZATION_CODE || '-';
                 const currencyCode = header.currency_code || header.CURRENCY_CODE || '-';
                 const poRevisionNum = header.po_revision_number !== undefined ? header.po_revision_number : (header.PO_REVISION_NUMBER !== undefined ? header.PO_REVISION_NUMBER : '-');
-                // Number of line items in this PO
-                const noOfItems = items.length;
+                // Use priority: explicit field > lines count > header row count
+                const noOfItems = header.no_of_items || header.NO_OF_ITEMS || items.length || group.headerRowCount || 0;
 
                 // Get creation date - check multiple field names
                 let rawCreationDate = header.creation_date || header.CREATION_DATE || header.created_date || header.CREATED_DATE ||

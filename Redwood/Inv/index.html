@@ -210,16 +210,16 @@
 
         .rw-sidebar-nav {
             flex: 1;
-            padding: 8px 0;
+            padding: 0;
             overflow-y: auto;
         }
 
         .rw-nav-group {
-            margin-bottom: 4px;
+            margin-bottom: 0;
         }
 
         .rw-nav-group-header {
-            padding: 8px 20px 6px;
+            padding: 10px 20px 4px;
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
@@ -2740,13 +2740,12 @@
                     <div class="rw-po-group" data-doc="${docNum}" style="border-bottom: 1px solid var(--rw-neutral-100);">
                         <div style="display: flex; align-items: center; padding: 16px 24px; cursor: pointer; transition: background 0.15s;"
                              onmouseover="this.style.background='var(--rw-red-light)'"
-                             onmouseout="this.style.background=''"
-                             onclick="togglePOGroup('${docNum}')">
+                             onmouseout="this.style.background=''">
                             <input type="checkbox" style="width:18px;height:18px;margin-right:16px;cursor:pointer;accent-color:var(--rw-red);"
                                    data-doc="${docNum}" ${isSelected ? 'checked' : ''}
                                    onclick="event.stopPropagation(); togglePOSelection('${docNum}', this)">
-                            <div id="icon_${docNum}" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;margin-right:12px;color:var(--rw-red);font-size:12px;transition:transform 0.2s;">&#9654;</div>
-                            <div style="display:flex;flex-wrap:wrap;gap:24px;flex:1;font-size:14px;">
+                            <div id="icon_${docNum}" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;margin-right:12px;color:var(--rw-red);font-size:12px;transition:transform 0.2s;" onclick="togglePOGroup('${docNum}')">&#9654;</div>
+                            <div style="display:flex;flex-wrap:wrap;gap:24px;flex:1;font-size:14px;" onclick="togglePOGroup('${docNum}')">
                                 <div style="display:flex;flex-direction:column;gap:2px;">
                                     <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">PO Number</span>
                                     <span style="font-weight:600;color:var(--rw-red);">${docNum}</span>
@@ -2764,9 +2763,12 @@
                                     <span style="font-weight:500;color:var(--rw-neutral-800);">${noOfItems}</span>
                                 </div>
                             </div>
+                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="event.stopPropagation(); editPO('${docNum}')" style="margin-left:16px;">
+                                &#9998; Edit
+                            </button>
                         </div>
                         <div id="lines_${docNum}" style="display:none;padding:0 24px 20px 60px;background:var(--rw-neutral-50);">
-                            ${renderPOLines(items)}
+                            ${renderPOLines(items, docNum)}
                         </div>
                     </div>
                 `;
@@ -2775,7 +2777,7 @@
             container.innerHTML = html;
         }
 
-        function renderPOLines(items) {
+        function renderPOLines(items, docNum) {
             if (!items || items.length === 0) {
                 return '<p style="color:var(--rw-neutral-500);padding:16px;">No line items available</p>';
             }
@@ -2791,7 +2793,6 @@
                             <th style="text-align:right;">Received</th>
                             <th style="text-align:right;">Remaining</th>
                             <th>UOM</th>
-                            <th style="text-align:center;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -2805,7 +2806,6 @@
                 const received = line.received_quantity || line.RECEIVED_QUANTITY || 0;
                 const remaining = ordered - received;
                 const uom = line.uom || line.UOM || line.primary_uom_code || '-';
-                const docNum = line.document_number || line.DOCUMENT_NUMBER || '';
 
                 html += `
                     <tr>
@@ -2816,11 +2816,6 @@
                         <td style="text-align:right;">${received}</td>
                         <td style="text-align:right;font-weight:500;color:var(--rw-red);">${remaining}</td>
                         <td>${uom}</td>
-                        <td style="text-align:center;">
-                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="editReceiptLine('${docNum}', '${lineNum}', ${idx})" title="Edit Line">
-                                &#9998; Edit
-                            </button>
-                        </td>
                     </tr>
                 `;
             });
@@ -2829,63 +2824,80 @@
             return html;
         }
 
-        // Store lines data for editing
-        let currentEditLine = null;
+        // Store PO data for editing
+        let currentEditPO = null;
 
-        function editReceiptLine(docNum, lineNum, idx) {
-            // Find the line data
-            const line = poReceiptsLinesData.find(l =>
-                (l.document_number || l.DOCUMENT_NUMBER) === docNum &&
-                (l.line_number || l.LINE_NUMBER) == lineNum
+        function editPO(docNum) {
+            // Find all lines for this PO
+            const poLines = poReceiptsLinesData.filter(l =>
+                (l.document_number || l.DOCUMENT_NUMBER) === docNum
             );
 
-            if (!line) {
-                alert('Line data not found');
+            // Find header data
+            const poHeader = poReceiptsData.find(h =>
+                (h.document_number || h.DOCUMENT_NUMBER) === docNum
+            );
+
+            if (!poLines || poLines.length === 0) {
+                alert('No line data found for this PO');
                 return;
             }
 
-            currentEditLine = { ...line, docNum, lineNum, idx };
+            currentEditPO = { docNum, lines: poLines, header: poHeader };
 
-            const ordered = line.ordered_quantity || line.ORDERED_QUANTITY || 0;
-            const received = line.received_quantity || line.RECEIVED_QUANTITY || 0;
-            const remaining = ordered - received;
-            const itemNum = line.item_number || line.ITEM_NUMBER || '-';
-            const desc = line.item_description || line.ITEM_DESCRIPTION || '-';
-            const uom = line.uom || line.UOM || line.primary_uom_code || '-';
+            const vendorName = poHeader ? (poHeader.vendor_name || poHeader.VENDOR_NAME || '-') : '-';
 
-            document.getElementById('receiptsDialogTitle').textContent = `Edit Receipt Line - PO ${docNum}`;
+            // Build editable lines table
+            let linesHtml = `
+                <table class="rw-table" style="width:100%;margin-bottom:16px;">
+                    <thead>
+                        <tr>
+                            <th>Line</th>
+                            <th>Item</th>
+                            <th>Description</th>
+                            <th style="text-align:right;">Ordered</th>
+                            <th style="text-align:right;">Received</th>
+                            <th style="text-align:right;">Remaining</th>
+                            <th style="text-align:center;">Qty to Receive</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            poLines.forEach((line, idx) => {
+                const lineNum = line.line_number || line.LINE_NUMBER || '-';
+                const itemNum = line.item_number || line.ITEM_NUMBER || '-';
+                const desc = (line.item_description || line.ITEM_DESCRIPTION || '-').substring(0, 25);
+                const ordered = line.ordered_quantity || line.ORDERED_QUANTITY || 0;
+                const received = line.received_quantity || line.RECEIVED_QUANTITY || 0;
+                const remaining = ordered - received;
+
+                linesHtml += `
+                    <tr>
+                        <td>${lineNum}</td>
+                        <td style="font-weight:500;">${itemNum}</td>
+                        <td title="${line.item_description || ''}">${desc}</td>
+                        <td style="text-align:right;">${ordered}</td>
+                        <td style="text-align:right;">${received}</td>
+                        <td style="text-align:right;color:var(--rw-red);">${remaining}</td>
+                        <td style="text-align:center;">
+                            <input type="number" id="rcv-qty-${idx}" class="rw-input" style="width:80px;text-align:center;padding:6px;"
+                                   value="${remaining}" min="0" max="${remaining}" step="1">
+                        </td>
+                    </tr>
+                `;
+            });
+
+            linesHtml += '</tbody></table>';
+
+            document.getElementById('receiptsDialogTitle').textContent = `Edit PO Receipt - ${docNum}`;
             document.getElementById('receiptsDialogBody').innerHTML = `
-                <div class="rw-detail-grid" style="margin-bottom: 20px;">
-                    <div class="rw-detail-item">
-                        <span class="rw-detail-label">Line Number</span>
-                        <span class="rw-detail-value">${lineNum}</span>
-                    </div>
-                    <div class="rw-detail-item">
-                        <span class="rw-detail-label">Item Number</span>
-                        <span class="rw-detail-value">${itemNum}</span>
-                    </div>
-                    <div class="rw-detail-item">
-                        <span class="rw-detail-label">Description</span>
-                        <span class="rw-detail-value">${desc}</span>
-                    </div>
-                    <div class="rw-detail-item">
-                        <span class="rw-detail-label">UOM</span>
-                        <span class="rw-detail-value">${uom}</span>
-                    </div>
-                    <div class="rw-detail-item">
-                        <span class="rw-detail-label">Ordered Qty</span>
-                        <span class="rw-detail-value">${ordered}</span>
-                    </div>
-                    <div class="rw-detail-item">
-                        <span class="rw-detail-label">Already Received</span>
-                        <span class="rw-detail-value">${received}</span>
-                    </div>
+                <div style="margin-bottom:16px;">
+                    <span style="font-size:13px;color:var(--rw-neutral-500);">Vendor:</span>
+                    <span style="font-weight:500;margin-left:8px;">${vendorName}</span>
                 </div>
-                <div class="rw-form-row" style="margin-top: 16px;">
-                    <div class="rw-form-group" style="flex:1;">
-                        <label class="rw-label">Quantity to Receive *</label>
-                        <input type="number" id="edit-receiveQty" class="rw-input" value="${remaining}" min="0" max="${remaining}" step="1">
-                    </div>
+                ${linesHtml}
+                <div class="rw-form-row">
                     <div class="rw-form-group" style="flex:1;">
                         <label class="rw-label">Subinventory</label>
                         <input type="text" id="edit-subinventory" class="rw-input" placeholder="Enter subinventory...">
@@ -2894,12 +2906,6 @@
                         <label class="rw-label">Locator</label>
                         <input type="text" id="edit-locator" class="rw-input" placeholder="Enter locator...">
                     </div>
-                </div>
-                <div class="rw-form-row" style="margin-top: 12px;">
-                    <div class="rw-form-group" style="flex:1;">
-                        <label class="rw-label">Lot Number (if applicable)</label>
-                        <input type="text" id="edit-lotNumber" class="rw-input" placeholder="Enter lot number...">
-                    </div>
                     <div class="rw-form-group" style="flex:1;">
                         <label class="rw-label">Comments</label>
                         <input type="text" id="edit-comments" class="rw-input" placeholder="Optional comments...">
@@ -2907,7 +2913,7 @@
                 </div>
                 <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
                     <button class="rw-btn rw-btn-secondary" onclick="closeReceiptsDialog()">Cancel</button>
-                    <button class="rw-btn rw-btn-primary" onclick="saveReceiptLine()">
+                    <button class="rw-btn rw-btn-primary" onclick="savePOReceipt()">
                         &#10004; Save & Receive
                     </button>
                 </div>
@@ -2915,40 +2921,51 @@
             document.getElementById('receiptsDialogOverlay').classList.add('active');
         }
 
-        function saveReceiptLine() {
-            if (!currentEditLine) return;
+        function savePOReceipt() {
+            if (!currentEditPO) return;
 
-            const receiveQty = parseFloat(document.getElementById('edit-receiveQty').value) || 0;
             const subinventory = document.getElementById('edit-subinventory').value.trim();
             const locator = document.getElementById('edit-locator').value.trim();
-            const lotNumber = document.getElementById('edit-lotNumber').value.trim();
             const comments = document.getElementById('edit-comments').value.trim();
 
-            if (receiveQty <= 0) {
-                alert('Please enter a valid quantity to receive');
+            // Collect quantities for each line
+            const lineReceipts = [];
+            currentEditPO.lines.forEach((line, idx) => {
+                const qtyInput = document.getElementById('rcv-qty-' + idx);
+                const receiveQty = parseFloat(qtyInput.value) || 0;
+                if (receiveQty > 0) {
+                    lineReceipts.push({
+                        line_number: line.line_number || line.LINE_NUMBER,
+                        item_number: line.item_number || line.ITEM_NUMBER,
+                        receive_quantity: receiveQty,
+                        ...line
+                    });
+                }
+            });
+
+            if (lineReceipts.length === 0) {
+                alert('Please enter quantity to receive for at least one line');
                 return;
             }
 
             // Build receipt transaction data
             const transactionData = {
-                document_number: currentEditLine.docNum,
-                line_number: currentEditLine.lineNum,
-                receive_quantity: receiveQty,
+                document_number: currentEditPO.docNum,
                 subinventory: subinventory,
                 locator: locator,
-                lot_number: lotNumber,
                 comments: comments,
-                ...currentEditLine
+                lines: lineReceipts
             };
 
-            console.log('[Receipts] Saving receipt line:', transactionData);
+            console.log('[Receipts] Saving PO receipt:', transactionData);
 
             // TODO: Call API to save the receipt transaction
             // For now, show success message
-            alert(`Receipt saved!\n\nPO: ${currentEditLine.docNum}\nLine: ${currentEditLine.lineNum}\nQuantity: ${receiveQty}`);
+            const totalQty = lineReceipts.reduce((sum, l) => sum + l.receive_quantity, 0);
+            alert(`Receipt saved!\n\nPO: ${currentEditPO.docNum}\nLines: ${lineReceipts.length}\nTotal Qty: ${totalQty}`);
 
             closeReceiptsDialog();
-            currentEditLine = null;
+            currentEditPO = null;
         }
 
         function togglePOGroup(docNum) {

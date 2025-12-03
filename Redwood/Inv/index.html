@@ -521,6 +521,370 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* ==========================================
+           EMBEDDED PAGE STYLES
+           ========================================== */
+
+        /* Card Styles */
+        .rw-card {
+            background: var(--rw-white);
+            border-radius: var(--rw-radius-lg);
+            box-shadow: var(--rw-shadow);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .rw-card-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .rw-card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+        }
+
+        .rw-card-body {
+            padding: 20px 24px;
+        }
+
+        /* Form Styles */
+        .rw-form-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .rw-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 180px;
+        }
+
+        .rw-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--rw-neutral-700);
+        }
+
+        .rw-input, .rw-select {
+            padding: 10px 14px;
+            border: 1px solid var(--rw-neutral-300);
+            border-radius: var(--rw-radius);
+            font-size: 14px;
+            color: var(--rw-neutral-800);
+            background: var(--rw-white);
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .rw-input:focus, .rw-select:focus {
+            outline: none;
+            border-color: var(--rw-red);
+            box-shadow: 0 0 0 3px var(--rw-red-light);
+        }
+
+        .rw-btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .rw-btn-primary:disabled {
+            background: var(--rw-neutral-300);
+            cursor: not-allowed;
+        }
+
+        /* Stats Bar */
+        .rw-stats-bar {
+            display: flex;
+            gap: 32px;
+            padding: 16px 24px;
+            background: var(--rw-neutral-50);
+            border-bottom: 1px solid var(--rw-neutral-100);
+        }
+
+        .rw-stat-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .rw-stat-item-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--rw-red);
+        }
+
+        .rw-stat-item-label {
+            font-size: 12px;
+            color: var(--rw-neutral-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Table */
+        .rw-table-container {
+            overflow-x: auto;
+        }
+
+        .rw-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .rw-table th {
+            text-align: left;
+            padding: 12px 16px;
+            background: var(--rw-neutral-50);
+            font-weight: 600;
+            color: var(--rw-neutral-700);
+            border-bottom: 2px solid var(--rw-neutral-200);
+            white-space: nowrap;
+        }
+
+        .rw-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+            color: var(--rw-neutral-800);
+        }
+
+        .rw-table tbody tr:hover {
+            background: var(--rw-red-light);
+        }
+
+        .rw-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .rw-badge-success {
+            background: var(--rw-success-bg);
+            color: var(--rw-success);
+        }
+
+        .rw-badge-info {
+            background: var(--rw-info-bg);
+            color: var(--rw-info);
+        }
+
+        /* Toolbar */
+        .rw-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 24px;
+            background: var(--rw-white);
+            border-bottom: 1px solid var(--rw-neutral-100);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .rw-filter-input {
+            padding: 6px 12px;
+            border: 1px solid var(--rw-neutral-200);
+            border-radius: var(--rw-radius);
+            font-size: 13px;
+            width: 200px;
+        }
+
+        .rw-filter-input:focus {
+            outline: none;
+            border-color: var(--rw-red);
+        }
+
+        /* Empty State */
+        .rw-empty-state {
+            text-align: center;
+            padding: 60px 24px;
+            color: var(--rw-neutral-500);
+        }
+
+        .rw-empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .rw-empty-state-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--rw-neutral-700);
+            margin-bottom: 8px;
+        }
+
+        /* Dialog */
+        .rw-dialog-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .rw-dialog-overlay.active {
+            display: flex;
+        }
+
+        .rw-dialog {
+            background: var(--rw-white);
+            border-radius: var(--rw-radius-lg);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .rw-dialog-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .rw-dialog-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+        }
+
+        .rw-dialog-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 20px;
+            color: var(--rw-neutral-500);
+            border-radius: var(--rw-radius);
+        }
+
+        .rw-dialog-close:hover {
+            background: var(--rw-neutral-100);
+        }
+
+        .rw-dialog-body {
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .rw-dialog-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--rw-neutral-100);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .rw-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .rw-detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .rw-detail-label {
+            font-size: 12px;
+            color: var(--rw-neutral-500);
+            text-transform: uppercase;
+        }
+
+        .rw-detail-value {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--rw-neutral-800);
+        }
+
+        /* Tabs for Settings */
+        .rw-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid var(--rw-neutral-200);
+        }
+
+        .rw-tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--rw-neutral-500);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.15s;
+        }
+
+        .rw-tab:hover {
+            color: var(--rw-red);
+        }
+
+        .rw-tab.active {
+            color: var(--rw-red);
+            border-bottom-color: var(--rw-red);
+        }
+
+        .rw-tab-content {
+            display: none;
+        }
+
+        .rw-tab-content.active {
+            display: block;
+        }
+
+        /* Settings-specific */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .endpoint-item {
+            background: var(--rw-neutral-50);
+            border: 1px solid var(--rw-neutral-200);
+            border-radius: var(--rw-radius);
+            padding: 16px;
+        }
+
+        .endpoint-code {
+            font-weight: 600;
+            color: var(--rw-neutral-800);
+            margin-bottom: 4px;
+        }
+
+        .endpoint-url {
+            font-size: 12px;
+            color: var(--rw-neutral-500);
+            word-break: break-all;
+            font-family: monospace;
+        }
     </style>
 </head>
 <body>
@@ -775,22 +1139,27 @@
 
             <!-- Items Page -->
             <div class="rw-content-area" id="content-items">
-                <iframe src="items.html" style="width:100%; height:calc(100vh - 120px); border:none;"></iframe>
+                <div id="items-container"></div>
             </div>
 
             <!-- Receipts Page -->
             <div class="rw-content-area" id="content-receipts">
-                <iframe src="receipts.html" style="width:100%; height:calc(100vh - 120px); border:none;"></iframe>
+                <div id="receipts-container"></div>
             </div>
 
             <!-- Shipments Page -->
             <div class="rw-content-area" id="content-shipments">
-                <iframe src="shipments.html" style="width:100%; height:calc(100vh - 120px); border:none;"></iframe>
+                <div id="shipments-container"></div>
             </div>
 
             <!-- Settings Page -->
             <div class="rw-content-area" id="content-settings">
-                <iframe src="settings.html" style="width:100%; height:calc(100vh - 120px); border:none;"></iframe>
+                <div id="settings-container"></div>
+            </div>
+
+            <!-- Quantities Page -->
+            <div class="rw-content-area" id="content-quantities">
+                <div id="quantities-container"></div>
             </div>
 
             <!-- Generic Page Template -->
@@ -899,22 +1268,8 @@
             ).join('');
         }
 
-        // Navigate to page
+        // Navigate to page - all pages load in containers (no navigation away)
         function navigateTo(pageId) {
-            // Pages that need direct navigation (for WebView2 access)
-            const directPages = {
-                'items': 'items.html',
-                'receipts': 'receipts.html',
-                'shipments': 'shipments.html',
-                'settings': 'settings.html'
-            };
-
-            // If it's a page that needs WebView2, navigate directly
-            if (directPages[pageId]) {
-                window.location.href = directPages[pageId];
-                return;
-            }
-
             // Hide all content areas
             document.querySelectorAll('.rw-content-area').forEach(el => {
                 el.classList.remove('active');
@@ -929,6 +1284,8 @@
             const contentEl = document.getElementById('content-' + pageId);
             if (contentEl) {
                 contentEl.classList.add('active');
+                // Initialize page content if needed
+                initPageContent(pageId);
             } else {
                 // Show generic page
                 const genericEl = document.getElementById('content-generic');
@@ -948,6 +1305,31 @@
             });
 
             currentPage = pageId;
+        }
+
+        // Initialize page content when switching
+        const pageInitialized = {};
+        function initPageContent(pageId) {
+            if (pageInitialized[pageId]) return;
+
+            switch(pageId) {
+                case 'items':
+                    renderItemsPage();
+                    break;
+                case 'receipts':
+                    renderReceiptsPage();
+                    break;
+                case 'settings':
+                    renderSettingsPage();
+                    break;
+                case 'quantities':
+                    renderQuantitiesPage();
+                    break;
+                case 'shipments':
+                    renderShipmentsPage();
+                    break;
+            }
+            pageInitialized[pageId] = true;
         }
 
         // Load dashboard stats
@@ -994,6 +1376,475 @@
         // Navigate back to home page
         function goHome() {
             window.location.href = '../home.html';
+        }
+
+        // ==========================================
+        // WEBVIEW2 COMMUNICATION
+        // ==========================================
+        const webview = (window.chrome && window.chrome.webview) ? window.chrome.webview : null;
+        const isWebView2 = !!webview;
+        let cachedEndpoints = [];
+
+        console.log('[Redwood Inv] WebView2 available:', isWebView2);
+
+        // Load all endpoints from APEX REST API
+        async function loadAllEndpoints() {
+            if (cachedEndpoints.length > 0) return cachedEndpoints;
+
+            return new Promise((resolve) => {
+                if (!isWebView2) {
+                    console.log('[Redwood Inv] WebView2 not available');
+                    resolve([]);
+                    return;
+                }
+
+                const requestId = 'getAllEndpoints_' + Date.now();
+                const handler = function(event) {
+                    try {
+                        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                        if (data.requestId === requestId || data.action === 'getAllEndpointsResponse') {
+                            webview.removeEventListener('message', handler);
+                            if (data.success && data.endpoints) {
+                                cachedEndpoints = data.endpoints;
+                                console.log('[Redwood Inv] Loaded', cachedEndpoints.length, 'endpoints');
+                                resolve(cachedEndpoints);
+                            } else {
+                                console.error('[Redwood Inv] Failed to load endpoints:', data.error);
+                                resolve([]);
+                            }
+                        }
+                    } catch (e) {
+                        console.error('[Redwood Inv] Error parsing endpoints:', e);
+                    }
+                };
+
+                webview.addEventListener('message', handler);
+                webview.postMessage({ action: 'getAllEndpoints', requestId: requestId });
+
+                setTimeout(() => {
+                    webview.removeEventListener('message', handler);
+                    resolve([]);
+                }, 15000);
+            });
+        }
+
+        // Get endpoint URL by integration code
+        function getEndpointUrl(integrationCode) {
+            const instanceName = localStorage.getItem('wms_instance') || 'PROD';
+            const endpoint = cachedEndpoints.find(e => {
+                const code = e.integrationCode || e.source || '';
+                return code === integrationCode;
+            });
+            if (endpoint) {
+                return (endpoint.url || '') + (endpoint.path || '');
+            }
+            return null;
+        }
+
+        // Fetch with C# bridge
+        async function fetchWithBridge(url) {
+            return new Promise((resolve, reject) => {
+                if (!isWebView2) {
+                    reject(new Error('WebView2 not available'));
+                    return;
+                }
+
+                const requestId = 'fetch_' + Date.now();
+                const handler = function(event) {
+                    try {
+                        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                        if (data.requestId === requestId) {
+                            webview.removeEventListener('message', handler);
+                            if (data.success) {
+                                let responseData = data.data;
+                                if (typeof responseData === 'string') {
+                                    responseData = JSON.parse(responseData);
+                                }
+                                resolve(responseData);
+                            } else {
+                                reject(new Error(data.error || 'Request failed'));
+                            }
+                        }
+                    } catch (e) {
+                        console.error('[Redwood Inv] Error parsing fetch response:', e);
+                    }
+                };
+
+                webview.addEventListener('message', handler);
+                webview.postMessage({ action: 'executeGet', requestId: requestId, url: url });
+
+                setTimeout(() => {
+                    webview.removeEventListener('message', handler);
+                    reject(new Error('Request timeout'));
+                }, 30000);
+            });
+        }
+
+        // ==========================================
+        // ITEMS PAGE
+        // ==========================================
+        let itemsData = [];
+        let filteredItems = [];
+
+        function renderItemsPage() {
+            const container = document.getElementById('items-container');
+            const savedOrg = localStorage.getItem('wms_org_code') || '';
+
+            container.innerHTML = `
+                <div class="rw-page-header">
+                    <h1 class="rw-page-title">Manage Inventory Items</h1>
+                    <p class="rw-page-subtitle">Search and view inventory item master data</p>
+                </div>
+
+                <div class="rw-card">
+                    <div class="rw-card-header">
+                        <h2 class="rw-card-title">Search Criteria</h2>
+                    </div>
+                    <div class="rw-card-body">
+                        <div class="rw-form-row">
+                            <div class="rw-form-group">
+                                <label class="rw-label">Organization Code</label>
+                                <input type="text" id="items-orgCode" class="rw-input" placeholder="e.g., AMS" value="${savedOrg}">
+                            </div>
+                            <div class="rw-form-group">
+                                <label class="rw-label">Item Number</label>
+                                <input type="text" id="items-itemNumber" class="rw-input" placeholder="Enter item number...">
+                            </div>
+                            <div class="rw-form-group">
+                                <label class="rw-label">Description</label>
+                                <input type="text" id="items-itemDesc" class="rw-input" placeholder="Enter description...">
+                            </div>
+                            <div class="rw-form-group" style="flex-direction: row; gap: 8px; align-items: flex-end;">
+                                <button id="items-searchBtn" class="rw-btn rw-btn-primary" onclick="searchItems()">
+                                    <span>&#128269;</span> Search
+                                </button>
+                                <button class="rw-btn rw-btn-secondary" onclick="clearItemsSearch()">Clear</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rw-card">
+                    <div class="rw-stats-bar" id="items-statsBar" style="display: none;">
+                        <div class="rw-stat-item">
+                            <span class="rw-stat-item-value" id="items-totalItems">0</span>
+                            <span class="rw-stat-item-label">Total Items</span>
+                        </div>
+                        <div class="rw-stat-item">
+                            <span class="rw-stat-item-value" id="items-activeItems">0</span>
+                            <span class="rw-stat-item-label">Active</span>
+                        </div>
+                    </div>
+                    <div class="rw-toolbar" id="items-toolbar" style="display: none;">
+                        <input type="text" id="items-filterInput" class="rw-filter-input" placeholder="Filter results..." oninput="filterItemsResults()">
+                        <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="exportItemsCSV()">&#128190; Export CSV</button>
+                    </div>
+                    <div class="rw-table-container" id="items-resultsContainer">
+                        <div class="rw-empty-state">
+                            <div class="rw-empty-state-icon">&#128451;</div>
+                            <div class="rw-empty-state-title">Search for Items</div>
+                            <p>Enter search criteria and click Search to find inventory items</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function searchItems() {
+            const btn = document.getElementById('items-searchBtn');
+            const orgCode = document.getElementById('items-orgCode').value.trim();
+            const itemNumber = document.getElementById('items-itemNumber').value.trim();
+            const itemDesc = document.getElementById('items-itemDesc').value.trim();
+
+            if (!orgCode) {
+                alert('Please enter Organization Code');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="rw-spinner" style="width:16px;height:16px;border-width:2px;"></span> Searching...';
+
+            const container = document.getElementById('items-resultsContainer');
+            container.innerHTML = '<div class="rw-empty-state"><div class="rw-spinner"></div><p style="margin-top:16px;">Loading items...</p></div>';
+
+            try {
+                if (cachedEndpoints.length === 0) {
+                    await loadAllEndpoints();
+                }
+
+                const endpoint = getEndpointUrl('APEX_ITEM_MASTER');
+                if (!endpoint) {
+                    throw new Error('APEX_ITEM_MASTER endpoint not configured');
+                }
+
+                let url = `${endpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                if (itemNumber) url += `&p_item_number=${encodeURIComponent(itemNumber)}`;
+                if (itemDesc) url += `&p_item_description=${encodeURIComponent(itemDesc)}`;
+
+                const response = await fetchWithBridge(url);
+
+                if (response && response.items) {
+                    itemsData = response.items;
+                    filteredItems = [...itemsData];
+                    renderItemsTable(filteredItems);
+                    updateItemsStats(filteredItems);
+                    document.getElementById('items-statsBar').style.display = 'flex';
+                    document.getElementById('items-toolbar').style.display = 'flex';
+                } else {
+                    itemsData = [];
+                    filteredItems = [];
+                    renderItemsTable([]);
+                }
+            } catch (error) {
+                console.error('[Items] Error:', error);
+                container.innerHTML = `<div class="rw-empty-state"><div class="rw-empty-state-icon" style="color:var(--rw-red);">&#9888;</div><div class="rw-empty-state-title">Error</div><p>${error.message}</p></div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>&#128269;</span> Search';
+            }
+        }
+
+        function renderItemsTable(data) {
+            const container = document.getElementById('items-resultsContainer');
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="rw-empty-state"><div class="rw-empty-state-icon">&#128466;</div><div class="rw-empty-state-title">No Items Found</div><p>Try adjusting your search criteria</p></div>';
+                document.getElementById('items-statsBar').style.display = 'none';
+                document.getElementById('items-toolbar').style.display = 'none';
+                return;
+            }
+
+            let html = `<table class="rw-table"><thead><tr>
+                <th>Item Number</th><th>Description</th><th>Organization</th><th>UOM</th><th>Category</th><th>Status</th>
+            </tr></thead><tbody>`;
+
+            data.forEach(item => {
+                const itemNum = item.item_number || item.ITEM_NUMBER || '-';
+                const desc = item.description || item.DESCRIPTION || item.item_description || '-';
+                const org = item.organization_code || item.ORGANIZATION_CODE || '-';
+                const uom = item.primary_uom_code || item.PRIMARY_UOM_CODE || '-';
+                const category = item.category_name || item.CATEGORY_NAME || '-';
+                const status = item.item_status || item.ITEM_STATUS || 'Active';
+                const statusClass = status.toLowerCase() === 'active' ? 'rw-badge-success' : 'rw-badge-info';
+
+                html += `<tr>
+                    <td style="font-weight:500;">${itemNum}</td>
+                    <td>${desc}</td>
+                    <td>${org}</td>
+                    <td>${uom}</td>
+                    <td>${category}</td>
+                    <td><span class="rw-badge ${statusClass}">${status}</span></td>
+                </tr>`;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function updateItemsStats(data) {
+            document.getElementById('items-totalItems').textContent = data.length;
+            const active = data.filter(item => (item.item_status || item.ITEM_STATUS || 'Active').toLowerCase() === 'active').length;
+            document.getElementById('items-activeItems').textContent = active;
+        }
+
+        function filterItemsResults() {
+            const filterVal = document.getElementById('items-filterInput').value.toLowerCase().trim();
+            if (!filterVal) {
+                filteredItems = [...itemsData];
+            } else {
+                filteredItems = itemsData.filter(item => {
+                    const itemNum = (item.item_number || item.ITEM_NUMBER || '').toLowerCase();
+                    const desc = (item.description || item.DESCRIPTION || '').toLowerCase();
+                    return itemNum.includes(filterVal) || desc.includes(filterVal);
+                });
+            }
+            renderItemsTable(filteredItems);
+            updateItemsStats(filteredItems);
+        }
+
+        function clearItemsSearch() {
+            document.getElementById('items-itemNumber').value = '';
+            document.getElementById('items-itemDesc').value = '';
+            document.getElementById('items-filterInput').value = '';
+            document.getElementById('items-resultsContainer').innerHTML = '<div class="rw-empty-state"><div class="rw-empty-state-icon">&#128451;</div><div class="rw-empty-state-title">Search for Items</div><p>Enter search criteria and click Search</p></div>';
+            document.getElementById('items-statsBar').style.display = 'none';
+            document.getElementById('items-toolbar').style.display = 'none';
+            itemsData = [];
+            filteredItems = [];
+        }
+
+        function exportItemsCSV() {
+            if (filteredItems.length === 0) { alert('No data to export'); return; }
+            const headers = ['Item Number', 'Description', 'Organization', 'UOM', 'Category', 'Status'];
+            const rows = filteredItems.map(item => [
+                item.item_number || item.ITEM_NUMBER || '',
+                item.description || item.DESCRIPTION || '',
+                item.organization_code || item.ORGANIZATION_CODE || '',
+                item.primary_uom_code || item.PRIMARY_UOM_CODE || '',
+                item.category_name || item.CATEGORY_NAME || '',
+                item.item_status || item.ITEM_STATUS || ''
+            ]);
+            let csv = headers.join(',') + '\n';
+            rows.forEach(row => { csv += row.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',') + '\n'; });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'items_export.csv'; a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // ==========================================
+        // SETTINGS PAGE
+        // ==========================================
+        function renderSettingsPage() {
+            const container = document.getElementById('settings-container');
+            container.innerHTML = `
+                <div class="rw-page-header">
+                    <h1 class="rw-page-title">Settings</h1>
+                    <p class="rw-page-subtitle">Configure endpoints and system settings</p>
+                </div>
+
+                <div class="rw-tabs">
+                    <button class="rw-tab active" onclick="switchSettingsTab('endpoints')">Endpoints</button>
+                    <button class="rw-tab" onclick="switchSettingsTab('general')">General</button>
+                </div>
+
+                <div class="rw-tab-content active" id="settings-tab-endpoints">
+                    <div class="rw-card">
+                        <div class="rw-card-header">
+                            <h2 class="rw-card-title">REST Endpoints</h2>
+                            <button class="rw-btn rw-btn-primary" onclick="refreshEndpoints()">
+                                <span>&#128472;</span> Retrieve from APEX
+                            </button>
+                        </div>
+                        <div class="rw-card-body">
+                            <div class="settings-grid" id="settings-endpointsGrid">
+                                <div class="rw-empty-state">
+                                    <p>Click "Retrieve from APEX" to load endpoints</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rw-tab-content" id="settings-tab-general">
+                    <div class="rw-card">
+                        <div class="rw-card-body">
+                            <div class="rw-form-group" style="max-width: 400px;">
+                                <label class="rw-label">Default Organization</label>
+                                <input type="text" id="settings-defaultOrg" class="rw-input" value="${localStorage.getItem('wms_org_code') || ''}" placeholder="Enter default org code">
+                            </div>
+                            <button class="rw-btn rw-btn-primary" style="margin-top: 16px;" onclick="saveGeneralSettings()">Save Settings</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function switchSettingsTab(tabName) {
+            document.querySelectorAll('#settings-container .rw-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#settings-container .rw-tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`#settings-container .rw-tab[onclick*="${tabName}"]`).classList.add('active');
+            document.getElementById('settings-tab-' + tabName).classList.add('active');
+        }
+
+        async function refreshEndpoints() {
+            const grid = document.getElementById('settings-endpointsGrid');
+            grid.innerHTML = '<div class="rw-empty-state"><div class="rw-spinner"></div><p style="margin-top:16px;">Loading endpoints from APEX...</p></div>';
+
+            try {
+                cachedEndpoints = []; // Force refresh
+                await loadAllEndpoints();
+
+                if (cachedEndpoints.length === 0) {
+                    grid.innerHTML = '<div class="rw-empty-state"><p>No endpoints found</p></div>';
+                    return;
+                }
+
+                let html = '';
+                cachedEndpoints.forEach(ep => {
+                    const code = ep.integrationCode || ep.source || 'Unknown';
+                    const url = (ep.url || '') + (ep.path || '');
+                    html += `<div class="endpoint-item">
+                        <div class="endpoint-code">${code}</div>
+                        <div class="endpoint-url">${url}</div>
+                    </div>`;
+                });
+                grid.innerHTML = html;
+            } catch (error) {
+                grid.innerHTML = `<div class="rw-empty-state" style="color:var(--rw-red);">Error: ${error.message}</div>`;
+            }
+        }
+
+        function saveGeneralSettings() {
+            const org = document.getElementById('settings-defaultOrg').value.trim();
+            if (org) localStorage.setItem('wms_org_code', org);
+            alert('Settings saved!');
+        }
+
+        // ==========================================
+        // RECEIPTS PAGE (Placeholder)
+        // ==========================================
+        function renderReceiptsPage() {
+            const container = document.getElementById('receipts-container');
+            container.innerHTML = `
+                <div class="rw-page-header">
+                    <h1 class="rw-page-title">Receive Expected Shipments</h1>
+                    <p class="rw-page-subtitle">Process incoming PO receipts</p>
+                </div>
+                <div class="rw-card">
+                    <div class="rw-card-body">
+                        <div class="rw-empty-state">
+                            <div class="rw-empty-state-icon">&#128230;</div>
+                            <div class="rw-empty-state-title">Receipts Module</div>
+                            <p>This module will allow you to receive expected shipments from purchase orders.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ==========================================
+        // SHIPMENTS PAGE (Placeholder)
+        // ==========================================
+        function renderShipmentsPage() {
+            const container = document.getElementById('shipments-container');
+            container.innerHTML = `
+                <div class="rw-page-header">
+                    <h1 class="rw-page-title">Manage Shipments</h1>
+                    <p class="rw-page-subtitle">View and manage outbound shipments</p>
+                </div>
+                <div class="rw-card">
+                    <div class="rw-card-body">
+                        <div class="rw-empty-state">
+                            <div class="rw-empty-state-icon">&#128666;</div>
+                            <div class="rw-empty-state-title">Shipments Module</div>
+                            <p>This module will allow you to manage outbound shipments.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ==========================================
+        // QUANTITIES PAGE (Placeholder)
+        // ==========================================
+        function renderQuantitiesPage() {
+            const container = document.getElementById('quantities-container');
+            container.innerHTML = `
+                <div class="rw-page-header">
+                    <h1 class="rw-page-title">Manage Item Quantities</h1>
+                    <p class="rw-page-subtitle">View on-hand inventory quantities</p>
+                </div>
+                <div class="rw-card">
+                    <div class="rw-card-body">
+                        <div class="rw-empty-state">
+                            <div class="rw-empty-state-icon">&#128202;</div>
+                            <div class="rw-empty-state-title">Item Quantities Module</div>
+                            <p>This module will show on-hand quantities by item, subinventory, and serial numbers.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
     </script>
 </body>

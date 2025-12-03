@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Item Master - Redwood</title>
+    <style>
+        /* Oracle Redwood Design System Inspired Styles */
+        :root {
+            --rw-red: #c74634;
+            --rw-red-hover: #a83a2b;
+            --rw-red-light: #fef4f3;
+            --rw-neutral-900: #161513;
+            --rw-neutral-800: #312d2a;
+            --rw-neutral-700: #4a4744;
+            --rw-neutral-600: #5a5754;
+            --rw-neutral-500: #6b6966;
+            --rw-neutral-400: #8a8886;
+            --rw-neutral-300: #b8b6b4;
+            --rw-neutral-200: #d5d4d3;
+            --rw-neutral-100: #ebebea;
+            --rw-neutral-50: #f7f6f6;
+            --rw-white: #ffffff;
+            --rw-shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --rw-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --rw-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --rw-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+            --rw-radius: 8px;
+            --rw-radius-lg: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Oracle Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--rw-neutral-50);
+            color: var(--rw-neutral-800);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .rw-header {
+            background: var(--rw-white);
+            border-bottom: 1px solid var(--rw-neutral-200);
+            padding: 0 24px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .rw-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .rw-logo {
+            width: 32px;
+            height: 32px;
+            background: var(--rw-red);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .rw-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+        }
+
+        .rw-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--rw-neutral-500);
+        }
+
+        .rw-breadcrumb a {
+            color: var(--rw-red);
+            text-decoration: none;
+        }
+
+        .rw-breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        /* Main Content */
+        .rw-main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Page Header */
+        .rw-page-header {
+            margin-bottom: 24px;
+        }
+
+        .rw-page-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+            margin-bottom: 8px;
+        }
+
+        .rw-page-subtitle {
+            font-size: 14px;
+            color: var(--rw-neutral-500);
+        }
+
+        /* Card */
+        .rw-card {
+            background: var(--rw-white);
+            border-radius: var(--rw-radius-lg);
+            box-shadow: var(--rw-shadow);
+            overflow: hidden;
+        }
+
+        .rw-card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .rw-card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+        }
+
+        .rw-card-body {
+            padding: 24px;
+        }
+
+        /* Search Form */
+        .rw-search-form {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .rw-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 200px;
+        }
+
+        .rw-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--rw-neutral-700);
+        }
+
+        .rw-input {
+            padding: 10px 14px;
+            border: 1px solid var(--rw-neutral-300);
+            border-radius: var(--rw-radius);
+            font-size: 14px;
+            color: var(--rw-neutral-800);
+            background: var(--rw-white);
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .rw-input:focus {
+            outline: none;
+            border-color: var(--rw-red);
+            box-shadow: 0 0 0 3px var(--rw-red-light);
+        }
+
+        .rw-input::placeholder {
+            color: var(--rw-neutral-400);
+        }
+
+        /* Buttons */
+        .rw-btn {
+            padding: 10px 20px;
+            border-radius: var(--rw-radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+        }
+
+        .rw-btn-primary {
+            background: var(--rw-red);
+            color: var(--rw-white);
+        }
+
+        .rw-btn-primary:hover {
+            background: var(--rw-red-hover);
+        }
+
+        .rw-btn-primary:disabled {
+            background: var(--rw-neutral-300);
+            cursor: not-allowed;
+        }
+
+        .rw-btn-secondary {
+            background: var(--rw-white);
+            color: var(--rw-neutral-700);
+            border: 1px solid var(--rw-neutral-300);
+        }
+
+        .rw-btn-secondary:hover {
+            background: var(--rw-neutral-50);
+            border-color: var(--rw-neutral-400);
+        }
+
+        /* Table */
+        .rw-table-container {
+            overflow-x: auto;
+            margin-top: 24px;
+        }
+
+        .rw-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .rw-table th {
+            text-align: left;
+            padding: 12px 16px;
+            background: var(--rw-neutral-50);
+            font-weight: 600;
+            color: var(--rw-neutral-700);
+            border-bottom: 2px solid var(--rw-neutral-200);
+            white-space: nowrap;
+        }
+
+        .rw-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+            color: var(--rw-neutral-800);
+        }
+
+        .rw-table tbody tr:hover {
+            background: var(--rw-red-light);
+        }
+
+        .rw-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Status Badge */
+        .rw-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .rw-badge-success {
+            background: #e6f4ea;
+            color: #1e7e34;
+        }
+
+        .rw-badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .rw-badge-info {
+            background: #e7f1ff;
+            color: #0056b3;
+        }
+
+        /* Empty State */
+        .rw-empty-state {
+            text-align: center;
+            padding: 60px 24px;
+            color: var(--rw-neutral-500);
+        }
+
+        .rw-empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .rw-empty-state-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--rw-neutral-700);
+            margin-bottom: 8px;
+        }
+
+        /* Stats Bar */
+        .rw-stats-bar {
+            display: flex;
+            gap: 24px;
+            padding: 16px 24px;
+            background: var(--rw-neutral-50);
+            border-bottom: 1px solid var(--rw-neutral-100);
+        }
+
+        .rw-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .rw-stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--rw-red);
+        }
+
+        .rw-stat-label {
+            font-size: 12px;
+            color: var(--rw-neutral-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Loading Spinner */
+        .rw-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--rw-neutral-200);
+            border-top-color: var(--rw-red);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Back Link */
+        .rw-back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--rw-red);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .rw-back-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .rw-main {
+                padding: 16px;
+            }
+
+            .rw-search-form {
+                flex-direction: column;
+            }
+
+            .rw-form-group {
+                width: 100%;
+            }
+
+            .rw-stats-bar {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="rw-header">
+        <div class="rw-header-left">
+            <div class="rw-logo">O</div>
+            <span class="rw-title">Fusion Client ERP</span>
+        </div>
+        <nav class="rw-breadcrumb">
+            <a href="index.html">Inventory</a>
+            <span>/</span>
+            <span>Item Master</span>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="rw-main">
+        <a href="index.html" class="rw-back-link">
+            <span>&#8592;</span> Back to Inventory
+        </a>
+
+        <div class="rw-page-header">
+            <h1 class="rw-page-title">Item Master</h1>
+            <p class="rw-page-subtitle">Search and manage inventory items using Oracle Redwood design</p>
+        </div>
+
+        <!-- Search Card -->
+        <div class="rw-card">
+            <div class="rw-card-header">
+                <h2 class="rw-card-title">Search Items</h2>
+            </div>
+            <div class="rw-card-body">
+                <div class="rw-search-form">
+                    <div class="rw-form-group">
+                        <label class="rw-label" for="rwOrgCode">Organization Code</label>
+                        <input type="text" id="rwOrgCode" class="rw-input" placeholder="e.g., AMS" value="AMS">
+                    </div>
+                    <div class="rw-form-group">
+                        <label class="rw-label" for="rwItemNumber">Item Number</label>
+                        <input type="text" id="rwItemNumber" class="rw-input" placeholder="Enter item number...">
+                    </div>
+                    <div class="rw-form-group">
+                        <label class="rw-label" for="rwItemDesc">Description</label>
+                        <input type="text" id="rwItemDesc" class="rw-input" placeholder="Enter description...">
+                    </div>
+                    <div class="rw-form-group" style="justify-content: flex-end;">
+                        <button id="rwSearchBtn" class="rw-btn rw-btn-primary" onclick="searchItems()">
+                            <span>&#128269;</span> Search
+                        </button>
+                    </div>
+                    <div class="rw-form-group" style="justify-content: flex-end;">
+                        <button class="rw-btn rw-btn-secondary" onclick="clearSearch()">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Card -->
+        <div class="rw-card" style="margin-top: 24px;">
+            <div class="rw-stats-bar" id="rwStatsBar" style="display: none;">
+                <div class="rw-stat">
+                    <span class="rw-stat-value" id="rwTotalItems">0</span>
+                    <span class="rw-stat-label">Total Items</span>
+                </div>
+                <div class="rw-stat">
+                    <span class="rw-stat-value" id="rwActiveItems">0</span>
+                    <span class="rw-stat-label">Active</span>
+                </div>
+                <div class="rw-stat">
+                    <span class="rw-stat-value" id="rwUniqueOrgs">0</span>
+                    <span class="rw-stat-label">Organizations</span>
+                </div>
+            </div>
+            <div class="rw-card-header">
+                <h2 class="rw-card-title">Results</h2>
+            </div>
+            <div class="rw-table-container" id="rwResultsContainer">
+                <div class="rw-empty-state">
+                    <div class="rw-empty-state-icon">&#128269;</div>
+                    <div class="rw-empty-state-title">Search for Items</div>
+                    <p>Enter search criteria and click Search to find inventory items</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Store items data
+        let itemsData = [];
+
+        // Get endpoint by integration code
+        async function getEndpointByCode(integrationCode) {
+            const instanceName = localStorage.getItem('wms_instance') || 'PROD';
+            return new Promise((resolve) => {
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'endpoint_' + integrationCode + '_' + Date.now();
+                    const handler = function(event) {
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            if (data.requestId === requestId && data.endpoint) {
+                                resolve(data.endpoint);
+                                window.chrome.webview.removeEventListener('message', handler);
+                            }
+                        } catch (e) {}
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+                    window.chrome.webview.postMessage({
+                        action: 'getEndpoint',
+                        requestId: requestId,
+                        integrationCode: integrationCode,
+                        instanceName: instanceName
+                    });
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        resolve(null);
+                    }, 5000);
+                } else {
+                    resolve(null);
+                }
+            });
+        }
+
+        // Fetch with bridge
+        async function fetchWithBridge(url) {
+            return new Promise((resolve, reject) => {
+                if (window.chrome && window.chrome.webview) {
+                    const requestId = 'fetch_' + Date.now();
+                    const handler = function(event) {
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            if (data.requestId === requestId) {
+                                window.chrome.webview.removeEventListener('message', handler);
+                                if (data.error) {
+                                    reject(new Error(data.error));
+                                } else {
+                                    resolve(data);
+                                }
+                            }
+                        } catch (e) {}
+                    };
+                    window.chrome.webview.addEventListener('message', handler);
+                    window.chrome.webview.postMessage({
+                        action: 'fetch',
+                        requestId: requestId,
+                        url: url
+                    });
+                    setTimeout(() => {
+                        window.chrome.webview.removeEventListener('message', handler);
+                        reject(new Error('Request timeout'));
+                    }, 30000);
+                } else {
+                    reject(new Error('WebView bridge not available'));
+                }
+            });
+        }
+
+        // Search items
+        async function searchItems() {
+            const btn = document.getElementById('rwSearchBtn');
+            const orgCode = document.getElementById('rwOrgCode').value.trim();
+            const itemNumber = document.getElementById('rwItemNumber').value.trim();
+            const itemDesc = document.getElementById('rwItemDesc').value.trim();
+
+            if (!orgCode) {
+                alert('Please enter Organization Code');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="rw-spinner"></span> Searching...';
+
+            const container = document.getElementById('rwResultsContainer');
+            container.innerHTML = '<div class="rw-empty-state"><div class="rw-spinner" style="width:40px;height:40px;border-width:3px;"></div><p style="margin-top:16px;">Loading items...</p></div>';
+
+            try {
+                const endpoint = await getEndpointByCode('APEX_ITEM_MASTER');
+                if (!endpoint) {
+                    throw new Error('APEX_ITEM_MASTER endpoint not configured');
+                }
+
+                let url = `${endpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                if (itemNumber) url += `&p_item_number=${encodeURIComponent(itemNumber)}`;
+                if (itemDesc) url += `&p_item_description=${encodeURIComponent(itemDesc)}`;
+
+                console.log('[Redwood] Fetching items:', url);
+                const response = await fetchWithBridge(url);
+
+                if (response && response.items) {
+                    itemsData = response.items;
+                    renderResults(itemsData);
+                    updateStats(itemsData);
+                    console.log('[Redwood] Loaded', itemsData.length, 'items');
+                } else {
+                    itemsData = [];
+                    renderResults([]);
+                }
+            } catch (error) {
+                console.error('[Redwood] Error:', error);
+                container.innerHTML = `<div class="rw-empty-state"><div class="rw-empty-state-icon" style="color:#c74634;">&#9888;</div><div class="rw-empty-state-title">Error</div><p>${error.message}</p></div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>&#128269;</span> Search';
+            }
+        }
+
+        // Render results table
+        function renderResults(data) {
+            const container = document.getElementById('rwResultsContainer');
+
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="rw-empty-state"><div class="rw-empty-state-icon">&#128466;</div><div class="rw-empty-state-title">No Items Found</div><p>Try adjusting your search criteria</p></div>';
+                document.getElementById('rwStatsBar').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('rwStatsBar').style.display = 'flex';
+
+            let html = `
+                <table class="rw-table">
+                    <thead>
+                        <tr>
+                            <th>Item Number</th>
+                            <th>Description</th>
+                            <th>Organization</th>
+                            <th>UOM</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            data.forEach(item => {
+                const itemNum = item.item_number || item.ITEM_NUMBER || '-';
+                const itemDesc = item.description || item.DESCRIPTION || item.item_description || item.ITEM_DESCRIPTION || '-';
+                const orgCode = item.organization_code || item.ORGANIZATION_CODE || '-';
+                const uom = item.primary_uom_code || item.PRIMARY_UOM_CODE || item.uom || '-';
+                const category = item.category_name || item.CATEGORY_NAME || item.item_category || '-';
+                const status = item.item_status || item.ITEM_STATUS || item.status || 'Active';
+
+                const statusClass = status.toLowerCase() === 'active' ? 'rw-badge-success' :
+                                   status.toLowerCase() === 'inactive' ? 'rw-badge-warning' : 'rw-badge-info';
+
+                html += `
+                    <tr>
+                        <td style="font-weight: 500;">${itemNum}</td>
+                        <td>${itemDesc}</td>
+                        <td>${orgCode}</td>
+                        <td>${uom}</td>
+                        <td>${category}</td>
+                        <td><span class="rw-badge ${statusClass}">${status}</span></td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Update stats
+        function updateStats(data) {
+            document.getElementById('rwTotalItems').textContent = data.length;
+
+            const activeCount = data.filter(item => {
+                const status = (item.item_status || item.ITEM_STATUS || item.status || 'Active').toLowerCase();
+                return status === 'active';
+            }).length;
+            document.getElementById('rwActiveItems').textContent = activeCount;
+
+            const uniqueOrgs = new Set(data.map(item => item.organization_code || item.ORGANIZATION_CODE)).size;
+            document.getElementById('rwUniqueOrgs').textContent = uniqueOrgs;
+        }
+
+        // Clear search
+        function clearSearch() {
+            document.getElementById('rwItemNumber').value = '';
+            document.getElementById('rwItemDesc').value = '';
+            document.getElementById('rwResultsContainer').innerHTML = '<div class="rw-empty-state"><div class="rw-empty-state-icon">&#128269;</div><div class="rw-empty-state-title">Search for Items</div><p>Enter search criteria and click Search to find inventory items</p></div>';
+            document.getElementById('rwStatsBar').style.display = 'none';
+            itemsData = [];
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get saved org code
+            const savedOrg = localStorage.getItem('wms_default_org');
+            if (savedOrg) {
+                document.getElementById('rwOrgCode').value = savedOrg;
+            }
+        });
+    </script>
+</body>
+</html>

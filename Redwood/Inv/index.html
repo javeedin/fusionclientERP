@@ -885,6 +885,113 @@
             word-break: break-all;
             font-family: monospace;
         }
+
+        /* ==========================================
+           TAB BAR STYLES
+           ========================================== */
+        .rw-tab-bar {
+            display: flex;
+            align-items: center;
+            background: var(--rw-white);
+            border-bottom: 1px solid var(--rw-neutral-200);
+            padding: 0 8px;
+            min-height: 40px;
+            overflow-x: auto;
+            gap: 2px;
+        }
+
+        .rw-tab-bar::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .rw-tab-bar::-webkit-scrollbar-thumb {
+            background: var(--rw-neutral-300);
+            border-radius: 2px;
+        }
+
+        .rw-page-tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--rw-neutral-50);
+            border: 1px solid var(--rw-neutral-200);
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--rw-neutral-600);
+            white-space: nowrap;
+            transition: all 0.15s;
+            margin-bottom: -1px;
+        }
+
+        .rw-page-tab:hover {
+            background: var(--rw-neutral-100);
+            color: var(--rw-neutral-800);
+        }
+
+        .rw-page-tab.active {
+            background: var(--rw-white);
+            color: var(--rw-red);
+            font-weight: 500;
+            border-bottom: 1px solid var(--rw-white);
+        }
+
+        .rw-page-tab .tab-icon {
+            font-size: 14px;
+        }
+
+        .rw-page-tab .tab-close {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-size: 14px;
+            color: var(--rw-neutral-400);
+            margin-left: 4px;
+        }
+
+        .rw-page-tab .tab-close:hover {
+            background: var(--rw-neutral-200);
+            color: var(--rw-red);
+        }
+
+        .rw-page-tab.active .tab-close:hover {
+            background: var(--rw-red-light);
+        }
+
+        .rw-tab-content-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .rw-no-tabs {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--rw-neutral-500);
+            text-align: center;
+            padding: 60px;
+        }
+
+        .rw-no-tabs-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.4;
+        }
+
+        .rw-no-tabs-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--rw-neutral-700);
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
@@ -1035,9 +1142,23 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="rw-main">
-            <!-- Home Dashboard -->
-            <div class="rw-content-area active" id="content-home">
+        <main class="rw-main" style="display: flex; flex-direction: column; padding: 0;">
+            <!-- Tab Bar -->
+            <div class="rw-tab-bar" id="tabBar">
+                <!-- Tabs will be added here dynamically -->
+            </div>
+
+            <!-- Tab Content Wrapper -->
+            <div class="rw-tab-content-wrapper" id="tabContentWrapper">
+                <!-- No tabs message -->
+                <div class="rw-no-tabs" id="noTabsMessage">
+                    <div class="rw-no-tabs-icon">&#128451;</div>
+                    <div class="rw-no-tabs-title">Select a menu item</div>
+                    <p>Choose an option from the sidebar to get started</p>
+                </div>
+
+                <!-- Home Dashboard (always available, shown when Home tab is active) -->
+                <div class="rw-content-area" id="content-home" style="display:none;">
                 <div class="rw-page-header">
                     <h1 class="rw-page-title">Inventory Management</h1>
                     <p class="rw-page-subtitle">Welcome to the Inventory module. Manage items, transactions, receipts, and shipments.</p>
@@ -1137,47 +1258,7 @@
                 </div>
             </div>
 
-            <!-- Items Page -->
-            <div class="rw-content-area" id="content-items">
-                <div id="items-container"></div>
-            </div>
-
-            <!-- Receipts Page -->
-            <div class="rw-content-area" id="content-receipts">
-                <div id="receipts-container"></div>
-            </div>
-
-            <!-- Shipments Page -->
-            <div class="rw-content-area" id="content-shipments">
-                <div id="shipments-container"></div>
-            </div>
-
-            <!-- Settings Page -->
-            <div class="rw-content-area" id="content-settings">
-                <div id="settings-container"></div>
-            </div>
-
-            <!-- Quantities Page -->
-            <div class="rw-content-area" id="content-quantities">
-                <div id="quantities-container"></div>
-            </div>
-
-            <!-- Generic Page Template -->
-            <div class="rw-content-area" id="content-generic">
-                <div class="rw-page-header">
-                    <h1 class="rw-page-title" id="genericPageTitle">Page Title</h1>
-                    <p class="rw-page-subtitle" id="genericPageSubtitle">Page description</p>
-                </div>
-                <div class="rw-section">
-                    <div class="rw-section-header">
-                        <h2 class="rw-section-title">Content</h2>
-                    </div>
-                    <div class="rw-loading">
-                        <div class="rw-spinner"></div>
-                        <p>This feature is under development</p>
-                    </div>
-                </div>
-            </div>
+            <!-- Dynamic tab content areas will be created here by JavaScript -->
         </main>
     </div>
 
@@ -1268,36 +1349,53 @@
             ).join('');
         }
 
-        // Navigate to page - all pages load in containers (no navigation away)
-        function navigateTo(pageId) {
-            // Hide all content areas
-            document.querySelectorAll('.rw-content-area').forEach(el => {
-                el.classList.remove('active');
-            });
+        // ==========================================
+        // TAB MANAGEMENT
+        // ==========================================
+        const openTabs = []; // Array of {id, name, icon}
+        let activeTabId = null;
+        const pageInitialized = {};
 
-            // Update nav items
+        // Page definitions with icons and names
+        const pageDefinitions = {
+            'home': { name: 'Home', icon: '&#127968;' },
+            'items': { name: 'Manage Items', icon: '&#128451;' },
+            'quantities': { name: 'Item Quantities', icon: '&#128230;' },
+            'lots': { name: 'Manage Lots', icon: '&#127991;' },
+            'serials': { name: 'Serial Numbers', icon: '&#128271;' },
+            'misc-txn': { name: 'Misc Transaction', icon: '&#128221;' },
+            'subinv-transfer': { name: 'Subinv Transfer', icon: '&#8644;' },
+            'interorg-transfer': { name: 'Interorg Transfer', icon: '&#127970;' },
+            'receipts': { name: 'Receive Shipments', icon: '&#128230;' },
+            'inbound': { name: 'Inbound Shipments', icon: '&#128666;' },
+            'putaway': { name: 'Put Away', icon: '&#128229;' },
+            'inspect': { name: 'Inspect Receipts', icon: '&#128269;' },
+            'shipments': { name: 'Manage Shipments', icon: '&#128666;' },
+            'shipment-lines': { name: 'Shipment Lines', icon: '&#128196;' },
+            'pick-wave': { name: 'Pick Wave', icon: '&#127754;' },
+            'pick-slips': { name: 'Pick Slips', icon: '&#9745;' },
+            'cycle-count': { name: 'Cycle Counts', icon: '&#10133;' },
+            'physical-inv': { name: 'Physical Inventory', icon: '&#128203;' },
+            'settings': { name: 'Settings', icon: '&#9881;' }
+        };
+
+        // Navigate to page - opens a new tab or switches to existing
+        function navigateTo(pageId) {
+            // Check if tab already exists
+            const existingTab = openTabs.find(t => t.id === pageId);
+
+            if (existingTab) {
+                // Switch to existing tab
+                switchToTab(pageId);
+            } else {
+                // Open new tab
+                openNewTab(pageId);
+            }
+
+            // Update sidebar active state
             document.querySelectorAll('.rw-nav-item').forEach(el => {
                 el.classList.remove('active');
             });
-
-            // Show appropriate content
-            const contentEl = document.getElementById('content-' + pageId);
-            if (contentEl) {
-                contentEl.classList.add('active');
-                // Initialize page content if needed
-                initPageContent(pageId);
-            } else {
-                // Show generic page
-                const genericEl = document.getElementById('content-generic');
-                const task = allTasks.find(t => t.id === pageId);
-                if (task) {
-                    document.getElementById('genericPageTitle').textContent = task.name;
-                    document.getElementById('genericPageSubtitle').textContent = 'Manage ' + task.name.toLowerCase();
-                }
-                genericEl.classList.add('active');
-            }
-
-            // Update active nav item
             document.querySelectorAll('.rw-nav-item').forEach(el => {
                 if (el.textContent.toLowerCase().includes(pageId.replace('-', ' '))) {
                     el.classList.add('active');
@@ -1307,12 +1405,114 @@
             currentPage = pageId;
         }
 
-        // Initialize page content when switching
-        const pageInitialized = {};
+        function openNewTab(pageId) {
+            const pageDef = pageDefinitions[pageId] || { name: pageId, icon: '&#128196;' };
+
+            // Add to open tabs
+            openTabs.push({ id: pageId, name: pageDef.name, icon: pageDef.icon });
+
+            // Create content container if it doesn't exist
+            let contentEl = document.getElementById('content-' + pageId);
+            if (!contentEl) {
+                contentEl = document.createElement('div');
+                contentEl.id = 'content-' + pageId;
+                contentEl.className = 'rw-content-area';
+                contentEl.style.display = 'none';
+                document.getElementById('tabContentWrapper').appendChild(contentEl);
+            }
+
+            // Initialize page content
+            initPageContent(pageId);
+
+            // Render tabs and switch to new tab
+            renderTabBar();
+            switchToTab(pageId);
+        }
+
+        function switchToTab(pageId) {
+            // Hide all content areas
+            document.querySelectorAll('.rw-content-area').forEach(el => {
+                el.style.display = 'none';
+            });
+
+            // Hide no tabs message
+            document.getElementById('noTabsMessage').style.display = 'none';
+
+            // Show selected content
+            const contentEl = document.getElementById('content-' + pageId);
+            if (contentEl) {
+                contentEl.style.display = 'block';
+            }
+
+            // Update tab bar active state
+            activeTabId = pageId;
+            renderTabBar();
+        }
+
+        function closeTab(pageId, event) {
+            if (event) {
+                event.stopPropagation();
+            }
+
+            // Remove from open tabs
+            const tabIndex = openTabs.findIndex(t => t.id === pageId);
+            if (tabIndex === -1) return;
+
+            openTabs.splice(tabIndex, 1);
+
+            // Hide the content
+            const contentEl = document.getElementById('content-' + pageId);
+            if (contentEl) {
+                contentEl.style.display = 'none';
+            }
+
+            // If closing active tab, switch to another or show no tabs message
+            if (activeTabId === pageId) {
+                if (openTabs.length > 0) {
+                    // Switch to previous tab or first available
+                    const newActiveIndex = Math.min(tabIndex, openTabs.length - 1);
+                    switchToTab(openTabs[newActiveIndex].id);
+                } else {
+                    // No tabs left
+                    activeTabId = null;
+                    document.getElementById('noTabsMessage').style.display = 'flex';
+                }
+            }
+
+            renderTabBar();
+        }
+
+        function renderTabBar() {
+            const tabBar = document.getElementById('tabBar');
+
+            if (openTabs.length === 0) {
+                tabBar.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            openTabs.forEach(tab => {
+                const isActive = tab.id === activeTabId;
+                html += `
+                    <div class="rw-page-tab ${isActive ? 'active' : ''}" onclick="switchToTab('${tab.id}')">
+                        <span class="tab-icon">${tab.icon}</span>
+                        <span>${tab.name}</span>
+                        <span class="tab-close" onclick="closeTab('${tab.id}', event)" title="Close tab">&times;</span>
+                    </div>
+                `;
+            });
+
+            tabBar.innerHTML = html;
+        }
+
+        // Initialize page content when opening tab
         function initPageContent(pageId) {
             if (pageInitialized[pageId]) return;
 
             switch(pageId) {
+                case 'home':
+                    // Home is already in HTML, just needs to be shown
+                    break;
                 case 'items':
                     renderItemsPage();
                     break;
@@ -1328,8 +1528,34 @@
                 case 'shipments':
                     renderShipmentsPage();
                     break;
+                default:
+                    renderGenericPage(pageId);
+                    break;
             }
             pageInitialized[pageId] = true;
+        }
+
+        function renderGenericPage(pageId) {
+            const container = document.getElementById('content-' + pageId);
+            if (!container) return;
+
+            const pageDef = pageDefinitions[pageId] || { name: pageId, icon: '&#128196;' };
+
+            container.innerHTML = `
+                <div class="rw-page-header">
+                    <h1 class="rw-page-title">${pageDef.name}</h1>
+                    <p class="rw-page-subtitle">Manage ${pageDef.name.toLowerCase()}</p>
+                </div>
+                <div class="rw-card">
+                    <div class="rw-card-body">
+                        <div class="rw-empty-state">
+                            <div class="rw-empty-state-icon">${pageDef.icon}</div>
+                            <div class="rw-empty-state-title">${pageDef.name}</div>
+                            <p>This module is under development.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         // Load dashboard stats
@@ -1487,7 +1713,7 @@
         let filteredItems = [];
 
         function renderItemsPage() {
-            const container = document.getElementById('items-container');
+            const container = document.getElementById('content-items');
             const savedOrg = localStorage.getItem('wms_org_code') || '';
 
             container.innerHTML = `
@@ -1696,7 +1922,7 @@
         // SETTINGS PAGE
         // ==========================================
         function renderSettingsPage() {
-            const container = document.getElementById('settings-container');
+            const container = document.getElementById('content-settings');
             container.innerHTML = `
                 <div class="rw-page-header">
                     <h1 class="rw-page-title">Settings</h1>
@@ -1785,7 +2011,7 @@
         // RECEIPTS PAGE (Placeholder)
         // ==========================================
         function renderReceiptsPage() {
-            const container = document.getElementById('receipts-container');
+            const container = document.getElementById('content-receipts');
             container.innerHTML = `
                 <div class="rw-page-header">
                     <h1 class="rw-page-title">Receive Expected Shipments</h1>
@@ -1807,7 +2033,7 @@
         // SHIPMENTS PAGE (Placeholder)
         // ==========================================
         function renderShipmentsPage() {
-            const container = document.getElementById('shipments-container');
+            const container = document.getElementById('content-shipments');
             container.innerHTML = `
                 <div class="rw-page-header">
                     <h1 class="rw-page-title">Manage Shipments</h1>
@@ -1829,7 +2055,7 @@
         // QUANTITIES PAGE (Placeholder)
         // ==========================================
         function renderQuantitiesPage() {
-            const container = document.getElementById('quantities-container');
+            const container = document.getElementById('content-quantities');
             container.innerHTML = `
                 <div class="rw-page-header">
                     <h1 class="rw-page-title">Manage Item Quantities</h1>

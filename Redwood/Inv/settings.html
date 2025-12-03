@@ -492,6 +492,9 @@
                     <button class="btn btn-success" onclick="refreshEndpoints()">
                         <span>&#8635;</span> Refresh from APEX
                     </button>
+                    <button class="btn btn-warning" onclick="testCSharpConnection()" style="background:#f0ad4e;">
+                        <span>&#128268;</span> Test C#
+                    </button>
                     <button class="btn btn-secondary" onclick="exportEndpointsCSV()">
                         <span>&#128196;</span> Export CSV
                     </button>
@@ -1036,6 +1039,53 @@
 
         function filterEndpoints() {
             renderEndpointsTable();
+        }
+
+        // Test C# connection - simple ping to verify WebView2 messaging works
+        function testCSharpConnection() {
+            log('TEST', '========================================');
+            log('TEST', 'Testing C# connection...');
+            log('TEST', 'isWebView2:', isWebView2);
+            log('TEST', '========================================');
+
+            if (!isWebView2) {
+                showAlert('WebView2 not available!', 'error');
+                return;
+            }
+
+            const requestId = 'test_' + Date.now();
+            log('TEST', 'Sending test message with requestId:', requestId);
+
+            // Listen for any response
+            const handler = function(event) {
+                log('TEST', '*** RESPONSE RECEIVED ***');
+                log('TEST', 'Raw event.data:', event.data);
+                try {
+                    const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                    log('TEST', 'Parsed data:', JSON.stringify(data).substring(0, 200));
+                    showAlert('C# responded! Check console for details.', 'success');
+                } catch (e) {
+                    log('TEST', 'Parse error:', e.message);
+                }
+                window.chrome.webview.removeEventListener('message', handler);
+            };
+
+            window.chrome.webview.addEventListener('message', handler);
+
+            // Send a simple getAllEndpoints request
+            const message = {
+                action: 'getAllEndpoints',
+                requestId: requestId
+            };
+            log('TEST', 'Posting message:', JSON.stringify(message));
+            window.chrome.webview.postMessage(message);
+
+            showAlert('Test message sent. Check VS Debug Output for [C# RECEIVED]...', 'info');
+
+            setTimeout(() => {
+                window.chrome.webview.removeEventListener('message', handler);
+                log('TEST', '*** TIMEOUT - No response after 10s ***');
+            }, 10000);
         }
 
         function refreshEndpoints() {

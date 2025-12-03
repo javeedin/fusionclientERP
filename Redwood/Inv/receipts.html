@@ -628,27 +628,51 @@
     </div>
 
     <script>
+        // =============================================
+        // DEBUG LOGGING
+        // =============================================
+        const DEBUG = true;
+        function log(prefix, ...args) {
+            if (DEBUG) console.log(`[Redwood Receipts] [${prefix}]`, ...args);
+        }
+
         let poReceiptsData = [];
         let poReceiptsLinesData = [];
         let filteredData = [];
         let selectedPOs = new Set();
+        const isWebView2 = !!(window.chrome && window.chrome.webview);
+
+        log('INIT', 'Page loaded, WebView2 available:', isWebView2);
 
         // Get endpoint by integration code
         async function getEndpointByCode(integrationCode) {
+            log('ENDPOINT', '========================================');
+            log('ENDPOINT', 'getEndpointByCode() called');
+            log('ENDPOINT', 'Integration Code:', integrationCode);
+            log('ENDPOINT', '========================================');
             const instanceName = localStorage.getItem('wms_instance') || 'PROD';
+            log('ENDPOINT', 'Instance:', instanceName);
             return new Promise((resolve) => {
                 if (window.chrome && window.chrome.webview) {
                     const requestId = 'endpoint_' + integrationCode + '_' + Date.now();
+                    log('ENDPOINT', 'Request ID:', requestId);
                     const handler = function(event) {
                         try {
                             const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            log('ENDPOINT', '*** RESPONSE ***');
+                            log('ENDPOINT', 'Request ID match:', data.requestId === requestId);
+                            log('ENDPOINT', 'Endpoint received:', data.endpoint || 'null');
                             if (data.requestId === requestId && data.endpoint) {
+                                log('ENDPOINT', '*** SUCCESS - Endpoint:', data.endpoint, '***');
                                 resolve(data.endpoint);
                                 window.chrome.webview.removeEventListener('message', handler);
                             }
-                        } catch (e) {}
+                        } catch (e) {
+                            log('ENDPOINT', 'Error parsing:', e.message);
+                        }
                     };
                     window.chrome.webview.addEventListener('message', handler);
+                    log('ENDPOINT', 'Sending getEndpoint request to C#...');
                     window.chrome.webview.postMessage({
                         action: 'getEndpoint',
                         requestId: requestId,
@@ -657,9 +681,11 @@
                     });
                     setTimeout(() => {
                         window.chrome.webview.removeEventListener('message', handler);
+                        log('ENDPOINT', '*** TIMEOUT - No endpoint response ***');
                         resolve(null);
                     }, 5000);
                 } else {
+                    log('ENDPOINT', 'WebView2 not available');
                     resolve(null);
                 }
             });
@@ -667,27 +693,43 @@
 
         // Fetch with C# bridge
         async function fetchWithBridge(url) {
+            log('FETCH', '========================================');
+            log('FETCH', 'fetchWithBridge() called');
+            log('FETCH', 'URL:', url);
+            log('FETCH', '========================================');
             return new Promise((resolve, reject) => {
                 if (window.chrome && window.chrome.webview) {
                     const requestId = 'fetch_' + Date.now();
+                    log('FETCH', 'Request ID:', requestId);
                     const handler = function(event) {
                         try {
                             const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            log('FETCH', '*** RESPONSE RECEIVED ***');
+                            log('FETCH', 'Request ID match:', data.requestId === requestId);
+                            log('FETCH', 'Success:', data.success);
                             if (data.requestId === requestId) {
                                 window.chrome.webview.removeEventListener('message', handler);
                                 if (data.success) {
                                     let responseData = data.data;
+                                    log('FETCH', 'Raw data type:', typeof responseData);
                                     if (typeof responseData === 'string') {
+                                        log('FETCH', 'Parsing string response...');
                                         responseData = JSON.parse(responseData);
                                     }
+                                    log('FETCH', '*** SUCCESS - Data received ***');
+                                    log('FETCH', 'Items count:', responseData?.items?.length || 'N/A');
                                     resolve(responseData);
                                 } else {
+                                    log('FETCH', '*** ERROR:', data.error || 'Unknown error', '***');
                                     reject(new Error(data.error || 'Request failed'));
                                 }
                             }
-                        } catch (e) {}
+                        } catch (e) {
+                            log('FETCH', 'Error parsing response:', e.message);
+                        }
                     };
                     window.chrome.webview.addEventListener('message', handler);
+                    log('FETCH', 'Sending executeGet request to C#...');
                     window.chrome.webview.postMessage({
                         action: 'executeGet',
                         requestId: requestId,
@@ -695,9 +737,11 @@
                     });
                     setTimeout(() => {
                         window.chrome.webview.removeEventListener('message', handler);
+                        log('FETCH', '*** TIMEOUT - No response after 30s ***');
                         reject(new Error('Request timeout'));
                     }, 30000);
                 } else {
+                    log('FETCH', 'WebView not available');
                     reject(new Error('WebView not available'));
                 }
             });
@@ -705,10 +749,18 @@
 
         // Load data
         async function loadData() {
+            log('LOAD', '========================================');
+            log('LOAD', 'loadData() called');
+            log('LOAD', '========================================');
+
             const btn = document.getElementById('loadBtn');
             const orgCode = document.getElementById('orgCode').value.trim();
             const vendorF = document.getElementById('vendorFilter').value.trim();
             const poF = document.getElementById('poFilter').value.trim();
+
+            log('LOAD', 'Org Code:', orgCode);
+            log('LOAD', 'Vendor Filter:', vendorF || '(empty)');
+            log('LOAD', 'PO Filter:', poF || '(empty)');
 
             if (!orgCode) {
                 alert('Please enter Organization Code');
@@ -722,36 +774,58 @@
             container.innerHTML = '<div class="rw-empty-state"><div class="rw-spinner" style="width:40px;height:40px;border-width:3px;"></div><p style="margin-top:16px;">Loading shipments...</p></div>';
 
             try {
+                // Get PO Receipts
+                log('LOAD', '--- Step 1: Loading PO Receipts ---');
+                log('LOAD', 'Getting endpoint for EXPECTED_PO_RECEIPTS...');
                 const receiptsEndpoint = await getEndpointByCode('EXPECTED_PO_RECEIPTS');
+                log('LOAD', 'Receipts Endpoint:', receiptsEndpoint || 'null');
+
                 if (!receiptsEndpoint) throw new Error('EXPECTED_PO_RECEIPTS endpoint not configured');
 
                 let url = `${receiptsEndpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
                 if (vendorF) url += `&p_vendor_name=${encodeURIComponent(vendorF)}`;
                 if (poF) url += `&p_po_number=${encodeURIComponent(poF)}`;
 
+                log('LOAD', 'Receipts URL:', url);
                 const response = await fetchWithBridge(url);
+                log('LOAD', 'Receipts Response:', response ? 'received' : 'null');
 
                 if (response && response.items) {
                     poReceiptsData = response.items;
                     filteredData = [...poReceiptsData];
+                    log('LOAD', '*** PO Receipts loaded:', poReceiptsData.length, '***');
                 } else {
+                    log('LOAD', 'No receipts in response');
                     poReceiptsData = [];
                     filteredData = [];
                 }
 
+                // Get PO Lines
+                log('LOAD', '--- Step 2: Loading PO Lines ---');
+                log('LOAD', 'Getting endpoint for PO_EXPECTED_RECEIPTS_LINES...');
                 const linesEndpoint = await getEndpointByCode('PO_EXPECTED_RECEIPTS_LINES');
+                log('LOAD', 'Lines Endpoint:', linesEndpoint || 'null');
+
                 if (linesEndpoint) {
                     let linesUrl = `${linesEndpoint}?p_organization_code=${encodeURIComponent(orgCode)}`;
+                    log('LOAD', 'Lines URL:', linesUrl);
                     const linesResponse = await fetchWithBridge(linesUrl);
                     poReceiptsLinesData = linesResponse && linesResponse.items ? linesResponse.items : [];
+                    log('LOAD', '*** PO Lines loaded:', poReceiptsLinesData.length, '***');
+                } else {
+                    log('LOAD', 'Lines endpoint not available');
+                    poReceiptsLinesData = [];
                 }
 
+                log('LOAD', '--- Rendering results ---');
                 renderGroupedView(filteredData);
                 updateStats();
                 document.getElementById('statsBar').style.display = 'flex';
                 document.getElementById('toolbar').style.display = 'flex';
+                log('LOAD', '*** Load complete ***');
 
             } catch (error) {
+                log('LOAD', '*** ERROR:', error.message, '***');
                 container.innerHTML = `<div class="rw-empty-state"><div class="rw-empty-state-icon" style="color:var(--rw-red);">&#9888;</div><div class="rw-empty-state-title">Error</div><p>${error.message}</p></div>`;
             } finally {
                 btn.disabled = false;

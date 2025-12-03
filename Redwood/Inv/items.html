@@ -506,25 +506,49 @@
     </div>
 
     <script>
+        // =============================================
+        // DEBUG LOGGING
+        // =============================================
+        const DEBUG = true;
+        function log(prefix, ...args) {
+            if (DEBUG) console.log(`[Redwood Items] [${prefix}]`, ...args);
+        }
+
         let itemsData = [];
         let filteredItems = [];
+        const isWebView2 = !!(window.chrome && window.chrome.webview);
+
+        log('INIT', 'Page loaded, WebView2 available:', isWebView2);
 
         // Get endpoint by integration code
         async function getEndpointByCode(integrationCode) {
+            log('ENDPOINT', '========================================');
+            log('ENDPOINT', 'getEndpointByCode() called');
+            log('ENDPOINT', 'Integration Code:', integrationCode);
+            log('ENDPOINT', '========================================');
             const instanceName = localStorage.getItem('wms_instance') || 'PROD';
+            log('ENDPOINT', 'Instance:', instanceName);
             return new Promise((resolve) => {
                 if (window.chrome && window.chrome.webview) {
                     const requestId = 'endpoint_' + integrationCode + '_' + Date.now();
+                    log('ENDPOINT', 'Request ID:', requestId);
                     const handler = function(event) {
                         try {
                             const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            log('ENDPOINT', '*** RESPONSE ***');
+                            log('ENDPOINT', 'Request ID match:', data.requestId === requestId);
+                            log('ENDPOINT', 'Endpoint received:', data.endpoint || 'null');
                             if (data.requestId === requestId && data.endpoint) {
+                                log('ENDPOINT', '*** SUCCESS - Endpoint:', data.endpoint, '***');
                                 resolve(data.endpoint);
                                 window.chrome.webview.removeEventListener('message', handler);
                             }
-                        } catch (e) {}
+                        } catch (e) {
+                            log('ENDPOINT', 'Error parsing:', e.message);
+                        }
                     };
                     window.chrome.webview.addEventListener('message', handler);
+                    log('ENDPOINT', 'Sending getEndpoint request to C#...');
                     window.chrome.webview.postMessage({
                         action: 'getEndpoint',
                         requestId: requestId,
@@ -533,9 +557,11 @@
                     });
                     setTimeout(() => {
                         window.chrome.webview.removeEventListener('message', handler);
+                        log('ENDPOINT', '*** TIMEOUT - No endpoint response ***');
                         resolve(null);
                     }, 5000);
                 } else {
+                    log('ENDPOINT', 'WebView2 not available');
                     resolve(null);
                 }
             });
@@ -543,27 +569,43 @@
 
         // Fetch with C# bridge
         async function fetchWithBridge(url) {
+            log('FETCH', '========================================');
+            log('FETCH', 'fetchWithBridge() called');
+            log('FETCH', 'URL:', url);
+            log('FETCH', '========================================');
             return new Promise((resolve, reject) => {
                 if (window.chrome && window.chrome.webview) {
                     const requestId = 'fetch_' + Date.now();
+                    log('FETCH', 'Request ID:', requestId);
                     const handler = function(event) {
                         try {
                             const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            log('FETCH', '*** RESPONSE RECEIVED ***');
+                            log('FETCH', 'Request ID match:', data.requestId === requestId);
+                            log('FETCH', 'Success:', data.success);
                             if (data.requestId === requestId) {
                                 window.chrome.webview.removeEventListener('message', handler);
                                 if (data.success) {
                                     let responseData = data.data;
+                                    log('FETCH', 'Raw data type:', typeof responseData);
                                     if (typeof responseData === 'string') {
+                                        log('FETCH', 'Parsing string response...');
                                         responseData = JSON.parse(responseData);
                                     }
+                                    log('FETCH', '*** SUCCESS - Data received ***');
+                                    log('FETCH', 'Items count:', responseData?.items?.length || 'N/A');
                                     resolve(responseData);
                                 } else {
+                                    log('FETCH', '*** ERROR:', data.error || 'Unknown error', '***');
                                     reject(new Error(data.error || 'Request failed'));
                                 }
                             }
-                        } catch (e) {}
+                        } catch (e) {
+                            log('FETCH', 'Error parsing response:', e.message);
+                        }
                     };
                     window.chrome.webview.addEventListener('message', handler);
+                    log('FETCH', 'Sending executeGet request to C#...');
                     window.chrome.webview.postMessage({
                         action: 'executeGet',
                         requestId: requestId,
@@ -571,9 +613,11 @@
                     });
                     setTimeout(() => {
                         window.chrome.webview.removeEventListener('message', handler);
+                        log('FETCH', '*** TIMEOUT - No response after 30s ***');
                         reject(new Error('Request timeout'));
                     }, 30000);
                 } else {
+                    log('FETCH', 'WebView not available');
                     reject(new Error('WebView not available'));
                 }
             });
@@ -581,10 +625,18 @@
 
         // Search items
         async function searchItems() {
+            log('SEARCH', '========================================');
+            log('SEARCH', 'searchItems() called');
+            log('SEARCH', '========================================');
+
             const btn = document.getElementById('searchBtn');
             const orgCode = document.getElementById('orgCode').value.trim();
             const itemNumber = document.getElementById('itemNumber').value.trim();
             const itemDescVal = document.getElementById('itemDesc').value.trim();
+
+            log('SEARCH', 'Org Code:', orgCode);
+            log('SEARCH', 'Item Number:', itemNumber || '(empty)');
+            log('SEARCH', 'Description:', itemDescVal || '(empty)');
 
             if (!orgCode) {
                 alert('Please enter Organization Code');
@@ -598,7 +650,10 @@
             container.innerHTML = '<div class="rw-empty-state"><div class="rw-spinner" style="width:40px;height:40px;border-width:3px;"></div><p style="margin-top:16px;">Loading items...</p></div>';
 
             try {
+                log('SEARCH', 'Getting endpoint for APEX_ITEM_MASTER...');
                 const endpoint = await getEndpointByCode('APEX_ITEM_MASTER');
+                log('SEARCH', 'Endpoint result:', endpoint || 'null');
+
                 if (!endpoint) {
                     throw new Error('APEX_ITEM_MASTER endpoint not configured');
                 }
@@ -607,9 +662,13 @@
                 if (itemNumber) url += `&p_item_number=${encodeURIComponent(itemNumber)}`;
                 if (itemDescVal) url += `&p_item_description=${encodeURIComponent(itemDescVal)}`;
 
+                log('SEARCH', 'Final URL:', url);
+                log('SEARCH', 'Calling fetchWithBridge...');
                 const response = await fetchWithBridge(url);
+                log('SEARCH', 'Response received:', response ? 'yes' : 'no');
 
                 if (response && response.items) {
+                    log('SEARCH', '*** SUCCESS - Items loaded:', response.items.length, '***');
                     itemsData = response.items;
                     filteredItems = [...itemsData];
                     renderResults(filteredItems);
@@ -617,11 +676,13 @@
                     document.getElementById('statsBar').style.display = 'flex';
                     document.getElementById('toolbar').style.display = 'flex';
                 } else {
+                    log('SEARCH', 'No items in response');
                     itemsData = [];
                     filteredItems = [];
                     renderResults([]);
                 }
             } catch (error) {
+                log('SEARCH', '*** ERROR:', error.message, '***');
                 console.error('Error:', error);
                 container.innerHTML = `<div class="rw-empty-state"><div class="rw-empty-state-icon" style="color:var(--rw-red);">&#9888;</div><div class="rw-empty-state-title">Error</div><p>${error.message}</p></div>`;
             } finally {

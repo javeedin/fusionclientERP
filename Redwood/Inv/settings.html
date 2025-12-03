@@ -23,6 +23,8 @@
             --rw-success-bg: #e6f4ea;
             --rw-info: #0056b3;
             --rw-info-bg: #e7f1ff;
+            --rw-danger: #dc2626;
+            --rw-danger-bg: #fee2e2;
             --rw-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
             --rw-radius: 8px;
             --rw-radius-lg: 12px;
@@ -38,183 +40,142 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 24px;
         }
 
         .page-header {
-            margin-bottom: 32px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .page-title {
             font-size: 24px;
             font-weight: 600;
             color: var(--rw-neutral-900);
-            margin-bottom: 8px;
         }
 
         .page-subtitle {
             font-size: 14px;
             color: var(--rw-neutral-500);
+            margin-top: 4px;
         }
 
-        .settings-section {
+        .settings-path {
+            font-size: 12px;
+            color: var(--rw-neutral-500);
+            font-family: monospace;
+            background: var(--rw-neutral-100);
+            padding: 6px 12px;
+            border-radius: var(--rw-radius);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid var(--rw-neutral-200);
+            padding-bottom: 0;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--rw-neutral-500);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.15s;
+        }
+
+        .tab:hover {
+            color: var(--rw-red);
+        }
+
+        .tab.active {
+            color: var(--rw-red);
+            border-bottom-color: var(--rw-red);
+        }
+
+        /* Tab Panels */
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* Card */
+        .card {
             background: var(--rw-white);
             border-radius: var(--rw-radius-lg);
             box-shadow: var(--rw-shadow);
-            margin-bottom: 24px;
             overflow: hidden;
+            margin-bottom: 24px;
         }
 
-        .section-header {
+        .card-header {
             padding: 16px 24px;
             border-bottom: 1px solid var(--rw-neutral-100);
             background: var(--rw-neutral-50);
         }
 
-        .section-title {
+        .card-title {
             font-size: 16px;
             font-weight: 600;
             color: var(--rw-neutral-900);
         }
 
-        .section-desc {
-            font-size: 13px;
-            color: var(--rw-neutral-500);
-            margin-top: 4px;
-        }
-
-        .section-body {
+        .card-body {
             padding: 0;
         }
 
-        .settings-item {
+        /* Toolbar */
+        .toolbar {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 24px;
+            gap: 12px;
+            padding: 16px 24px;
             border-bottom: 1px solid var(--rw-neutral-100);
+            flex-wrap: wrap;
+            align-items: center;
         }
 
-        .settings-item:last-child {
-            border-bottom: none;
-        }
-
-        .settings-item-info {
+        .toolbar-spacer {
             flex: 1;
         }
 
-        .settings-item-label {
-            font-size: 15px;
-            font-weight: 500;
-            color: var(--rw-neutral-800);
-            margin-bottom: 4px;
-        }
-
-        .settings-item-desc {
+        .search-input {
+            padding: 8px 14px;
+            border: 1px solid var(--rw-neutral-300);
+            border-radius: var(--rw-radius);
             font-size: 13px;
-            color: var(--rw-neutral-500);
+            width: 200px;
         }
 
-        .settings-item-value {
-            font-size: 14px;
-            color: var(--rw-neutral-700);
-            background: var(--rw-neutral-50);
-            padding: 8px 16px;
-            border-radius: var(--rw-radius);
-            min-width: 120px;
-            text-align: center;
-        }
-
-        .settings-input {
-            padding: 10px 14px;
-            border: 1px solid var(--rw-neutral-300);
-            border-radius: var(--rw-radius);
-            font-size: 14px;
-            color: var(--rw-neutral-800);
-            min-width: 200px;
-        }
-
-        .settings-input:focus {
+        .search-input:focus {
             outline: none;
             border-color: var(--rw-red);
-            box-shadow: 0 0 0 3px var(--rw-red-light);
-        }
-
-        .settings-select {
-            padding: 10px 14px;
-            border: 1px solid var(--rw-neutral-300);
-            border-radius: var(--rw-radius);
-            font-size: 14px;
-            color: var(--rw-neutral-800);
-            min-width: 200px;
-            background: var(--rw-white);
-            cursor: pointer;
-        }
-
-        .settings-select:focus {
-            outline: none;
-            border-color: var(--rw-red);
-        }
-
-        /* Toggle Switch */
-        .toggle-switch {
-            position: relative;
-            width: 52px;
-            height: 28px;
-        }
-
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .toggle-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--rw-neutral-300);
-            transition: 0.3s;
-            border-radius: 28px;
-        }
-
-        .toggle-slider::before {
-            position: absolute;
-            content: "";
-            height: 22px;
-            width: 22px;
-            left: 3px;
-            bottom: 3px;
-            background: white;
-            transition: 0.3s;
-            border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .toggle-switch input:checked + .toggle-slider {
-            background: var(--rw-red);
-        }
-
-        .toggle-switch input:checked + .toggle-slider::before {
-            transform: translateX(24px);
         }
 
         /* Buttons */
         .btn {
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: var(--rw-radius);
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.15s;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             border: none;
         }
 
@@ -237,8 +198,17 @@
             background: var(--rw-neutral-50);
         }
 
+        .btn-success {
+            background: #00796B;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #00695C;
+        }
+
         .btn-danger {
-            background: #dc2626;
+            background: var(--rw-danger);
             color: white;
         }
 
@@ -246,31 +216,195 @@
             background: #b91c1c;
         }
 
-        .btn-group {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-            padding: 20px 24px;
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 900px;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 12px 16px;
             background: var(--rw-neutral-50);
-            border-top: 1px solid var(--rw-neutral-100);
+            font-weight: 600;
+            color: var(--rw-neutral-700);
+            border-bottom: 2px solid var(--rw-neutral-200);
+            white-space: nowrap;
         }
 
-        /* Alert */
-        .alert {
-            padding: 14px 20px;
-            border-radius: var(--rw-radius);
-            margin-bottom: 24px;
+        .data-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+            color: var(--rw-neutral-800);
+        }
+
+        .data-table tbody tr:hover {
+            background: var(--rw-red-light);
+        }
+
+        .data-table tbody tr.selected {
+            background: var(--rw-red-light);
+        }
+
+        .url-cell {
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 24px;
+            color: var(--rw-neutral-500);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--rw-neutral-700);
+            margin-bottom: 8px;
+        }
+
+        /* Dialog/Modal */
+        .dialog-overlay {
             display: none;
-            font-size: 14px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
         }
 
-        .alert.show { display: flex; align-items: center; gap: 12px; }
+        .dialog-overlay.active {
+            display: flex;
+        }
 
-        .alert-success { background: var(--rw-success-bg); color: var(--rw-success); }
-        .alert-info { background: var(--rw-info-bg); color: var(--rw-info); }
-        .alert-error { background: #fee2e2; color: #dc2626; }
+        .dialog {
+            background: var(--rw-white);
+            border-radius: var(--rw-radius-lg);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            overflow: hidden;
+        }
 
-        /* Info Cards */
+        .dialog-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dialog-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+        }
+
+        .dialog-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 20px;
+            color: var(--rw-neutral-500);
+            border-radius: var(--rw-radius);
+        }
+
+        .dialog-close:hover {
+            background: var(--rw-neutral-100);
+        }
+
+        .dialog-body {
+            padding: 24px;
+            overflow-y: auto;
+            max-height: calc(90vh - 140px);
+        }
+
+        .dialog-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--rw-neutral-100);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* Form */
+        .form-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+        }
+
+        .form-group.small {
+            flex: 0 0 100px;
+        }
+
+        .form-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--rw-neutral-700);
+        }
+
+        .form-input, .form-select {
+            padding: 10px 14px;
+            border: 1px solid var(--rw-neutral-300);
+            border-radius: var(--rw-radius);
+            font-size: 14px;
+            color: var(--rw-neutral-800);
+            background: var(--rw-white);
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--rw-red);
+            box-shadow: 0 0 0 3px var(--rw-red-light);
+        }
+
+        .form-input.readonly {
+            background: var(--rw-neutral-50);
+        }
+
+        .form-checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Info Grid */
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -285,7 +419,7 @@
         }
 
         .info-card-label {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--rw-neutral-500);
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -293,15 +427,34 @@
         }
 
         .info-card-value {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             color: var(--rw-neutral-800);
         }
 
+        /* Alert */
+        .alert {
+            padding: 14px 20px;
+            border-radius: var(--rw-radius);
+            margin-bottom: 24px;
+            display: none;
+            font-size: 14px;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .alert.show { display: flex; }
+        .alert-success { background: var(--rw-success-bg); color: var(--rw-success); }
+        .alert-info { background: var(--rw-info-bg); color: var(--rw-info); }
+        .alert-error { background: var(--rw-danger-bg); color: var(--rw-danger); }
+
+        /* Check icon */
+        .check-icon { color: var(--rw-success); }
+
         @media (max-width: 768px) {
             .container { padding: 16px; }
-            .settings-item { flex-direction: column; align-items: flex-start; gap: 12px; }
-            .settings-input, .settings-select { width: 100%; }
+            .tabs { overflow-x: auto; }
+            .form-row { flex-direction: column; }
             .info-grid { grid-template-columns: 1fr 1fr; }
         }
     </style>
@@ -309,214 +462,945 @@
 <body>
     <div class="container">
         <div class="page-header">
-            <h1 class="page-title">Settings</h1>
-            <p class="page-subtitle">Configure application preferences and view system information</p>
+            <div>
+                <h1 class="page-title">&#9881; Settings</h1>
+                <p class="page-subtitle">Manage endpoints, instances, and application preferences</p>
+            </div>
+            <span class="settings-path" id="settingsPath">C:\fusionclient\ERP\settings\endpoints.xml</span>
         </div>
 
         <div id="alertBox" class="alert"></div>
 
-        <!-- User & Session Info -->
-        <div class="settings-section">
-            <div class="section-header">
-                <div class="section-title">Session Information</div>
-                <div class="section-desc">Current user session details</div>
-            </div>
-            <div class="info-grid">
-                <div class="info-card">
-                    <div class="info-card-label">Username</div>
-                    <div class="info-card-value" id="infoUsername">-</div>
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('endpoints')">Endpoints</button>
+            <button class="tab" onclick="switchTab('instances')">Instance Details</button>
+            <button class="tab" onclick="switchTab('storage')">EndPoints Storage</button>
+            <button class="tab" onclick="switchTab('preferences')">Preferences</button>
+        </div>
+
+        <!-- Endpoints Panel -->
+        <div class="tab-panel active" id="panel-endpoints">
+            <div class="card">
+                <div class="toolbar">
+                    <button class="btn btn-primary" onclick="showEndpointForm('new')">
+                        <span>&#10133;</span> New
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteSelectedEndpoint()">
+                        <span>&#128465;</span> Delete
+                    </button>
+                    <button class="btn btn-success" onclick="refreshEndpoints()">
+                        <span>&#8635;</span> Refresh from APEX
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportEndpointsCSV()">
+                        <span>&#128196;</span> Export CSV
+                    </button>
+                    <span class="toolbar-spacer"></span>
+                    <input type="text" id="endpointSearch" class="search-input" placeholder="Search endpoints..." oninput="filterEndpoints()">
                 </div>
-                <div class="info-card">
-                    <div class="info-card-label">Instance</div>
-                    <div class="info-card-value" id="infoInstance">-</div>
-                </div>
-                <div class="info-card">
-                    <div class="info-card-label">Organization</div>
-                    <div class="info-card-value" id="infoOrg">-</div>
-                </div>
-                <div class="info-card">
-                    <div class="info-card-label">Login Time</div>
-                    <div class="info-card-value" id="infoLoginTime">-</div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 30px;"></th>
+                                <th style="width: 50px;">S.No</th>
+                                <th style="width: 80px;">Source</th>
+                                <th style="width: 100px;">Instance</th>
+                                <th>Integration Code</th>
+                                <th class="url-cell">URL</th>
+                                <th>Path</th>
+                                <th style="width: 80px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="endpointsTableBody">
+                            <tr><td colspan="8" class="empty-state">Loading endpoints...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <!-- Organization Settings -->
-        <div class="settings-section">
-            <div class="section-header">
-                <div class="section-title">Organization</div>
-                <div class="section-desc">Set your default inventory organization</div>
-            </div>
-            <div class="section-body">
-                <div class="settings-item">
-                    <div class="settings-item-info">
-                        <div class="settings-item-label">Default Organization</div>
-                        <div class="settings-item-desc">Select the organization to use by default when loading data</div>
-                    </div>
-                    <select id="defaultOrg" class="settings-select">
-                        <option value="">Select Organization...</option>
-                    </select>
-                </div>
-                <div class="settings-item">
-                    <div class="settings-item-info">
-                        <div class="settings-item-label">Organization Code</div>
-                        <div class="settings-item-desc">Manually enter an organization code</div>
-                    </div>
-                    <input type="text" id="orgCode" class="settings-input" placeholder="e.g., AMS">
-                </div>
-            </div>
-        </div>
-
-        <!-- Display Settings -->
-        <div class="settings-section">
-            <div class="section-header">
-                <div class="section-title">Display</div>
-                <div class="section-desc">Customize how data is displayed</div>
-            </div>
-            <div class="section-body">
-                <div class="settings-item">
-                    <div class="settings-item-info">
-                        <div class="settings-item-label">Auto-expand Groups</div>
-                        <div class="settings-item-desc">Automatically expand PO groups when loading data</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="autoExpand">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                <div class="settings-item">
-                    <div class="settings-item-info">
-                        <div class="settings-item-label">Show Line Totals</div>
-                        <div class="settings-item-desc">Display quantity totals in line item tables</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="showTotals" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                <div class="settings-item">
-                    <div class="settings-item-info">
-                        <div class="settings-item-label">Default Page Size</div>
-                        <div class="settings-item-desc">Number of records to display per page</div>
-                    </div>
-                    <select id="pageSize" class="settings-select">
-                        <option value="25">25 records</option>
-                        <option value="50" selected>50 records</option>
-                        <option value="100">100 records</option>
-                        <option value="200">200 records</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <!-- API Settings -->
-        <div class="settings-section">
-            <div class="section-header">
-                <div class="section-title">API Configuration</div>
-                <div class="section-desc">View and test API connections</div>
-            </div>
-            <div class="section-body">
-                <div class="settings-item">
-                    <div class="settings-item-info">
-                        <div class="settings-item-label">API Status</div>
-                        <div class="settings-item-desc">Current connection status to backend services</div>
-                    </div>
-                    <span class="settings-item-value" id="apiStatus">Checking...</span>
-                </div>
-                <div class="settings-item">
-                    <div class="settings-item-info">
-                        <div class="settings-item-label">Test Connection</div>
-                        <div class="settings-item-desc">Verify API connectivity to the selected instance</div>
-                    </div>
-                    <button class="btn btn-secondary" onclick="testConnection()">
-                        &#128279; Test Connection
+        <!-- Instances Panel -->
+        <div class="tab-panel" id="panel-instances">
+            <div class="card">
+                <div class="toolbar">
+                    <button class="btn btn-primary" onclick="showInstanceForm('new')">
+                        <span>&#10133;</span> New
+                    </button>
+                    <button class="btn btn-secondary" onclick="editSelectedInstance()">
+                        <span>&#9998;</span> Edit
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteSelectedInstance()">
+                        <span>&#128465;</span> Delete
+                    </button>
+                    <button class="btn btn-success" onclick="refreshInstances()">
+                        <span>&#8635;</span> Refresh
                     </button>
                 </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 30px;"></th>
+                                <th>Instance</th>
+                                <th>Source</th>
+                                <th>Base URL</th>
+                                <th>Username</th>
+                                <th style="width: 70px;">No Auth</th>
+                            </tr>
+                        </thead>
+                        <tbody id="instancesTableBody">
+                            <tr><td colspan="6" class="empty-state">Loading instances...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
-        <!-- Data Management -->
-        <div class="settings-section">
-            <div class="section-header">
-                <div class="section-title">Data Management</div>
-                <div class="section-desc">Manage cached data and preferences</div>
-            </div>
-            <div class="section-body">
-                <div class="settings-item">
-                    <div class="settings-item-info">
-                        <div class="settings-item-label">Clear Cache</div>
-                        <div class="settings-item-desc">Remove all cached data and refresh from server</div>
-                    </div>
-                    <button class="btn btn-secondary" onclick="clearCache()">
-                        &#128465; Clear Cache
+        <!-- Storage Panel -->
+        <div class="tab-panel" id="panel-storage">
+            <div class="card">
+                <div class="toolbar">
+                    <button class="btn btn-success" onclick="refreshEndpointsStorage()">
+                        <span>&#8635;</span> Refresh
                     </button>
                 </div>
-                <div class="settings-item">
-                    <div class="settings-item-info">
-                        <div class="settings-item-label">Reset Settings</div>
-                        <div class="settings-item-desc">Reset all settings to default values</div>
-                    </div>
-                    <button class="btn btn-danger" onclick="resetSettings()">
-                        &#128260; Reset All
-                    </button>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">S.No</th>
+                                <th style="width: 100px;">Source</th>
+                                <th style="width: 100px;">Instance</th>
+                                <th>Full URL</th>
+                            </tr>
+                        </thead>
+                        <tbody id="storageTableBody">
+                            <tr><td colspan="4" class="empty-state">Click Refresh to load endpoints</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            <div class="btn-group">
-                <button class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
-                <button class="btn btn-primary" onclick="saveSettings()">
+        </div>
+
+        <!-- Preferences Panel -->
+        <div class="tab-panel" id="panel-preferences">
+            <!-- Session Info -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Session Information</div>
+                </div>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <div class="info-card-label">Username</div>
+                        <div class="info-card-value" id="infoUsername">-</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-card-label">Instance</div>
+                        <div class="info-card-value" id="infoInstance">-</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-card-label">Organization</div>
+                        <div class="info-card-value" id="infoOrg">-</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-card-label">API Status</div>
+                        <div class="info-card-value" id="infoApiStatus">Checking...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Organization -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Organization Settings</div>
+                </div>
+                <div style="padding: 20px 24px;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Default Organization</label>
+                            <select id="defaultOrg" class="form-select">
+                                <option value="">Select Organization...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Organization Code</label>
+                            <input type="text" id="orgCode" class="form-input" placeholder="e.g., AMS">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Test -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">API Configuration</div>
+                </div>
+                <div style="padding: 20px 24px;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">APEX Endpoint URL</label>
+                            <input type="text" id="apexEndpointUrl" class="form-input readonly" readonly>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; margin-top: 12px;">
+                        <button class="btn btn-secondary" onclick="testConnection()">
+                            &#128279; Test Connection
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearCache()">
+                            &#128465; Clear Cache
+                        </button>
+                        <button class="btn btn-danger" onclick="resetSettings()">
+                            &#128260; Reset All
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Save -->
+            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-primary" onclick="savePreferences()">
                     &#128190; Save Settings
                 </button>
             </div>
         </div>
+    </div>
 
-        <!-- Version Info -->
-        <div class="settings-section">
-            <div class="section-header">
-                <div class="section-title">About</div>
+    <!-- Endpoint Form Dialog -->
+    <div class="dialog-overlay" id="endpointDialog">
+        <div class="dialog">
+            <div class="dialog-header">
+                <h2 class="dialog-title" id="endpointDialogTitle">New Endpoint</h2>
+                <button class="dialog-close" onclick="closeEndpointDialog()">&times;</button>
             </div>
-            <div class="info-grid">
-                <div class="info-card">
-                    <div class="info-card-label">Application</div>
-                    <div class="info-card-value">FusionClientERP</div>
+            <div class="dialog-body">
+                <input type="hidden" id="endpointFormMode" value="new">
+                <input type="hidden" id="endpointFormIndex" value="">
+                <div class="form-row">
+                    <div class="form-group small">
+                        <label class="form-label">S.No</label>
+                        <input type="number" id="endpointSno" class="form-input readonly" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Source *</label>
+                        <select id="endpointSource" class="form-select" onchange="onEndpointSourceChange()">
+                            <option value="">-- Select --</option>
+                            <option value="APEX">APEX</option>
+                            <option value="FUSION">FUSION</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Instance *</label>
+                        <select id="endpointInstance" class="form-select" onchange="onEndpointInstanceChange()">
+                            <option value="">-- Select --</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="info-card">
-                    <div class="info-card-label">Version</div>
-                    <div class="info-card-value">v2025.12.01</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Integration Code *</label>
+                        <input type="text" id="endpointCode" class="form-input" placeholder="e.g., APEX_ITEM_MASTER">
+                    </div>
                 </div>
-                <div class="info-card">
-                    <div class="info-card-label">Module</div>
-                    <div class="info-card-value">Inventory</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Base URL *</label>
+                        <input type="text" id="endpointUrl" class="form-input" placeholder="https://...">
+                    </div>
                 </div>
-                <div class="info-card">
-                    <div class="info-card-label">UI Framework</div>
-                    <div class="info-card-value">Oracle Redwood</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Path</label>
+                        <input type="text" id="endpointPath" class="form-input" placeholder="/api/v1/...">
+                    </div>
                 </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Parameters</label>
+                        <input type="text" id="endpointParams" class="form-input" placeholder="param1=value1&param2=value2">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Comments</label>
+                        <input type="text" id="endpointComments" class="form-input" placeholder="Optional description">
+                    </div>
+                </div>
+            </div>
+            <div class="dialog-footer">
+                <button class="btn btn-secondary" onclick="closeEndpointDialog()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveEndpoint()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instance Form Dialog -->
+    <div class="dialog-overlay" id="instanceDialog">
+        <div class="dialog">
+            <div class="dialog-header">
+                <h2 class="dialog-title" id="instanceDialogTitle">New Instance</h2>
+                <button class="dialog-close" onclick="closeInstanceDialog()">&times;</button>
+            </div>
+            <div class="dialog-body">
+                <input type="hidden" id="instanceFormMode" value="new">
+                <input type="hidden" id="instanceFormIndex" value="">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Instance Name *</label>
+                        <input type="text" id="instanceName" class="form-input" placeholder="e.g., PROD, DEV, TEST">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Source Type *</label>
+                        <select id="instanceSource" class="form-select">
+                            <option value="">-- Select --</option>
+                            <option value="APEX">APEX</option>
+                            <option value="FUSION">FUSION</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Base URL *</label>
+                        <input type="text" id="instanceUrl" class="form-input" placeholder="https://your-instance.oraclecloud.com">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" id="instanceUsername" class="form-input" placeholder="Enter username">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" id="instancePassword" class="form-input" placeholder="Enter password">
+                    </div>
+                </div>
+                <div class="form-checkbox-row">
+                    <input type="checkbox" id="instanceNoAuth">
+                    <label for="instanceNoAuth">No Authorization Required</label>
+                </div>
+            </div>
+            <div class="dialog-footer">
+                <button class="btn btn-secondary" onclick="closeInstanceDialog()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveInstance()">Save</button>
             </div>
         </div>
     </div>
 
     <script>
+        // =============================================
+        // DEBUG LOGGING
+        // =============================================
+        const DEBUG = true;
+        function log(prefix, ...args) {
+            if (DEBUG) console.log(`[Redwood Settings] [${prefix}]`, ...args);
+        }
+
+        // =============================================
+        // DATA STORAGE
+        // =============================================
+        let endpointsData = [];
+        let instancesData = [];
+        let selectedEndpointIndex = -1;
+        let selectedInstanceIndex = -1;
+        let apexEndpointUrl = '';
+        let endpointsSettingsPath = 'C:\\fusionclient\\ERP\\settings\\endpoints.xml';
+
         const isWebView2 = !!(window.chrome && window.chrome.webview);
 
+        // =============================================
+        // INITIALIZATION
+        // =============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            log('INIT', 'Page loaded, WebView2 available:', isWebView2);
+            loadPreferences();
+            loadApexEndpointUrl();
+            loadEndpoints();
+            loadInstances();
+            checkApiStatus();
+        });
+
+        // =============================================
+        // TAB SWITCHING
+        // =============================================
+        function switchTab(tabName) {
+            log('TAB', 'Switching to:', tabName);
+
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update panels
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+            document.getElementById('panel-' + tabName).classList.add('active');
+
+            // Load data for specific tabs
+            if (tabName === 'storage') {
+                renderStorageTable();
+            }
+        }
+
+        // =============================================
+        // ALERT FUNCTIONS
+        // =============================================
         function showAlert(message, type) {
             const alertBox = document.getElementById('alertBox');
-            alertBox.innerHTML = `<span>${type === 'success' ? '&#9989;' : type === 'error' ? '&#9888;' : '&#8505;'}</span> ${message}`;
+            const icon = type === 'success' ? '&#9989;' : type === 'error' ? '&#9888;' : '&#8505;';
+            alertBox.innerHTML = `<span>${icon}</span> ${message}`;
             alertBox.className = 'alert alert-' + type + ' show';
             setTimeout(() => alertBox.classList.remove('show'), 5000);
         }
 
-        function loadSettings() {
-            // Session Info
+        // =============================================
+        // APEX ENDPOINT URL
+        // =============================================
+        function loadApexEndpointUrl() {
+            log('APEX', 'Loading APEX endpoint URL...');
+
+            if (isWebView2) {
+                const requestId = 'getApexEndpointUrl_' + Date.now();
+
+                const handler = function(event) {
+                    try {
+                        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                        if (data.requestId === requestId || data.action === 'getApexEndpointUrlResponse') {
+                            window.chrome.webview.removeEventListener('message', handler);
+                            if (data.success && data.url) {
+                                apexEndpointUrl = data.url.trim();
+                                log('APEX', 'Loaded APEX endpoint URL:', apexEndpointUrl);
+                                document.getElementById('apexEndpointUrl').value = apexEndpointUrl;
+                            } else {
+                                log('APEX', 'Failed to load APEX endpoint URL from file');
+                            }
+                        }
+                    } catch (e) {
+                        log('APEX', 'Error parsing response:', e);
+                    }
+                };
+
+                window.chrome.webview.addEventListener('message', handler);
+                window.chrome.webview.postMessage({
+                    action: 'getApexEndpointUrl',
+                    requestId: requestId
+                });
+
+                setTimeout(() => window.chrome.webview.removeEventListener('message', handler), 3000);
+            } else {
+                apexEndpointUrl = 'https://g827cd88c3cfc03-mitsumioracledb.adb.me-dubai-1.oraclecloudapps.com/ords/test/FUSIONCLIENTERP/endpoints';
+                log('APEX', 'Using fallback URL:', apexEndpointUrl);
+                document.getElementById('apexEndpointUrl').value = apexEndpointUrl;
+            }
+        }
+
+        // =============================================
+        // ENDPOINTS FUNCTIONS
+        // =============================================
+        function loadEndpoints() {
+            log('ENDPOINTS', '========================================');
+            log('ENDPOINTS', 'loadEndpoints() STARTED');
+            log('ENDPOINTS', 'WebView2 available:', isWebView2);
+            log('ENDPOINTS', '========================================');
+
+            if (isWebView2) {
+                const requestId = 'getAllEndpoints_' + Date.now();
+                log('ENDPOINTS', 'Requesting endpoints from C# with requestId:', requestId);
+
+                const handler = function(event) {
+                    try {
+                        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                        log('ENDPOINTS', '*** RESPONSE RECEIVED ***');
+
+                        if (data.debug) {
+                            log('ENDPOINTS DEBUG', 'Full URL:', data.debug.fullUrl || 'N/A');
+                            log('ENDPOINTS DEBUG', 'Raw Response:', data.debug.rawResponse || 'N/A');
+                        }
+
+                        log('ENDPOINTS', 'Success:', data.success);
+                        log('ENDPOINTS', 'Source:', data.source || 'not specified');
+                        log('ENDPOINTS', 'Count:', data.endpoints ? data.endpoints.length : 'undefined');
+
+                        if (data.requestId === requestId || data.action === 'getAllEndpointsResponse') {
+                            window.chrome.webview.removeEventListener('message', handler);
+                            if (data.success && data.endpoints) {
+                                endpointsData = data.endpoints;
+                                log('ENDPOINTS', '*** SUCCESS - Loaded', endpointsData.length, 'endpoints ***');
+                                if (data.settingsPath) {
+                                    endpointsSettingsPath = data.settingsPath + '\\endpoints.xml';
+                                    document.getElementById('settingsPath').textContent = endpointsSettingsPath;
+                                }
+                            } else {
+                                log('ENDPOINTS', '*** FAILED - Using defaults ***');
+                                endpointsData = getDefaultEndpoints();
+                            }
+                            renderEndpointsTable();
+                        }
+                    } catch (e) {
+                        log('ENDPOINTS', 'Error:', e.message);
+                    }
+                };
+
+                window.chrome.webview.addEventListener('message', handler);
+                window.chrome.webview.postMessage({
+                    action: 'getAllEndpoints',
+                    requestId: requestId
+                });
+
+                setTimeout(() => {
+                    window.chrome.webview.removeEventListener('message', handler);
+                    if (endpointsData.length === 0) {
+                        log('ENDPOINTS', '*** TIMEOUT - Using defaults ***');
+                        endpointsData = getDefaultEndpoints();
+                        renderEndpointsTable();
+                    }
+                }, 3000);
+            } else {
+                log('ENDPOINTS', 'WebView2 not available, using localStorage');
+                const stored = localStorage.getItem('fusionclient_endpoints');
+                if (stored) {
+                    try {
+                        endpointsData = JSON.parse(stored);
+                        log('ENDPOINTS', 'Loaded from localStorage:', endpointsData.length);
+                    } catch (e) {
+                        endpointsData = getDefaultEndpoints();
+                    }
+                } else {
+                    endpointsData = getDefaultEndpoints();
+                }
+                renderEndpointsTable();
+            }
+        }
+
+        function getDefaultEndpoints() {
+            return [
+                { sno: 1, source: 'APEX', instanceName: 'TEST', integrationCode: 'APEX_ITEM_MASTER', url: 'https://example.com/ords/test', path: '/items' },
+                { sno: 2, source: 'APEX', instanceName: 'TEST', integrationCode: 'EXPECTED_PO_RECEIPTS', url: 'https://example.com/ords/test', path: '/receipts' }
+            ];
+        }
+
+        function renderEndpointsTable() {
+            const tbody = document.getElementById('endpointsTableBody');
+            const searchVal = (document.getElementById('endpointSearch')?.value || '').toLowerCase();
+
+            let filtered = endpointsData;
+            if (searchVal) {
+                filtered = endpointsData.filter(ep => {
+                    const code = (ep.integrationCode || '').toLowerCase();
+                    const source = (ep.source || '').toLowerCase();
+                    const instance = (ep.instanceName || '').toLowerCase();
+                    return code.includes(searchVal) || source.includes(searchVal) || instance.includes(searchVal);
+                });
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No endpoints found. Click "Refresh from APEX" to load.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map((ep, idx) => {
+                const fullUrl = (ep.url || '') + (ep.path || '');
+                return `
+                    <tr class="${idx === selectedEndpointIndex ? 'selected' : ''}" onclick="selectEndpoint(${idx})">
+                        <td><input type="radio" name="endpointSelect" ${idx === selectedEndpointIndex ? 'checked' : ''} onclick="event.stopPropagation(); selectEndpoint(${idx})"></td>
+                        <td>${ep.sno || idx + 1}</td>
+                        <td>${escapeHtml(ep.source || '')}</td>
+                        <td>${escapeHtml(ep.instanceName || '')}</td>
+                        <td style="font-weight: 500;">${escapeHtml(ep.integrationCode || '')}</td>
+                        <td class="url-cell" title="${escapeHtml(ep.url || '')}">${escapeHtml(ep.url || '')}</td>
+                        <td>${escapeHtml(ep.path || '')}</td>
+                        <td>
+                            <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); editEndpoint(${idx})">Edit</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function selectEndpoint(idx) {
+            selectedEndpointIndex = idx;
+            renderEndpointsTable();
+        }
+
+        function filterEndpoints() {
+            renderEndpointsTable();
+        }
+
+        function refreshEndpoints() {
+            log('ENDPOINTS', 'Refreshing endpoints from APEX...');
+            showAlert('Refreshing endpoints...', 'info');
+            loadEndpoints();
+        }
+
+        function showEndpointForm(mode, idx = null) {
+            document.getElementById('endpointFormMode').value = mode;
+            document.getElementById('endpointFormIndex').value = idx !== null ? idx : '';
+            document.getElementById('endpointDialogTitle').textContent = mode === 'new' ? 'New Endpoint' : 'Edit Endpoint';
+
+            if (mode === 'new') {
+                document.getElementById('endpointSno').value = endpointsData.length + 1;
+                document.getElementById('endpointSource').value = '';
+                document.getElementById('endpointInstance').value = '';
+                document.getElementById('endpointCode').value = '';
+                document.getElementById('endpointUrl').value = '';
+                document.getElementById('endpointPath').value = '';
+                document.getElementById('endpointParams').value = '';
+                document.getElementById('endpointComments').value = '';
+            } else if (idx !== null && endpointsData[idx]) {
+                const ep = endpointsData[idx];
+                document.getElementById('endpointSno').value = ep.sno || idx + 1;
+                document.getElementById('endpointSource').value = ep.source || '';
+                document.getElementById('endpointInstance').value = ep.instanceName || '';
+                document.getElementById('endpointCode').value = ep.integrationCode || '';
+                document.getElementById('endpointUrl').value = ep.url || '';
+                document.getElementById('endpointPath').value = ep.path || '';
+                document.getElementById('endpointParams').value = ep.params || '';
+                document.getElementById('endpointComments').value = ep.comments || '';
+                populateEndpointInstanceDropdown(ep.source);
+            }
+
+            document.getElementById('endpointDialog').classList.add('active');
+        }
+
+        function editEndpoint(idx) {
+            showEndpointForm('edit', idx);
+        }
+
+        function closeEndpointDialog() {
+            document.getElementById('endpointDialog').classList.remove('active');
+        }
+
+        function onEndpointSourceChange() {
+            const source = document.getElementById('endpointSource').value;
+            populateEndpointInstanceDropdown(source);
+        }
+
+        function populateEndpointInstanceDropdown(source) {
+            const select = document.getElementById('endpointInstance');
+            select.innerHTML = '<option value="">-- Select --</option>';
+
+            const filtered = instancesData.filter(inst => inst.source === source);
+            filtered.forEach(inst => {
+                const opt = document.createElement('option');
+                opt.value = inst.name;
+                opt.textContent = inst.name;
+                select.appendChild(opt);
+            });
+        }
+
+        function onEndpointInstanceChange() {
+            const instanceName = document.getElementById('endpointInstance').value;
+            const instance = instancesData.find(inst => inst.name === instanceName);
+            if (instance && instance.url) {
+                document.getElementById('endpointUrl').value = instance.url;
+            }
+        }
+
+        function saveEndpoint() {
+            const mode = document.getElementById('endpointFormMode').value;
+            const indexStr = document.getElementById('endpointFormIndex').value;
+
+            const ep = {
+                sno: parseInt(document.getElementById('endpointSno').value) || endpointsData.length + 1,
+                source: document.getElementById('endpointSource').value,
+                instanceName: document.getElementById('endpointInstance').value,
+                integrationCode: document.getElementById('endpointCode').value.trim(),
+                url: document.getElementById('endpointUrl').value.trim(),
+                path: document.getElementById('endpointPath').value.trim(),
+                params: document.getElementById('endpointParams').value.trim(),
+                comments: document.getElementById('endpointComments').value.trim()
+            };
+
+            if (!ep.source || !ep.integrationCode || !ep.url) {
+                alert('Please fill in Source, Integration Code, and URL.');
+                return;
+            }
+
+            if (mode === 'new') {
+                endpointsData.push(ep);
+                log('ENDPOINTS', 'Added new endpoint:', ep.integrationCode);
+            } else if (indexStr !== '') {
+                const idx = parseInt(indexStr);
+                endpointsData[idx] = ep;
+                log('ENDPOINTS', 'Updated endpoint:', ep.integrationCode);
+            }
+
+            localStorage.setItem('fusionclient_endpoints', JSON.stringify(endpointsData));
+            renderEndpointsTable();
+            closeEndpointDialog();
+            showAlert('Endpoint saved successfully', 'success');
+        }
+
+        function deleteSelectedEndpoint() {
+            if (selectedEndpointIndex < 0) {
+                alert('Please select an endpoint to delete.');
+                return;
+            }
+            const ep = endpointsData[selectedEndpointIndex];
+            if (confirm(`Delete endpoint "${ep.integrationCode}"?`)) {
+                endpointsData.splice(selectedEndpointIndex, 1);
+                selectedEndpointIndex = -1;
+                localStorage.setItem('fusionclient_endpoints', JSON.stringify(endpointsData));
+                renderEndpointsTable();
+                showAlert('Endpoint deleted', 'success');
+            }
+        }
+
+        function exportEndpointsCSV() {
+            if (endpointsData.length === 0) {
+                alert('No endpoints to export');
+                return;
+            }
+            const headers = ['S.No', 'Source', 'Instance', 'Integration Code', 'URL', 'Path'];
+            const rows = endpointsData.map(ep => [
+                ep.sno || '', ep.source || '', ep.instanceName || '', ep.integrationCode || '', ep.url || '', ep.path || ''
+            ]);
+            let csv = headers.join(',') + '\n';
+            rows.forEach(row => {
+                csv += row.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',') + '\n';
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'endpoints_export.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // =============================================
+        // INSTANCES FUNCTIONS
+        // =============================================
+        function loadInstances() {
+            log('INSTANCES', 'Loading instances...');
+
+            const cached = localStorage.getItem('fusionclient_instances');
+            if (cached) {
+                try {
+                    instancesData = JSON.parse(cached);
+                    log('INSTANCES', 'Loaded from cache:', instancesData.length);
+                    renderInstancesTable();
+                    return;
+                } catch (e) {
+                    log('INSTANCES', 'Error parsing cache:', e);
+                }
+            }
+
+            instancesData = [];
+            renderInstancesTable();
+        }
+
+        function renderInstancesTable() {
+            const tbody = document.getElementById('instancesTableBody');
+
+            if (instancesData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No instances loaded. Click "Refresh" to load from APEX.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = instancesData.map((inst, idx) => {
+                const noAuthIcon = inst.noAuth ? '<span class="check-icon">&#10004;</span>' : '';
+                return `
+                    <tr class="${idx === selectedInstanceIndex ? 'selected' : ''}" onclick="selectInstance(${idx})">
+                        <td><input type="radio" name="instanceSelect" ${idx === selectedInstanceIndex ? 'checked' : ''} onclick="event.stopPropagation(); selectInstance(${idx})"></td>
+                        <td style="font-weight: 500;">${escapeHtml(inst.name || '')}</td>
+                        <td>${escapeHtml(inst.source || '')}</td>
+                        <td class="url-cell" title="${escapeHtml(inst.url || '')}">${escapeHtml(inst.url || '')}</td>
+                        <td>${escapeHtml(inst.username || '')}</td>
+                        <td style="text-align: center;">${noAuthIcon}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function selectInstance(idx) {
+            selectedInstanceIndex = idx;
+            renderInstancesTable();
+        }
+
+        function refreshInstances() {
+            log('INSTANCES', '========================================');
+            log('INSTANCES', 'refreshInstances() called');
+            log('INSTANCES', '========================================');
+
+            if (isWebView2) {
+                const requestId = 'getAllInstances_' + Date.now();
+                log('INSTANCES', 'Requesting from C#:', requestId);
+
+                const handler = function(event) {
+                    try {
+                        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                        log('INSTANCES', '*** RESPONSE ***');
+
+                        if (data.debug) {
+                            log('INSTANCES DEBUG', 'Full URL:', data.debug.fullUrl || 'N/A');
+                            log('INSTANCES DEBUG', 'Raw Response:', data.debug.rawResponse || 'N/A');
+                        }
+
+                        if (data.requestId === requestId || data.action === 'getAllInstancesResponse') {
+                            window.chrome.webview.removeEventListener('message', handler);
+                            if (data.success && data.instances) {
+                                instancesData = data.instances.map(inst => ({
+                                    instance_id: inst.instance_id || null,
+                                    name: inst.instance || inst.instance_name || inst.name || '',
+                                    source: inst.source || inst.source_type || '',
+                                    url: inst.base_url || inst.url || '',
+                                    username: inst.username || '',
+                                    password: inst.password || '',
+                                    noAuth: inst.no_authorization === 'Y' || inst.no_auth === 'Y' || false
+                                }));
+                                log('INSTANCES', 'Loaded:', instancesData.length);
+                                localStorage.setItem('fusionclient_instances', JSON.stringify(instancesData));
+                                renderInstancesTable();
+                                showAlert('Instances loaded: ' + instancesData.length, 'success');
+                            } else {
+                                showAlert('Failed to load instances', 'error');
+                            }
+                        }
+                    } catch (e) {
+                        log('INSTANCES', 'Error:', e);
+                    }
+                };
+
+                window.chrome.webview.addEventListener('message', handler);
+                window.chrome.webview.postMessage({
+                    action: 'getAllInstances',
+                    requestId: requestId
+                });
+
+                setTimeout(() => window.chrome.webview.removeEventListener('message', handler), 5000);
+            } else {
+                showAlert('WebView2 not available', 'error');
+            }
+        }
+
+        function showInstanceForm(mode, idx = null) {
+            document.getElementById('instanceFormMode').value = mode;
+            document.getElementById('instanceFormIndex').value = idx !== null ? idx : '';
+            document.getElementById('instanceDialogTitle').textContent = mode === 'new' ? 'New Instance' : 'Edit Instance';
+
+            if (mode === 'new') {
+                document.getElementById('instanceName').value = '';
+                document.getElementById('instanceSource').value = '';
+                document.getElementById('instanceUrl').value = '';
+                document.getElementById('instanceUsername').value = '';
+                document.getElementById('instancePassword').value = '';
+                document.getElementById('instanceNoAuth').checked = false;
+            } else if (idx !== null && instancesData[idx]) {
+                const inst = instancesData[idx];
+                document.getElementById('instanceName').value = inst.name || '';
+                document.getElementById('instanceSource').value = inst.source || '';
+                document.getElementById('instanceUrl').value = inst.url || '';
+                document.getElementById('instanceUsername').value = inst.username || '';
+                document.getElementById('instancePassword').value = inst.password || '';
+                document.getElementById('instanceNoAuth').checked = inst.noAuth || false;
+            }
+
+            document.getElementById('instanceDialog').classList.add('active');
+        }
+
+        function editSelectedInstance() {
+            if (selectedInstanceIndex < 0) {
+                alert('Please select an instance to edit.');
+                return;
+            }
+            showInstanceForm('edit', selectedInstanceIndex);
+        }
+
+        function closeInstanceDialog() {
+            document.getElementById('instanceDialog').classList.remove('active');
+        }
+
+        function saveInstance() {
+            const mode = document.getElementById('instanceFormMode').value;
+            const indexStr = document.getElementById('instanceFormIndex').value;
+
+            const inst = {
+                name: document.getElementById('instanceName').value.trim(),
+                source: document.getElementById('instanceSource').value,
+                url: document.getElementById('instanceUrl').value.trim(),
+                username: document.getElementById('instanceUsername').value.trim(),
+                password: document.getElementById('instancePassword').value,
+                noAuth: document.getElementById('instanceNoAuth').checked
+            };
+
+            if (!inst.name || !inst.source || !inst.url) {
+                alert('Please fill in Instance Name, Source, and Base URL.');
+                return;
+            }
+
+            if (mode === 'new') {
+                const exists = instancesData.some(i => i.name.toLowerCase() === inst.name.toLowerCase());
+                if (exists) {
+                    alert('An instance with this name already exists.');
+                    return;
+                }
+                instancesData.push(inst);
+                selectedInstanceIndex = instancesData.length - 1;
+                log('INSTANCES', 'Added:', inst.name);
+            } else if (indexStr !== '') {
+                const idx = parseInt(indexStr);
+                instancesData[idx] = inst;
+                log('INSTANCES', 'Updated:', inst.name);
+            }
+
+            localStorage.setItem('fusionclient_instances', JSON.stringify(instancesData));
+            renderInstancesTable();
+            closeInstanceDialog();
+            showAlert('Instance saved', 'success');
+        }
+
+        function deleteSelectedInstance() {
+            if (selectedInstanceIndex < 0) {
+                alert('Please select an instance to delete.');
+                return;
+            }
+            const inst = instancesData[selectedInstanceIndex];
+            if (confirm(`Delete instance "${inst.name}"?`)) {
+                instancesData.splice(selectedInstanceIndex, 1);
+                selectedInstanceIndex = -1;
+                localStorage.setItem('fusionclient_instances', JSON.stringify(instancesData));
+                renderInstancesTable();
+                showAlert('Instance deleted', 'success');
+            }
+        }
+
+        // =============================================
+        // STORAGE TABLE
+        // =============================================
+        function renderStorageTable() {
+            const tbody = document.getElementById('storageTableBody');
+
+            if (endpointsData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No endpoints loaded.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = endpointsData.map((ep, idx) => {
+                const fullUrl = (ep.url || '') + (ep.path || '');
+                return `
+                    <tr>
+                        <td>${ep.sno || idx + 1}</td>
+                        <td>${escapeHtml(ep.source || '')}</td>
+                        <td>${escapeHtml(ep.instanceName || '')}</td>
+                        <td style="word-break: break-all;">${escapeHtml(fullUrl)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function refreshEndpointsStorage() {
+            loadEndpoints();
+            setTimeout(renderStorageTable, 500);
+        }
+
+        // =============================================
+        // PREFERENCES
+        // =============================================
+        function loadPreferences() {
+            log('PREFS', 'Loading preferences...');
+
             document.getElementById('infoUsername').textContent = localStorage.getItem('erp_username') || localStorage.getItem('wms_username') || '-';
             document.getElementById('infoInstance').textContent = localStorage.getItem('erp_instanceName') || localStorage.getItem('wms_instance') || '-';
             document.getElementById('infoOrg').textContent = localStorage.getItem('wms_org_name') || localStorage.getItem('wms_org_code') || '-';
 
-            const loginTime = localStorage.getItem('erp_loginTime');
-            if (loginTime) {
-                document.getElementById('infoLoginTime').textContent = new Date(loginTime).toLocaleString();
-            }
-
-            // Organization
             const orgCode = localStorage.getItem('wms_org_code') || localStorage.getItem('wms_default_org') || '';
             document.getElementById('orgCode').value = orgCode;
 
@@ -535,18 +1419,10 @@
                     });
                 } catch (e) {}
             }
-
-            // Display settings
-            document.getElementById('autoExpand').checked = localStorage.getItem('inv_autoExpand') === 'true';
-            document.getElementById('showTotals').checked = localStorage.getItem('inv_showTotals') !== 'false';
-            document.getElementById('pageSize').value = localStorage.getItem('inv_pageSize') || '50';
-
-            // Check API status
-            checkApiStatus();
         }
 
         function checkApiStatus() {
-            const statusEl = document.getElementById('apiStatus');
+            const statusEl = document.getElementById('infoApiStatus');
             if (isWebView2) {
                 statusEl.textContent = 'Connected';
                 statusEl.style.color = '#1e7e34';
@@ -557,6 +1433,7 @@
         }
 
         function testConnection() {
+            log('TEST', 'Testing connection...');
             showAlert('Testing connection...', 'info');
 
             if (isWebView2) {
@@ -570,8 +1447,7 @@
             }
         }
 
-        function saveSettings() {
-            // Save organization
+        function savePreferences() {
             const orgCode = document.getElementById('orgCode').value.trim();
             const defaultOrg = document.getElementById('defaultOrg').value;
 
@@ -583,39 +1459,58 @@
                 localStorage.setItem('wms_default_org', defaultOrg);
             }
 
-            // Save display settings
-            localStorage.setItem('inv_autoExpand', document.getElementById('autoExpand').checked);
-            localStorage.setItem('inv_showTotals', document.getElementById('showTotals').checked);
-            localStorage.setItem('inv_pageSize', document.getElementById('pageSize').value);
-
             showAlert('Settings saved successfully', 'success');
         }
 
         function clearCache() {
-            if (confirm('Clear all cached data? You will need to reload data after this.')) {
-                // Clear data caches but keep user settings
+            if (confirm('Clear all cached data?')) {
                 localStorage.removeItem('inv_cachedItems');
                 localStorage.removeItem('inv_cachedReceipts');
                 localStorage.removeItem('inv_cachedShipments');
-                showAlert('Cache cleared successfully', 'success');
+                showAlert('Cache cleared', 'success');
             }
         }
 
         function resetSettings() {
-            if (confirm('Reset all settings to default values? This cannot be undone.')) {
-                localStorage.removeItem('inv_autoExpand');
-                localStorage.removeItem('inv_showTotals');
-                localStorage.removeItem('inv_pageSize');
+            if (confirm('Reset all settings to defaults? This cannot be undone.')) {
                 localStorage.removeItem('wms_org_code');
                 localStorage.removeItem('wms_default_org');
-                showAlert('Settings reset to defaults', 'success');
+                localStorage.removeItem('fusionclient_endpoints');
+                localStorage.removeItem('fusionclient_instances');
+                showAlert('Settings reset', 'success');
                 setTimeout(() => location.reload(), 1000);
             }
         }
 
-        document.addEventListener('DOMContentLoaded', loadSettings);
+        // =============================================
+        // UTILITIES
+        // =============================================
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
 
-        // Listen for org dropdown changes
+        // Close dialogs on overlay click
+        document.getElementById('endpointDialog').addEventListener('click', function(e) {
+            if (e.target === this) closeEndpointDialog();
+        });
+        document.getElementById('instanceDialog').addEventListener('click', function(e) {
+            if (e.target === this) closeInstanceDialog();
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeEndpointDialog();
+                closeInstanceDialog();
+            }
+        });
+
+        // Sync org fields
         document.getElementById('defaultOrg').addEventListener('change', function() {
             document.getElementById('orgCode').value = this.value;
         });

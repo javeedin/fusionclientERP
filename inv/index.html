@@ -6011,16 +6011,18 @@ Click "Run Test" to execute the API call...
                 // Use priority: explicit field > lines count > header row count
                 const noOfItems = header.no_of_items || header.NO_OF_ITEMS || items.length || group.headerRowCount || 0;
 
-                // Get creation date - check multiple field names
-                let rawCreationDate = header.creation_date || header.CREATION_DATE || header.created_date || header.CREATED_DATE ||
-                                     header.PO_DATE || header.po_date || header.ORDER_DATE || header.order_date ||
-                                     header.EXPECTED_RECEIPT_DATE || header.expected_receipt_date || '';
+                // Get creation date - check header first, then fall back to first line item
+                const firstItem = items && items.length > 0 ? items[0] : {};
+                let rawCreationDate = header.creation_date || header.CREATION_DATE ||
+                                     firstItem.creation_date || firstItem.CREATION_DATE ||
+                                     header.created_date || header.CREATED_DATE ||
+                                     header.PO_DATE || header.po_date || '';
 
                 // Format the date if it's an ISO string
                 let creationDate = '-';
                 if (rawCreationDate) {
                     try {
-                        if (rawCreationDate.includes('T')) {
+                        if (rawCreationDate.includes && rawCreationDate.includes('T')) {
                             // ISO format - parse and format
                             const d = new Date(rawCreationDate);
                             creationDate = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -6028,28 +6030,15 @@ Click "Run Test" to execute the API call...
                             creationDate = rawCreationDate;
                         }
                     } catch (e) {
-                        creationDate = rawCreationDate;
+                        creationDate = rawCreationDate || '-';
                     }
                 }
 
                 // Debug: Log first row's keys to see available fields
                 if (idx === 0) {
-                    console.log('[INV] PO Header fields:', Object.keys(header));
-                    console.log('[INV] PO Group count - headerRowCount:', group.headerRowCount, 'items.length:', items.length);
-                    console.log('[INV] Raw creation_date:', rawCreationDate, '-> Formatted:', creationDate);
-                    // Debug all date-related fields
-                    console.log('[INV] Date fields check:', {
-                        CREATION_DATE: header.CREATION_DATE,
-                        creation_date: header.creation_date,
-                        CREATED_DATE: header.CREATED_DATE,
-                        created_date: header.created_date,
-                        PO_DATE: header.PO_DATE,
-                        po_date: header.po_date,
-                        ORDER_DATE: header.ORDER_DATE,
-                        order_date: header.order_date,
-                        EXPECTED_RECEIPT_DATE: header.EXPECTED_RECEIPT_DATE,
-                        expected_receipt_date: header.expected_receipt_date
-                    });
+                    console.log('[INV] Header fields:', Object.keys(header));
+                    console.log('[INV] First item fields:', items.length > 0 ? Object.keys(items[0]) : 'no items');
+                    console.log('[INV] creation_date - header:', header.creation_date, '| firstItem:', firstItem.creation_date, '| formatted:', creationDate);
                 }
 
                 html += `
@@ -6101,7 +6090,7 @@ Click "Run Test" to execute the API call...
             }
 
             let html = `
-                <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px;">
                     <thead>
                         <tr style="background: #e9ecef;">
                             <th style="padding: 8px 10px; text-align: center; border: 1px solid #dee2e6; font-weight: 600;">Line #</th>

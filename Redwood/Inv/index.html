@@ -4154,6 +4154,14 @@
                 const shipToLocation = header.ship_to_location || header.SHIP_TO_LOCATION || '-';
                 const noOfItems = items.length || group.headerRowCount || 0;
 
+                // Get distinct destination types and routings from lines
+                const destinationTypes = [...new Set(items.map(line =>
+                    line.destination_type || line.DESTINATION_TYPE || ''
+                ).filter(v => v))];
+                const routings = [...new Set(items.map(line =>
+                    line.routing || line.ROUTING || ''
+                ).filter(v => v))];
+
                 html += `
                     <div class="rw-po-group" data-doc="${docNum}" style="border-bottom: 1px solid var(--rw-neutral-100);">
                         <div style="display: flex; align-items: center; padding: 16px 24px; cursor: pointer; transition: background 0.15s;"
@@ -4179,6 +4187,14 @@
                                 <div style="display:flex;flex-direction:column;gap:2px;">
                                     <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Items</span>
                                     <span style="font-weight:500;color:var(--rw-neutral-800);">${noOfItems}</span>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Destination Type</span>
+                                    <span style="font-weight:500;">${destinationTypes.length > 0 ? destinationTypes.map(d => `<span class="rw-badge rw-badge-info" style="font-size:10px;margin-right:4px;">${d}</span>`).join('') : '-'}</span>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Routing</span>
+                                    <span style="font-weight:500;">${routings.length > 0 ? routings.map(r => `<span class="rw-badge rw-badge-secondary" style="font-size:10px;margin-right:4px;">${r}</span>`).join('') : '-'}</span>
                                 </div>
                             </div>
                             <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="event.stopPropagation(); editPO('${docNum}')" style="margin-left:16px;">
@@ -4211,6 +4227,8 @@
                             <th style="text-align:right;">Received</th>
                             <th style="text-align:right;">Remaining</th>
                             <th>UOM</th>
+                            <th>Destination Type</th>
+                            <th>Routing</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -4224,6 +4242,8 @@
                 const received = line.received_quantity || line.RECEIVED_QUANTITY || 0;
                 const remaining = ordered - received;
                 const uom = line.uom || line.UOM || line.primary_uom_code || '-';
+                const destinationType = line.destination_type || line.DESTINATION_TYPE || '-';
+                const routing = line.routing || line.ROUTING || '-';
 
                 html += `
                     <tr>
@@ -4234,6 +4254,8 @@
                         <td style="text-align:right;">${received}</td>
                         <td style="text-align:right;font-weight:500;color:var(--rw-red);">${remaining}</td>
                         <td>${uom}</td>
+                        <td><span class="rw-badge rw-badge-info">${destinationType}</span></td>
+                        <td><span class="rw-badge rw-badge-secondary">${routing}</span></td>
                     </tr>
                 `;
             });
@@ -4276,6 +4298,8 @@
                             <th style="text-align:right;">Ordered</th>
                             <th style="text-align:right;">Received</th>
                             <th style="text-align:right;">Remaining</th>
+                            <th>Dest Type</th>
+                            <th>Routing</th>
                             <th style="text-align:center;">Qty to Receive</th>
                         </tr>
                     </thead>
@@ -4289,6 +4313,8 @@
                 const ordered = line.ordered_quantity || line.ORDERED_QUANTITY || 0;
                 const received = line.received_quantity || line.RECEIVED_QUANTITY || 0;
                 const remaining = ordered - received;
+                const destinationType = line.destination_type || line.DESTINATION_TYPE || '-';
+                const routing = line.routing || line.ROUTING || '-';
 
                 linesHtml += `
                     <tr>
@@ -4298,6 +4324,8 @@
                         <td style="text-align:right;">${ordered}</td>
                         <td style="text-align:right;">${received}</td>
                         <td style="text-align:right;color:var(--rw-red);">${remaining}</td>
+                        <td><span class="rw-badge rw-badge-info" style="font-size:10px;">${destinationType}</span></td>
+                        <td><span class="rw-badge rw-badge-secondary" style="font-size:10px;">${routing}</span></td>
                         <td style="text-align:center;">
                             <input type="number" id="rcv-qty-${idx}" class="rw-input" style="width:80px;text-align:center;padding:6px;"
                                    value="${remaining}" min="0" max="${remaining}" step="1">

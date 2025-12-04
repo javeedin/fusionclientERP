@@ -5104,10 +5104,11 @@
                 const path = endpoint.path || endpoint.endpointPath || '';
                 let url = baseUrl.replace(/\/$/, '') + (path.startsWith('/') ? path : '/' + path);
 
-                // Add query parameters
-                url += `?p_organization_code=${encodeURIComponent(orgCode)}`;
-                if (vendorF) url += `&p_vendor_name=${encodeURIComponent(vendorF)}`;
-                if (poF) url += `&p_po_number=${encodeURIComponent(poF)}`;
+                // Build query parameter - Oracle REST API format: ?q=Field=Value
+                let qParam = `ToOrganizationCode=${orgCode}`;
+                if (vendorF) qParam += `;VendorName=${vendorF}`;
+                if (poF) qParam += `;DocumentNumber=${poF}`;
+                url += `?q=${qParam}&limit=500&offset=0`;
 
                 console.log('[Putaway] Fetching:', url);
 

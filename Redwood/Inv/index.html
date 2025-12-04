@@ -5358,6 +5358,7 @@
                             <th>Subinventory</th>
                             <th>Locator</th>
                             <th style="text-align:center;">Qty to Put Away</th>
+                            <th style="text-align:center;">Serials</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -5387,6 +5388,11 @@
                         <td style="text-align:center;">
                             <input type="number" id="pa-qty-${idx}" class="rw-input" style="width:80px;text-align:center;padding:6px;"
                                    value="${availQty}" min="0" max="${availQty}" step="1">
+                        </td>
+                        <td style="text-align:center;">
+                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="openPutawaySerials(${idx})" style="padding:4px 8px;font-size:11px;">
+                                &#128271; Serials
+                            </button>
                         </td>
                     </tr>
                 `;
@@ -5439,11 +5445,59 @@
                     </div>
                 </div>
                 ${linesHtml}
-                <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
-                    <button class="rw-btn rw-btn-secondary" onclick="closeReceiptsDialog()">Close</button>
-                </div>
             `;
             document.getElementById('receiptsDialogOverlay').classList.add('active');
+        }
+
+        function openPutawaySerials(lineIdx) {
+            if (!currentEditPutaway || !currentEditPutaway.lines[lineIdx]) {
+                alert('No line data available');
+                return;
+            }
+
+            const line = currentEditPutaway.lines[lineIdx];
+            const itemNum = line.ItemNumber || line.item_number || '-';
+            const receiptNum = line.ReceiptNumber || line.receipt_number || '-';
+            const availQty = parseFloat(line.AvailableQuantity || line.available_quantity) || 0;
+
+            // Open serial number dialog
+            document.getElementById('serialDialogTitle').textContent = `Serial Numbers - ${itemNum}`;
+            document.getElementById('serialDialogBody').innerHTML = `
+                <div style="margin-bottom:16px;padding:12px;background:var(--rw-neutral-50);border-radius:8px;">
+                    <div style="display:flex;gap:24px;flex-wrap:wrap;">
+                        <div><strong>Item:</strong> ${itemNum}</div>
+                        <div><strong>Receipt:</strong> ${receiptNum}</div>
+                        <div><strong>Available Qty:</strong> ${availQty}</div>
+                    </div>
+                </div>
+                <div class="rw-form-group" style="margin-bottom:16px;">
+                    <label class="rw-label">Enter Serial Numbers (one per line)</label>
+                    <textarea id="pa-serial-input-${lineIdx}" class="rw-input" style="height:150px;font-family:monospace;" placeholder="Enter serial numbers..."></textarea>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button class="rw-btn rw-btn-primary" onclick="savePutawaySerials(${lineIdx})">Save Serials</button>
+                    <button class="rw-btn rw-btn-secondary" onclick="closeSerialDialog()">Cancel</button>
+                </div>
+            `;
+            document.getElementById('serialDialogOverlay').classList.add('active');
+        }
+
+        function savePutawaySerials(lineIdx) {
+            const textarea = document.getElementById('pa-serial-input-' + lineIdx);
+            if (textarea) {
+                const serials = textarea.value.split('\n').map(s => s.trim()).filter(s => s);
+                console.log('[Putaway] Serials for line', lineIdx, ':', serials);
+                // Store serials in the line data
+                if (currentEditPutaway && currentEditPutaway.lines[lineIdx]) {
+                    currentEditPutaway.lines[lineIdx].enteredSerials = serials;
+                }
+                alert(`Saved ${serials.length} serial number(s)`);
+            }
+            closeSerialDialog();
+        }
+
+        function closeSerialDialog() {
+            document.getElementById('serialDialogOverlay').classList.remove('active');
         }
 
         function toggleAllPutawayLines(masterCheckbox) {

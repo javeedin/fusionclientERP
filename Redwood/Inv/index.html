@@ -4569,24 +4569,31 @@
 
             // Get endpoint configuration for PO_RECEIPTS_INTO_RECEIVING
             const transactionCode = 'PO_RECEIPTS_INTO_RECEIVING';
-            const endpoint = integrationEndpoints.find(e => e.code === transactionCode);
+
+            // Use cachedEndpoints (same as Load Shipments)
+            const endpoints = cachedEndpoints.length > 0 ? cachedEndpoints : [];
+            const endpoint = endpoints.find(e => {
+                const code = (e.integrationCode || e.integration_code || e.source || '').toUpperCase();
+                return code === transactionCode;
+            });
 
             let fullUrl = '';
-            let instance = null;
+            let credentials = null;
             let endpointError = '';
 
             if (!endpoint) {
                 endpointError = 'Endpoint not configured: ' + transactionCode;
                 fullUrl = '(Configure endpoint in Settings)';
             } else {
-                instance = instances.find(i => i.id === endpoint.instanceId);
-                if (!instance) {
-                    endpointError = 'Instance not found for endpoint';
-                    fullUrl = '(Configure instance in Settings)';
-                } else {
-                    const baseUrl = instance.url.replace(/\/$/, '');
-                    const path = endpoint.path.startsWith('/') ? endpoint.path : '/' + endpoint.path;
-                    fullUrl = baseUrl + path;
+                // Get credentials using same pattern as Load Shipments
+                credentials = getCredentialsForEndpoint(endpoint);
+
+                const baseUrl = credentials?.baseUrl || endpoint.url || endpoint.base_url || '';
+                const path = endpoint.path || endpoint.endpointPath || '';
+                fullUrl = baseUrl.replace(/\/$/, '') + (path.startsWith('/') ? path : '/' + path);
+
+                if (!credentials || !credentials.username) {
+                    endpointError = 'No credentials found for endpoint. Check instance configuration.';
                 }
             }
 
@@ -4623,7 +4630,7 @@
             window.pendingReceiptData = {
                 payload: payload,
                 fullUrl: fullUrl,
-                instance: instance,
+                credentials: credentials,
                 selectedLines: selectedLines,
                 endpointError: endpointError
             };
@@ -4652,7 +4659,7 @@
             `;
             document.getElementById('rcptProgressResult').innerHTML = '';
             document.getElementById('rcptLogUrl').value = fullUrl;
-            document.getElementById('rcptLogCredentials').value = instance ? `${instance.username} / ********` : '(Not configured)';
+            document.getElementById('rcptLogCredentials').value = credentials ? `${credentials.username} / ******** (${credentials.instanceName || 'N/A'})` : '(Not configured)';
             document.getElementById('rcptLogJson').value = JSON.stringify(payload, null, 2);
             document.getElementById('rcptLogResponse').value = '(Response will appear here after submission)';
 
@@ -4668,10 +4675,10 @@
                 return;
             }
 
-            const { payload, fullUrl, instance, selectedLines } = data;
+            const { payload, fullUrl, credentials, selectedLines } = data;
 
-            if (!instance) {
-                alert('Cannot submit: Instance not configured');
+            if (!credentials || !credentials.username) {
+                alert('Cannot submit: Credentials not configured');
                 return;
             }
 
@@ -4694,8 +4701,8 @@
                     type: 'POST_REQUEST',
                     requestId: requestId,
                     url: fullUrl,
-                    username: instance.username,
-                    password: instance.password,
+                    username: credentials.username,
+                    password: credentials.password,
                     payload: payload
                 };
 

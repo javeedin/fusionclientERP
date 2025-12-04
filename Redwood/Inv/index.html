@@ -4622,12 +4622,12 @@
                     TransactionType: "RECEIVE",
                     AutoTransactCode: "",
                     DocumentNumber: currentEditPO.docNum,
-                    DocumentLineNumber: String(line.line_number || line.LINE_NUMBER || ''),
+                    DocumentLineNumber: String(line.document_line_number || line.DOCUMENT_LINE_NUMBER || line.line_number || line.LINE_NUMBER || ''),
                     ItemNumber: line.item_number || line.ITEM_NUMBER || '',
                     OrganizationCode: line.to_organization_code || line.TO_ORGANIZATION_CODE || organizationCode,
                     Quantity: qty,
                     FromOrganizationCode: null,
-                    UnitOfMeasure: line.uom || line.UOM || line.primary_uom_code || line.PRIMARY_UOM_CODE || ''
+                    UnitOfMeasure: line.uom_code || line.UOM_CODE || line.uom || line.UOM || line.primary_uom_code || line.PRIMARY_UOM_CODE || ''
                 }))
             };
 

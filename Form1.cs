@@ -3253,31 +3253,45 @@ namespace WMSApp
                 );
 
                 string method = message.Method?.ToUpper() ?? "POST";
+                // Support both 'body' and 'data' field names from JS
+                string bodyContent = message.Body ?? message.Data ?? "{}";
                 System.Diagnostics.Debug.WriteLine($"[C#] Processing {method} request: {message.FullUrl}");
-                System.Diagnostics.Debug.WriteLine($"[C#] Body: {message.Body}");
+                System.Diagnostics.Debug.WriteLine($"[C#] Body: {bodyContent}");
+
+                // Check if credentials are provided
+                bool hasCredentials = !string.IsNullOrEmpty(message.Username) && !string.IsNullOrEmpty(message.Password);
+                if (hasCredentials)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[C#] Using Basic Authentication for POST. User: {message.Username}");
+                }
 
                 using (var httpClient = new HttpClient())
                 {
                     httpClient.Timeout = TimeSpan.FromSeconds(300);
 
+                    // Add Basic Authentication header if credentials are provided
+                    if (hasCredentials)
+                    {
+                        string credentials = Convert.ToBase64String(
+                            System.Text.Encoding.ASCII.GetBytes($"{message.Username}:{message.Password}")
+                        );
+                        httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {credentials}");
+                        System.Diagnostics.Debug.WriteLine($"[C#] Added Authorization header for POST request");
+                    }
+
                     HttpResponseMessage response;
+                    var content = new StringContent(
+                        bodyContent,
+                        Encoding.UTF8,
+                        "application/json"
+                    );
 
                     if (method == "POST")
                     {
-                        var content = new StringContent(
-                            message.Body ?? "{}",
-                            Encoding.UTF8,
-                            "application/json"
-                        );
                         response = await httpClient.PostAsync(message.FullUrl, content);
                     }
                     else if (method == "PUT")
                     {
-                        var content = new StringContent(
-                            message.Body ?? "{}",
-                            Encoding.UTF8,
-                            "application/json"
-                        );
                         response = await httpClient.PutAsync(message.FullUrl, content);
                     }
                     else if (method == "DELETE")
@@ -3292,7 +3306,7 @@ namespace WMSApp
                     string responseContent = await response.Content.ReadAsStringAsync();
 
                     System.Diagnostics.Debug.WriteLine($"[C#] REST {method} completed. Status: {response.StatusCode}, Length: {responseContent.Length}");
-                    System.Diagnostics.Debug.WriteLine($"[C#] Request Body: {message.Body}");
+                    System.Diagnostics.Debug.WriteLine($"[C#] Request Body: {bodyContent}");
                     System.Diagnostics.Debug.WriteLine($"[C#] JSON Response: {responseContent}");
 
                     var resultMessage = new
@@ -6662,8 +6676,17 @@ namespace WMSApp
         [JsonPropertyName("body")]
         public string Body { get; set; }
 
+        [JsonPropertyName("data")]
+        public string Data { get; set; }
+
         [JsonPropertyName("method")]
         public string Method { get; set; }
+
+        [JsonPropertyName("username")]
+        public string Username { get; set; }
+
+        [JsonPropertyName("password")]
+        public string Password { get; set; }
     }
 
 }

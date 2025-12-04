@@ -2541,8 +2541,8 @@
             return null;
         }
 
-        // Fetch with C# bridge
-        async function fetchWithBridge(url) {
+        // Fetch with C# bridge (supports optional credentials)
+        async function fetchWithBridge(url, options = {}) {
             return new Promise((resolve, reject) => {
                 if (!isWebView2) {
                     reject(new Error('WebView2 not available'));
@@ -2557,8 +2557,12 @@
                             webview.removeEventListener('message', handler);
                             if (data.success) {
                                 let responseData = data.data;
-                                if (typeof responseData === 'string') {
-                                    responseData = JSON.parse(responseData);
+                                if (typeof responseData === 'string' && responseData) {
+                                    try {
+                                        responseData = JSON.parse(responseData);
+                                    } catch (e) {
+                                        // Keep as string if not valid JSON
+                                    }
                                 }
                                 resolve(responseData);
                             } else {
@@ -2571,7 +2575,22 @@
                 };
 
                 webview.addEventListener('message', handler);
-                webview.postMessage({ action: 'executeGet', requestId: requestId, url: url });
+
+                // Build message with optional credentials
+                const message = {
+                    action: 'executeGet',
+                    requestId: requestId,
+                    url: url
+                };
+
+                // Add credentials if provided
+                if (options.username && options.password) {
+                    message.username = options.username;
+                    message.password = options.password;
+                    console.log('[fetchWithBridge] Using credentials for:', options.username);
+                }
+
+                webview.postMessage(message);
 
                 setTimeout(() => {
                     webview.removeEventListener('message', handler);
@@ -2841,25 +2860,39 @@
         function getCredentialsForEndpoint(endpoint) {
             if (!endpoint) return null;
 
-            const instanceName = endpoint.instanceName || endpoint.instance_name || '';
+            // Endpoint has instanceName or instance field
+            const instanceName = endpoint.instanceName || endpoint.instance_name || endpoint.instance || '';
             const source = endpoint.source || '';
+
+            console.log('[getCredentialsForEndpoint] Looking for instance:', instanceName, 'source:', source);
+            console.log('[getCredentialsForEndpoint] Available instances:', globalInstances.length);
 
             // Find matching instance
             const instance = globalInstances.find(inst => {
-                const instName = inst.instanceName || inst.instance_name || inst.INSTANCE_NAME || '';
+                // Instance data uses "instance" field (from API: {"instance": "TEST", ...})
+                const instName = inst.instance || inst.instanceName || inst.instance_name || inst.INSTANCE_NAME || '';
                 const instSource = inst.source || inst.SOURCE || '';
-                return instName.toLowerCase() === instanceName.toLowerCase() ||
-                       (instSource.toLowerCase() === source.toLowerCase() && instName);
+
+                const nameMatch = instName.toLowerCase() === instanceName.toLowerCase();
+                const sourceMatch = instSource.toLowerCase() === source.toLowerCase();
+
+                console.log('[getCredentialsForEndpoint] Checking:', instName, instSource, 'nameMatch:', nameMatch, 'sourceMatch:', sourceMatch);
+
+                return nameMatch || (sourceMatch && instName);
             });
 
             if (instance) {
+                console.log('[getCredentialsForEndpoint] Found instance:', instance);
                 return {
                     username: instance.username || instance.USERNAME || instance.user_name || '',
                     password: instance.password || instance.PASSWORD || instance.pwd || '',
-                    instanceName: instance.instanceName || instance.instance_name || instance.INSTANCE_NAME || '',
-                    baseUrl: instance.baseUrl || instance.base_url || instance.BASE_URL || instance.url || ''
+                    instanceName: instance.instance || instance.instanceName || instance.instance_name || instance.INSTANCE_NAME || '',
+                    baseUrl: instance.base_url || instance.baseUrl || instance.BASE_URL || instance.url || '',
+                    source: instance.source || instance.SOURCE || '',
+                    noAuth: instance.no_authorization || instance.NO_AUTHORIZATION || 'N'
                 };
             }
+            console.log('[getCredentialsForEndpoint] No matching instance found');
             return null;
         }
 
@@ -5093,10 +5126,77 @@
             );
         }
 
+        // Log storage for debugging
+        let apLastRequestLog = {};
+
+        // Show log popup
+        function apShowLogPopup(logId) {
+            const log = apLastRequestLog[logId] || apLastRequestLog;
+            const logHtml = `
+                <div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;" onclick="this.remove()">
+                    <div style="background:white;border-radius:12px;max-width:700px;width:90%;max-height:80vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+                        <div style="padding:16px 20px;background:#c74634;color:white;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
+                            <strong style="font-size:16px;">Request Log</strong>
+                            <button onclick="this.closest('[style*=position]').remove()" style="background:none;border:none;color:white;font-size:24px;cursor:pointer;">&times;</button>
+                        </div>
+                        <div style="padding:20px;font-family:monospace;font-size:12px;">
+                            <div style="margin-bottom:16px;">
+                                <div style="color:#6b7280;margin-bottom:4px;">Endpoint</div>
+                                <div style="background:#f3f4f6;padding:8px 12px;border-radius:6px;word-break:break-all;">
+                                    ${log.integrationCode || 'N/A'}
+                                </div>
+                            </div>
+                            <div style="margin-bottom:16px;">
+                                <div style="color:#6b7280;margin-bottom:4px;">Instance</div>
+                                <div style="background:#f3f4f6;padding:8px 12px;border-radius:6px;">
+                                    ${log.instanceName || 'N/A'} (${log.source || 'N/A'})
+                                </div>
+                            </div>
+                            <div style="margin-bottom:16px;">
+                                <div style="color:#6b7280;margin-bottom:4px;">Credentials</div>
+                                <div style="background:#f3f4f6;padding:8px 12px;border-radius:6px;">
+                                    Username: <strong>${log.username || 'None'}</strong><br>
+                                    Password: <strong>${log.password ? '****' + log.password.slice(-4) : 'None'}</strong><br>
+                                    No Auth: <strong>${log.noAuth || 'N'}</strong>
+                                </div>
+                            </div>
+                            <div style="margin-bottom:16px;">
+                                <div style="color:#6b7280;margin-bottom:4px;">Full URL</div>
+                                <div style="background:#f3f4f6;padding:8px 12px;border-radius:6px;word-break:break-all;">
+                                    ${log.fullUrl || 'N/A'}
+                                </div>
+                            </div>
+                            <div style="margin-bottom:16px;">
+                                <div style="color:#6b7280;margin-bottom:4px;">Response</div>
+                                <div style="background:${log.success ? '#dcfce7' : '#fee2e2'};padding:8px 12px;border-radius:6px;color:${log.success ? '#166534' : '#991b1b'};">
+                                    ${log.success ? 'Success' : 'Error: ' + (log.error || 'Unknown error')}
+                                </div>
+                            </div>
+                            ${log.responseData ? `
+                            <div>
+                                <div style="color:#6b7280;margin-bottom:4px;">Response Data</div>
+                                <pre style="background:#1e1e1e;color:#4ade80;padding:12px;border-radius:6px;overflow-x:auto;max-height:200px;font-size:11px;">${JSON.stringify(log.responseData, null, 2)}</pre>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', logHtml);
+        }
+
         // Fetch PO details from API
         async function apFetchPODetails(orderNumber) {
             // Create progress tracker element
             const progressId = 'ap-progress-' + Date.now();
+            const logId = 'log-' + Date.now();
+
+            // Initialize log
+            apLastRequestLog[logId] = {
+                orderNumber: orderNumber,
+                timestamp: new Date().toISOString()
+            };
+
             apAddBotMessage(`<div id="${progressId}" class="ap-progress-tracker">
                 <div class="ap-progress-title">Fetching PO: ${orderNumber}</div>
                 <div class="ap-progress-steps">
@@ -5113,6 +5213,7 @@
                         <span class="ap-step-text">Retrieving PO details...</span>
                     </div>
                 </div>
+                <div id="${progressId}-error" style="display:none;margin-top:8px;"></div>
             </div>`);
 
             const updateStep = (stepNum, success, text) => {
@@ -5133,36 +5234,74 @@
                 }
             };
 
+            const showErrorWithLog = (errorMsg) => {
+                const errorEl = document.getElementById(`${progressId}-error`);
+                if (errorEl) {
+                    errorEl.style.display = 'flex';
+                    errorEl.style.alignItems = 'center';
+                    errorEl.style.gap = '8px';
+                    errorEl.innerHTML = `
+                        <span style="color:#ef4444;font-size:12px;">${errorMsg}</span>
+                        <button onclick="apShowLogPopup('${logId}')" style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;display:flex;align-items:center;gap:4px;">
+                            <span>&#128196;</span> View Log
+                        </button>
+                    `;
+                }
+            };
+
             try {
                 // Step 1: Get endpoint
                 const endpoint = apFindPOEndpoint();
 
                 if (!endpoint) {
                     updateStep(1, false, 'FUSION_PO_DETAILS endpoint not configured');
-                    apAddBotMessage(`<p style="font-size:12px;color:#ef4444;">Please add the endpoint in Settings &gt; All Endpoints.</p>`);
+                    apLastRequestLog[logId].error = 'Endpoint not found';
+                    showErrorWithLog('Please add the endpoint in Settings > All Endpoints.');
                     return;
                 }
 
+                apLastRequestLog[logId].integrationCode = endpoint.integrationCode || endpoint.integration_code;
                 updateStep(1, true, `Endpoint found: ${endpoint.integrationCode || endpoint.integration_code}`);
 
                 // Step 2: Get credentials from instance
                 await apEnsureInstancesLoaded();
                 const credentials = getCredentialsForEndpoint(endpoint);
 
+                // Store credential info in log
+                apLastRequestLog[logId].instanceName = credentials?.instanceName || 'None';
+                apLastRequestLog[logId].source = credentials?.source || endpoint.source || 'N/A';
+                apLastRequestLog[logId].username = credentials?.username || '';
+                apLastRequestLog[logId].password = credentials?.password || '';
+                apLastRequestLog[logId].noAuth = credentials?.noAuth || 'N';
+
                 if (credentials && credentials.username) {
                     updateStep(2, true, `Instance: ${credentials.instanceName} | User: ${credentials.username}`);
                 } else {
-                    updateStep(2, true, 'Using default credentials (no instance match)');
+                    updateStep(2, false, 'No credentials found - request may fail');
                 }
 
-                // Step 3: Fetch PO
+                // Step 3: Fetch PO with credentials
                 const baseUrl = endpoint.baseUrl || endpoint.base_url || endpoint.url || '';
                 const path = endpoint.endpointPath || endpoint.path || '';
                 const fullUrl = baseUrl + path + '?q=OrderNumber=' + encodeURIComponent(orderNumber);
 
+                apLastRequestLog[logId].fullUrl = fullUrl;
                 console.log('[Autopilot] Fetching PO:', fullUrl);
+                console.log('[Autopilot] Using credentials:', credentials?.username || 'None');
 
-                const response = await fetchWithBridge(fullUrl);
+                // Check if authorization is required (NO_AUTHORIZATION = 'N' means auth IS required)
+                const needsAuth = !credentials?.noAuth || credentials.noAuth === 'N';
+                const fetchOptions = {};
+
+                if (needsAuth && credentials && credentials.username && credentials.password) {
+                    fetchOptions.username = credentials.username;
+                    fetchOptions.password = credentials.password;
+                }
+
+                const response = await fetchWithBridge(fullUrl, fetchOptions);
+
+                apLastRequestLog[logId].success = true;
+                apLastRequestLog[logId].responseData = response;
 
                 if (response && response.items && response.items.length > 0) {
                     const po = response.items[0];
@@ -5186,10 +5325,15 @@
                     }, 500);
                 } else {
                     updateStep(3, false, `No PO found with number "${orderNumber}"`);
+                    apLastRequestLog[logId].error = 'No PO found';
+                    showErrorWithLog(`No PO found with number "${orderNumber}"`);
                 }
             } catch (error) {
                 console.error('[Autopilot] Error fetching PO:', error);
+                apLastRequestLog[logId].success = false;
+                apLastRequestLog[logId].error = error.message;
                 updateStep(3, false, `Error: ${error.message}`);
+                showErrorWithLog(error.message);
             }
         }
 

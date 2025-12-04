@@ -4544,7 +4544,7 @@
             }
         }
 
-        async function receiptIntoReceiving() {
+        function receiptIntoReceiving() {
             if (!currentEditPO) {
                 alert('No PO data available');
                 return;
@@ -4570,16 +4570,24 @@
             // Get endpoint configuration for PO_RECEIPTS_INTO_RECEIVING
             const transactionCode = 'PO_RECEIPTS_INTO_RECEIVING';
             const endpoint = integrationEndpoints.find(e => e.code === transactionCode);
-            if (!endpoint) {
-                alert('Endpoint configuration not found for: ' + transactionCode + '\nPlease configure this endpoint in Settings.');
-                return;
-            }
 
-            // Get instance configuration
-            const instance = instances.find(i => i.id === endpoint.instanceId);
-            if (!instance) {
-                alert('Instance configuration not found for endpoint');
-                return;
+            let fullUrl = '';
+            let instance = null;
+            let endpointError = '';
+
+            if (!endpoint) {
+                endpointError = 'Endpoint not configured: ' + transactionCode;
+                fullUrl = '(Configure endpoint in Settings)';
+            } else {
+                instance = instances.find(i => i.id === endpoint.instanceId);
+                if (!instance) {
+                    endpointError = 'Instance not found for endpoint';
+                    fullUrl = '(Configure instance in Settings)';
+                } else {
+                    const baseUrl = instance.url.replace(/\/$/, '');
+                    const path = endpoint.path.startsWith('/') ? endpoint.path : '/' + endpoint.path;
+                    fullUrl = baseUrl + path;
+                }
             }
 
             // Build the JSON payload
@@ -4611,20 +4619,65 @@
                 }))
             };
 
-            // Build full URL
-            const baseUrl = instance.url.replace(/\/$/, '');
-            const path = endpoint.path.startsWith('/') ? endpoint.path : '/' + endpoint.path;
-            const fullUrl = baseUrl + path;
+            // Store for later use when confirming
+            window.pendingReceiptData = {
+                payload: payload,
+                fullUrl: fullUrl,
+                instance: instance,
+                selectedLines: selectedLines,
+                endpointError: endpointError
+            };
 
-            // Open progress dialog
-            document.getElementById('rcptProgressSteps').innerHTML = '';
+            // Show progress tab with "Ready to Submit" and Confirm button
+            document.getElementById('rcptProgressSteps').innerHTML = `
+                <div style="padding:20px;text-align:center;">
+                    <div style="font-size:48px;margin-bottom:16px;">📋</div>
+                    <h3 style="margin:0 0 8px 0;color:var(--rw-neutral-800);">Ready to Submit</h3>
+                    <p style="color:var(--rw-neutral-500);margin:0 0 8px 0;">
+                        ${selectedLines.length} line(s) selected for receipt
+                    </p>
+                    <p style="color:var(--rw-neutral-400);margin:0 0 20px 0;font-size:12px;">
+                        Check the <strong>Log</strong> tab to review URL and JSON before submitting
+                    </p>
+                    ${endpointError ? `
+                        <div style="padding:12px;background:#ffebee;border-radius:8px;color:#c62828;margin-bottom:16px;text-align:left;">
+                            <strong>Warning:</strong> ${endpointError}
+                        </div>
+                    ` : `
+                        <button class="rw-btn rw-btn-primary" onclick="confirmReceiptIntoReceiving()" style="background:linear-gradient(135deg,#43a047,#2e7d32);padding:12px 32px;font-size:15px;">
+                            &#10004; Confirm & Submit
+                        </button>
+                    `}
+                </div>
+            `;
             document.getElementById('rcptProgressResult').innerHTML = '';
             document.getElementById('rcptLogUrl').value = fullUrl;
-            document.getElementById('rcptLogCredentials').value = `${instance.username} / ********`;
+            document.getElementById('rcptLogCredentials').value = instance ? `${instance.username} / ********` : '(Not configured)';
             document.getElementById('rcptLogJson').value = JSON.stringify(payload, null, 2);
-            document.getElementById('rcptLogResponse').value = '';
+            document.getElementById('rcptLogResponse').value = '(Response will appear here after submission)';
+
+            // Open dialog showing Progress tab
             switchReceiptTab('progress');
             document.getElementById('receiptProgressDialogOverlay').classList.add('active');
+        }
+
+        async function confirmReceiptIntoReceiving() {
+            const data = window.pendingReceiptData;
+            if (!data) {
+                alert('No pending receipt data');
+                return;
+            }
+
+            const { payload, fullUrl, instance, selectedLines } = data;
+
+            if (!instance) {
+                alert('Cannot submit: Instance not configured');
+                return;
+            }
+
+            // Clear and show progress steps
+            document.getElementById('rcptProgressSteps').innerHTML = '';
+            document.getElementById('rcptProgressResult').innerHTML = '';
 
             // Step 1: Preparing request
             updateReceiptProgress(1, 'pending', 'Preparing receipt request...');
@@ -4712,6 +4765,8 @@
                     </div>
                 `;
             }
+
+            window.pendingReceiptData = null;
         }
 
         // Handle receipt response from WebView2

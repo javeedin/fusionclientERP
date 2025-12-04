@@ -5096,7 +5096,8 @@
 
             // PO Details Query - detect patterns like:
             // "show po details for xxx", "show po xxx", "po xx details", "po details xxx"
-            const poMatch = apParsePOQuery(lowerCmd);
+            // Use original command to preserve case of PO number
+            const poMatch = apParsePOQuery(command.trim());
             if (poMatch) {
                 apAddBotMessage(`Fetching PO details for <strong>${poMatch}</strong>...`);
                 apFetchPODetails(poMatch);

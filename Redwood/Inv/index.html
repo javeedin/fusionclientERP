@@ -5166,8 +5166,8 @@
                 const match = cmd.match(pattern);
                 if (match && match[1]) {
                     // Make sure it's not a menu item like "po receipts"
-                    const poNum = match[1].toUpperCase();
-                    if (!['RECEIPTS', 'LINES', 'DETAILS', 'ORDERS'].includes(poNum)) {
+                    const poNum = match[1]; // Keep original case
+                    if (!['RECEIPTS', 'LINES', 'DETAILS', 'ORDERS'].includes(poNum.toUpperCase())) {
                         return poNum;
                     }
                 }
@@ -5364,6 +5364,30 @@
                     const po = response.items[0];
                     updateStep(3, true, `PO ${po.OrderNumber} found - ${po.Status || 'N/A'}`);
 
+                    // Step 4: Fetch PO Lines if available
+                    let poLines = [];
+                    const linesLink = po.links?.find(link => link.name === 'lines' && link.rel === 'child');
+
+                    if (linesLink && linesLink.href) {
+                        console.log('[Autopilot] Fetching PO lines from:', linesLink.href);
+                        apLastRequestLog[logId].linesUrl = linesLink.href;
+
+                        try {
+                            const linesResponse = await fetchWithBridge(linesLink.href, fetchOptions);
+                            if (linesResponse && linesResponse.items) {
+                                poLines = linesResponse.items;
+                                console.log('[Autopilot] PO Lines fetched:', poLines.length);
+                                apLastRequestLog[logId].linesCount = poLines.length;
+                            }
+                        } catch (linesError) {
+                            console.error('[Autopilot] Error fetching PO lines:', linesError);
+                            apLastRequestLog[logId].linesError = linesError.message;
+                        }
+                    }
+
+                    // Attach lines to PO object
+                    po.lines = poLines;
+
                     // Show credentials info
                     if (credentials && credentials.username) {
                         apAddBotMessage(`<div class="ap-credentials-info">
@@ -5372,6 +5396,7 @@
                                 Instance: <strong>${credentials.instanceName}</strong><br>
                                 Username: <strong>${credentials.username}</strong><br>
                                 Password: <strong>${credentials.password ? '****' + credentials.password.slice(-4) : 'N/A'}</strong>
+                                ${poLines.length > 0 ? `<br>Lines: <strong>${poLines.length} fetched</strong>` : ''}
                             </div>
                         </div>`);
                     }
@@ -5601,8 +5626,12 @@
                 </div>
             `;
 
-            // Load lines data
-            if (linesHref) {
+            // Load lines data - use pre-fetched lines if available
+            if (po.lines && po.lines.length > 0) {
+                // Lines already fetched by Autopilot
+                renderPOLinesTable(po.POHeaderId, po.lines);
+            } else if (linesHref) {
+                // Fetch lines from href
                 loadPOLines(po.POHeaderId, linesHref);
             } else {
                 document.getElementById('po-lines-loading-' + po.POHeaderId).innerHTML = '<p style="color:var(--rw-neutral-500);">Lines data not available</p>';
@@ -5650,7 +5679,21 @@
             const dataEl = document.getElementById('po-lines-data-' + poHeaderId);
 
             try {
-                const response = await fetchWithBridge(href);
+                // Get credentials from current instance
+                const instanceName = localStorage.getItem('wms_instance') || '';
+                const source = localStorage.getItem('wms_source') || 'FUSION';
+                const credentials = globalInstances.find(inst =>
+                    (inst.instance || inst.instanceName || '').toLowerCase() === instanceName.toLowerCase() ||
+                    (inst.source || inst.SOURCE || '').toLowerCase() === source.toLowerCase()
+                );
+
+                const fetchOptions = {};
+                if (credentials && credentials.username && credentials.password) {
+                    fetchOptions.username = credentials.username;
+                    fetchOptions.password = credentials.password;
+                }
+
+                const response = await fetchWithBridge(href, fetchOptions);
 
                 if (response && response.items && response.items.length > 0) {
                     let html = `
@@ -5699,6 +5742,55 @@
                 console.error('[PO Lines] Error:', error);
                 loadingEl.innerHTML = `<p style="color:#ef4444;">Error loading lines: ${error.message}</p>`;
             }
+        }
+
+        // Render pre-fetched PO Lines (no API call needed)
+        function renderPOLinesTable(poHeaderId, lines) {
+            const loadingEl = document.getElementById('po-lines-loading-' + poHeaderId);
+            const dataEl = document.getElementById('po-lines-data-' + poHeaderId);
+
+            if (lines && lines.length > 0) {
+                let html = `
+                    <div class="rw-table-wrapper">
+                        <table class="rw-table">
+                            <thead>
+                                <tr>
+                                    <th>Line</th>
+                                    <th>Item</th>
+                                    <th>Description</th>
+                                    <th>Quantity</th>
+                                    <th>UOM</th>
+                                    <th>Unit Price</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                lines.forEach(line => {
+                    html += `
+                        <tr>
+                            <td>${line.LineNumber || line.POLineId || ''}</td>
+                            <td>${line.ItemNumber || line.Item || ''}</td>
+                            <td>${line.Description || line.ItemDescription || ''}</td>
+                            <td style="text-align:right;">${(line.Quantity || 0).toLocaleString()}</td>
+                            <td>${line.UOM || line.UOMCode || ''}</td>
+                            <td style="text-align:right;">${(line.UnitPrice || line.Price || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                            <td style="text-align:right;font-weight:500;">${(line.Amount || line.LineAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                            <td><span class="rw-badge rw-badge-secondary">${line.Status || line.LineStatus || 'N/A'}</span></td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table></div>';
+                dataEl.innerHTML = html;
+            } else {
+                dataEl.innerHTML = '<p style="color:var(--rw-neutral-500);padding:20px;">No line items found</p>';
+            }
+
+            loadingEl.style.display = 'none';
+            dataEl.style.display = 'block';
         }
 
         // Load PO Global DFFs

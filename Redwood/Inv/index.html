@@ -2554,6 +2554,9 @@
                 case 'receipts':
                     renderReceiptsPage();
                     break;
+                case 'putaway':
+                    renderPutawayPage();
+                    break;
                 case 'settings':
                     renderSettingsPage();
                     break;
@@ -4969,6 +4972,617 @@
 
         function closeReceiptsDialog() {
             document.getElementById('receiptsDialogOverlay').classList.remove('active');
+        }
+
+        // ==========================================
+        // PUT AWAY PAGE
+        // ==========================================
+        let putawayData = [];
+        let filteredPutawayData = [];
+        let selectedPutaways = new Set();
+        let currentEditPutaway = null;
+
+        function renderPutawayPage() {
+            const container = document.getElementById('content-putaway');
+            const savedOrg = localStorage.getItem('wms_org_code') || '';
+
+            container.innerHTML = `
+                <div class="rw-page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h1 class="rw-page-title">Put Away Receipts</h1>
+                        <p class="rw-page-subtitle">Put away received items to inventory locations</p>
+                    </div>
+                    <button id="putaway-loadBtn" class="rw-btn rw-btn-primary" onclick="loadPutawayData()">
+                        <span>&#8635;</span> Load Put Away
+                    </button>
+                </div>
+
+                <div class="rw-card">
+                    <div class="rw-card-body">
+                        <div class="rw-form-row">
+                            <div class="rw-form-group">
+                                <label class="rw-label">Organization Code</label>
+                                <input type="text" id="putaway-orgCode" class="rw-input" placeholder="e.g., AMS" value="${savedOrg}">
+                            </div>
+                            <div class="rw-form-group">
+                                <label class="rw-label">Vendor</label>
+                                <input type="text" id="putaway-vendorFilter" class="rw-input" placeholder="Filter by vendor...">
+                            </div>
+                            <div class="rw-form-group">
+                                <label class="rw-label">PO Number</label>
+                                <input type="text" id="putaway-poFilter" class="rw-input" placeholder="Filter by PO...">
+                            </div>
+                            <div class="rw-form-group" style="flex-direction: row; gap: 8px; align-items: flex-end;">
+                                <button class="rw-btn rw-btn-primary" onclick="loadPutawayData()">
+                                    <span>&#128269;</span> Search
+                                </button>
+                                <button class="rw-btn rw-btn-secondary" onclick="clearPutawayFilters()">Clear</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rw-card">
+                    <div class="rw-stats-bar" id="putaway-statsBar" style="display: none;">
+                        <div class="rw-stat-item">
+                            <span class="rw-stat-item-value" id="putaway-totalPOs">0</span>
+                            <span class="rw-stat-item-label">Purchase Orders</span>
+                        </div>
+                        <div class="rw-stat-item">
+                            <span class="rw-stat-item-value" id="putaway-totalLines">0</span>
+                            <span class="rw-stat-item-label">Total Lines</span>
+                        </div>
+                        <div class="rw-stat-item">
+                            <span class="rw-stat-item-value" id="putaway-totalQty">0</span>
+                            <span class="rw-stat-item-label">Available Qty</span>
+                        </div>
+                    </div>
+
+                    <div class="rw-toolbar" id="putaway-toolbar" style="display: none;">
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                            <input type="text" id="putaway-filterDoc" class="rw-filter-input" style="width:120px;" placeholder="PO Number..." oninput="filterPutawayGroups()">
+                            <input type="text" id="putaway-filterVendor" class="rw-filter-input" style="width:120px;" placeholder="Vendor..." oninput="filterPutawayGroups()">
+                            <input type="text" id="putaway-filterItem" class="rw-filter-input" style="width:120px;" placeholder="Item..." oninput="filterPutawayGroups()">
+                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="clearPutawayGroupFilters()">Clear</button>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="expandAllPutaways()">Expand All</button>
+                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="collapseAllPutaways()">Collapse</button>
+                            <span class="rw-badge rw-badge-info" id="putaway-selectedCount">0 selected</span>
+                        </div>
+                    </div>
+
+                    <div id="putaway-poList">
+                        <div class="rw-empty-state">
+                            <div class="rw-empty-state-icon">&#128229;</div>
+                            <div class="rw-empty-state-title">Load Put Away Items</div>
+                            <p>Enter organization code and click "Load Put Away" to view items awaiting put away</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadPutawayData() {
+            const btn = document.getElementById('putaway-loadBtn');
+            const orgCode = document.getElementById('putaway-orgCode').value.trim();
+            const vendorF = document.getElementById('putaway-vendorFilter').value.trim();
+            const poF = document.getElementById('putaway-poFilter').value.trim();
+
+            if (!orgCode) {
+                alert('Please enter Organization Code');
+                return;
+            }
+
+            // Save org code
+            localStorage.setItem('wms_org_code', orgCode);
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="rw-spinner" style="width:16px;height:16px;border-width:2px;"></span> Loading...';
+
+            const container = document.getElementById('putaway-poList');
+            container.innerHTML = '<div class="rw-empty-state"><div class="rw-spinner"></div><p style="margin-top:16px;">Loading put away items...</p></div>';
+
+            try {
+                if (cachedEndpoints.length === 0) {
+                    await loadAllEndpoints();
+                }
+
+                // Find the endpoint for GET_PUT_AWAY_PO_RECEIPTS
+                const endpoint = cachedEndpoints.find(e => {
+                    const code = (e.integrationCode || e.integration_code || e.source || '').toUpperCase();
+                    return code === 'GET_PUT_AWAY_PO_RECEIPTS';
+                });
+
+                if (!endpoint) {
+                    throw new Error('GET_PUT_AWAY_PO_RECEIPTS endpoint not configured');
+                }
+
+                // Get credentials for FUSION source
+                const credentials = getCredentialsForEndpoint(endpoint);
+                const baseUrl = credentials?.baseUrl || endpoint.url || endpoint.base_url || '';
+                const path = endpoint.path || endpoint.endpointPath || '';
+                let url = baseUrl.replace(/\/$/, '') + (path.startsWith('/') ? path : '/' + path);
+
+                // Add query parameters
+                url += `?p_organization_code=${encodeURIComponent(orgCode)}`;
+                if (vendorF) url += `&p_vendor_name=${encodeURIComponent(vendorF)}`;
+                if (poF) url += `&p_po_number=${encodeURIComponent(poF)}`;
+
+                console.log('[Putaway] Fetching:', url);
+
+                const fetchOptions = {};
+                if (credentials && credentials.username && credentials.password) {
+                    fetchOptions.username = credentials.username;
+                    fetchOptions.password = credentials.password;
+                }
+
+                const response = await fetchWithBridge(url, fetchOptions);
+
+                if (response && response.items) {
+                    putawayData = response.items;
+                    filteredPutawayData = [...putawayData];
+                } else if (Array.isArray(response)) {
+                    putawayData = response;
+                    filteredPutawayData = [...putawayData];
+                } else {
+                    putawayData = [];
+                    filteredPutawayData = [];
+                }
+
+                if (putawayData.length === 0) {
+                    container.innerHTML = `
+                        <div class="rw-empty-state">
+                            <div class="rw-empty-state-icon">&#128229;</div>
+                            <div class="rw-empty-state-title">No Put Away Items Found</div>
+                            <p>No items awaiting put away for organization ${orgCode}</p>
+                        </div>
+                    `;
+                    document.getElementById('putaway-statsBar').style.display = 'none';
+                    document.getElementById('putaway-toolbar').style.display = 'none';
+                } else {
+                    document.getElementById('putaway-statsBar').style.display = 'flex';
+                    document.getElementById('putaway-toolbar').style.display = 'flex';
+                    renderPutawayGroupedView(filteredPutawayData);
+                    updatePutawayStats();
+                }
+
+            } catch (error) {
+                console.error('[Putaway] Error:', error);
+                container.innerHTML = `
+                    <div class="rw-empty-state">
+                        <div class="rw-empty-state-icon" style="color:var(--rw-red);">&#9888;</div>
+                        <div class="rw-empty-state-title">Error Loading Data</div>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>&#8635;</span> Load Put Away';
+            }
+        }
+
+        function renderPutawayGroupedView(data) {
+            const container = document.getElementById('putaway-poList');
+
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="rw-empty-state"><div class="rw-empty-state-icon">&#128229;</div><p>No put away items found</p></div>';
+                return;
+            }
+
+            // Group by document number (PO)
+            const groupedData = {};
+            data.forEach(row => {
+                const docNum = row.DocumentNumber || row.document_number || row.DOCUMENT_NUMBER || '-';
+                if (!groupedData[docNum]) {
+                    groupedData[docNum] = { header: row, items: [] };
+                }
+                groupedData[docNum].items.push(row);
+            });
+
+            let html = '<div style="border-top: 1px solid var(--rw-neutral-100);">';
+            Object.keys(groupedData).forEach(docNum => {
+                const group = groupedData[docNum];
+                const header = group.header;
+                const items = group.items;
+                const isSelected = selectedPutaways.has(docNum);
+
+                const vendorName = header.VendorName || header.vendor_name || header.VENDOR_NAME || '-';
+                const vendorSite = header.VendorSiteCode || header.vendor_site_code || header.VENDOR_SITE_CODE || '-';
+                const toOrgCode = header.ToOrganizationCode || header.to_organization_code || '-';
+                const transactionDate = header.TransactionDate || header.transaction_date || '-';
+                const currencyCode = header.CurrencyCode || header.currency_code || '-';
+                const noOfItems = items.length;
+
+                // Get distinct destination types and routings
+                const destinationTypes = [...new Set(items.map(line =>
+                    line.DestinationType || line.destination_type || ''
+                ).filter(v => v))];
+                const routings = [...new Set(items.map(line =>
+                    line.Routing || line.routing || ''
+                ).filter(v => v))];
+
+                // Calculate total available quantity
+                const totalAvailQty = items.reduce((sum, line) =>
+                    sum + (parseFloat(line.AvailableQuantity || line.available_quantity) || 0), 0);
+
+                html += `
+                    <div class="rw-po-group" data-doc="${docNum}" style="border-bottom: 1px solid var(--rw-neutral-100);">
+                        <div style="display: flex; align-items: center; padding: 16px 24px; cursor: pointer; transition: background 0.15s;"
+                             onmouseover="this.style.background='var(--rw-red-light)'"
+                             onmouseout="this.style.background=''">
+                            <input type="checkbox" style="width:18px;height:18px;margin-right:16px;cursor:pointer;accent-color:var(--rw-red);"
+                                   data-doc="${docNum}" ${isSelected ? 'checked' : ''}
+                                   onclick="event.stopPropagation(); togglePutawaySelection('${docNum}', this)">
+                            <div id="pa_icon_${docNum}" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;margin-right:12px;color:var(--rw-red);font-size:12px;transition:transform 0.2s;" onclick="togglePutawayGroup('${docNum}')">&#9654;</div>
+                            <div style="display:flex;flex-wrap:wrap;gap:20px;flex:1;font-size:14px;" onclick="togglePutawayGroup('${docNum}')">
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">PO Number</span>
+                                    <span style="font-weight:600;color:var(--rw-red);">${docNum}</span>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Vendor</span>
+                                    <span style="font-weight:500;color:var(--rw-neutral-800);">${vendorName}</span>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Vendor Site</span>
+                                    <span style="font-weight:500;color:var(--rw-neutral-800);">${vendorSite}</span>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Items</span>
+                                    <span style="font-weight:500;color:var(--rw-neutral-800);">${noOfItems}</span>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Routing</span>
+                                    <span style="font-weight:500;">${routings.length > 0 ? routings.map(r => `<span class="rw-badge rw-badge-secondary" style="font-size:10px;margin-right:4px;">${r}</span>`).join('') : '-'}</span>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Dest Type</span>
+                                    <span style="font-weight:500;">${destinationTypes.length > 0 ? destinationTypes.map(d => `<span class="rw-badge rw-badge-info" style="font-size:10px;margin-right:4px;">${d}</span>`).join('') : '-'}</span>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Currency</span>
+                                    <span style="font-weight:500;color:var(--rw-neutral-800);">${currencyCode}</span>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Org</span>
+                                    <span style="font-weight:500;color:var(--rw-neutral-800);">${toOrgCode}</span>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Txn Date</span>
+                                    <span style="font-weight:500;color:var(--rw-neutral-800);">${transactionDate}</span>
+                                </div>
+                            </div>
+                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="event.stopPropagation(); editPutaway('${docNum}')" style="margin-left:16px;">
+                                &#9998; Edit
+                            </button>
+                        </div>
+                        <div id="pa_lines_${docNum}" style="display:none;padding:0 24px 20px 60px;background:var(--rw-neutral-50);">
+                            ${renderPutawayLines(items, docNum)}
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function renderPutawayLines(items, docNum) {
+            if (!items || items.length === 0) {
+                return '<p style="color:var(--rw-neutral-500);padding:16px;">No line items available</p>';
+            }
+
+            let html = `
+                <table class="rw-table" style="background:var(--rw-white);border-radius:var(--rw-radius);overflow:hidden;box-shadow:var(--rw-shadow);">
+                    <thead>
+                        <tr>
+                            <th>Item Number</th>
+                            <th>Description</th>
+                            <th>Receipt #</th>
+                            <th>Line</th>
+                            <th>Schedule</th>
+                            <th style="text-align:right;">Available Qty</th>
+                            <th>UOM</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            items.forEach(line => {
+                const itemNum = line.ItemNumber || line.item_number || '-';
+                const desc = (line.ItemDescription || line.item_description || '-').substring(0, 35);
+                const receiptNum = line.ReceiptNumber || line.receipt_number || '-';
+                const docLineNum = line.DocumentLineNumber || line.document_line_number || '-';
+                const scheduleNum = line.DocumentScheduleNumber || line.document_schedule_number || '-';
+                const availQty = line.AvailableQuantity || line.available_quantity || 0;
+                const uom = line.UOMCode || line.uom_code || line.UnitOfMeasure || '-';
+
+                html += `
+                    <tr>
+                        <td style="font-weight:500;">${itemNum}</td>
+                        <td title="${line.ItemDescription || ''}">${desc}</td>
+                        <td><span class="rw-badge rw-badge-success">${receiptNum}</span></td>
+                        <td>${docLineNum}</td>
+                        <td>${scheduleNum}</td>
+                        <td style="text-align:right;font-weight:600;color:var(--rw-red);">${availQty}</td>
+                        <td>${uom}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function editPutaway(docNum) {
+            const group = filteredPutawayData.filter(row =>
+                (row.DocumentNumber || row.document_number || row.DOCUMENT_NUMBER) === docNum
+            );
+
+            if (group.length === 0) {
+                alert('No data found for PO: ' + docNum);
+                return;
+            }
+
+            const header = group[0];
+            currentEditPutaway = { docNum, lines: group, header };
+
+            // Extract header info
+            const vendorName = header.VendorName || header.vendor_name || '-';
+            const vendorSite = header.VendorSiteCode || header.vendor_site_code || '-';
+            const toOrgCode = header.ToOrganizationCode || header.to_organization_code || '-';
+            const transactionDate = header.TransactionDate || header.transaction_date || '-';
+            const currencyCode = header.CurrencyCode || header.currency_code || '-';
+
+            // Get distinct values
+            const destinationTypes = [...new Set(group.map(line =>
+                line.DestinationType || line.destination_type || ''
+            ).filter(v => v))];
+            const routings = [...new Set(group.map(line =>
+                line.Routing || line.routing || ''
+            ).filter(v => v))];
+
+            // Build lines table with checkboxes
+            let linesHtml = `
+                <table class="rw-table" style="width:100%;margin-bottom:16px;">
+                    <thead>
+                        <tr>
+                            <th style="width:40px;"><input type="checkbox" id="pa-select-all" onchange="toggleAllPutawayLines(this)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--rw-red);"></th>
+                            <th>Item Number</th>
+                            <th>Description</th>
+                            <th>Receipt #</th>
+                            <th>Line</th>
+                            <th style="text-align:right;">Available</th>
+                            <th>UOM</th>
+                            <th>Subinventory</th>
+                            <th>Locator</th>
+                            <th style="text-align:center;">Qty to Put Away</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            group.forEach((line, idx) => {
+                const itemNum = line.ItemNumber || line.item_number || '-';
+                const desc = (line.ItemDescription || line.item_description || '-').substring(0, 25);
+                const receiptNum = line.ReceiptNumber || line.receipt_number || '-';
+                const docLineNum = line.DocumentLineNumber || line.document_line_number || '-';
+                const availQty = parseFloat(line.AvailableQuantity || line.available_quantity) || 0;
+                const uom = line.UOMCode || line.uom_code || '-';
+                const subinv = line.Subinventory || line.subinventory || '';
+                const locator = line.Locator || line.locator || '';
+
+                linesHtml += `
+                    <tr>
+                        <td><input type="checkbox" id="pa-chk-${idx}" class="pa-line-checkbox" checked style="width:16px;height:16px;cursor:pointer;accent-color:var(--rw-red);"></td>
+                        <td style="font-weight:500;">${itemNum}</td>
+                        <td title="${line.ItemDescription || ''}">${desc}</td>
+                        <td><span class="rw-badge rw-badge-success">${receiptNum}</span></td>
+                        <td>${docLineNum}</td>
+                        <td style="text-align:right;font-weight:600;color:var(--rw-red);">${availQty}</td>
+                        <td>${uom}</td>
+                        <td><input type="text" id="pa-subinv-${idx}" class="rw-input" style="width:80px;padding:4px 6px;" value="${subinv}" placeholder="..."></td>
+                        <td><input type="text" id="pa-locator-${idx}" class="rw-input" style="width:80px;padding:4px 6px;" value="${locator}" placeholder="..."></td>
+                        <td style="text-align:center;">
+                            <input type="number" id="pa-qty-${idx}" class="rw-input" style="width:80px;text-align:center;padding:6px;"
+                                   value="${availQty}" min="0" max="${availQty}" step="1">
+                        </td>
+                    </tr>
+                `;
+            });
+
+            linesHtml += '</tbody></table>';
+
+            document.getElementById('receiptsDialogTitle').textContent = `Put Away Details - ${docNum}`;
+            document.getElementById('receiptsDialogBody').innerHTML = `
+                <div style="display:flex;flex-wrap:wrap;gap:24px;padding:16px 0;margin-bottom:16px;border-bottom:1px solid var(--rw-neutral-100);align-items:flex-start;">
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">PO Number</span>
+                        <span style="font-weight:600;color:var(--rw-red);">${docNum}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Vendor</span>
+                        <span style="font-weight:500;color:var(--rw-neutral-800);">${vendorName}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Vendor Site</span>
+                        <span style="font-weight:500;color:var(--rw-neutral-800);">${vendorSite}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Organization</span>
+                        <span style="font-weight:500;color:var(--rw-neutral-800);">${toOrgCode}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Txn Date</span>
+                        <span style="font-weight:500;color:var(--rw-neutral-800);">${transactionDate}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Currency</span>
+                        <span style="font-weight:500;color:var(--rw-neutral-800);">${currencyCode}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Dest Type</span>
+                        <span style="font-weight:500;">${destinationTypes.length > 0 ? destinationTypes.map(d => `<span class="rw-badge rw-badge-info" style="font-size:10px;margin-right:4px;">${d}</span>`).join('') : '-'}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Routing</span>
+                        <span style="font-weight:500;">${routings.length > 0 ? routings.map(r => `<span class="rw-badge rw-badge-secondary" style="font-size:10px;margin-right:4px;">${r}</span>`).join('') : '-'}</span>
+                    </div>
+                    <div style="margin-left:auto;display:flex;gap:8px;">
+                        <button class="rw-btn rw-btn-secondary" onclick="assignToPicker()" style="background:linear-gradient(135deg,#1565c0,#0d47a1);color:white;border:none;">
+                            &#128100; Assign to Picker
+                        </button>
+                        <button class="rw-btn rw-btn-primary" onclick="executePutaway()" style="background:linear-gradient(135deg,#43a047,#2e7d32);">
+                            &#128229; Put Away
+                        </button>
+                    </div>
+                </div>
+                ${linesHtml}
+                <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
+                    <button class="rw-btn rw-btn-secondary" onclick="closeReceiptsDialog()">Close</button>
+                </div>
+            `;
+            document.getElementById('receiptsDialogOverlay').classList.add('active');
+        }
+
+        function toggleAllPutawayLines(masterCheckbox) {
+            const checkboxes = document.querySelectorAll('.pa-line-checkbox');
+            checkboxes.forEach(cb => cb.checked = masterCheckbox.checked);
+        }
+
+        function assignToPicker() {
+            if (!currentEditPutaway) return;
+
+            // Collect selected lines
+            const selectedLines = [];
+            currentEditPutaway.lines.forEach((line, idx) => {
+                const checkbox = document.getElementById('pa-chk-' + idx);
+                if (checkbox && checkbox.checked) {
+                    selectedLines.push(line);
+                }
+            });
+
+            if (selectedLines.length === 0) {
+                alert('Please select at least one line');
+                return;
+            }
+
+            // TODO: Implement assign to picker logic
+            alert(`Assign to Picker\n\nPO: ${currentEditPutaway.docNum}\nLines selected: ${selectedLines.length}\n\n(Feature coming soon)`);
+        }
+
+        function executePutaway() {
+            if (!currentEditPutaway) return;
+
+            // Collect selected lines with quantities and subinventory/locator
+            const selectedLines = [];
+            currentEditPutaway.lines.forEach((line, idx) => {
+                const checkbox = document.getElementById('pa-chk-' + idx);
+                const qtyInput = document.getElementById('pa-qty-' + idx);
+                const subinvInput = document.getElementById('pa-subinv-' + idx);
+                const locatorInput = document.getElementById('pa-locator-' + idx);
+
+                const qty = parseFloat(qtyInput.value) || 0;
+
+                if (checkbox && checkbox.checked && qty > 0) {
+                    selectedLines.push({
+                        line,
+                        qty,
+                        subinventory: subinvInput.value.trim(),
+                        locator: locatorInput.value.trim()
+                    });
+                }
+            });
+
+            if (selectedLines.length === 0) {
+                alert('Please select at least one line with quantity');
+                return;
+            }
+
+            // TODO: Implement put away POST logic
+            const totalQty = selectedLines.reduce((sum, l) => sum + l.qty, 0);
+            alert(`Put Away\n\nPO: ${currentEditPutaway.docNum}\nLines: ${selectedLines.length}\nTotal Qty: ${totalQty}\n\n(Feature coming soon)`);
+        }
+
+        function togglePutawayGroup(docNum) {
+            const icon = document.getElementById('pa_icon_' + docNum);
+            const lines = document.getElementById('pa_lines_' + docNum);
+            if (lines.style.display === 'none') {
+                lines.style.display = 'block';
+                icon.style.transform = 'rotate(90deg)';
+            } else {
+                lines.style.display = 'none';
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function togglePutawaySelection(docNum, checkbox) {
+            if (checkbox.checked) {
+                selectedPutaways.add(docNum);
+            } else {
+                selectedPutaways.delete(docNum);
+            }
+            updatePutawaySelectedCount();
+        }
+
+        function updatePutawaySelectedCount() {
+            document.getElementById('putaway-selectedCount').textContent = selectedPutaways.size + ' selected';
+        }
+
+        function expandAllPutaways() {
+            document.querySelectorAll('[id^="pa_lines_"]').forEach(el => el.style.display = 'block');
+            document.querySelectorAll('[id^="pa_icon_"]').forEach(el => el.style.transform = 'rotate(90deg)');
+        }
+
+        function collapseAllPutaways() {
+            document.querySelectorAll('[id^="pa_lines_"]').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('[id^="pa_icon_"]').forEach(el => el.style.transform = 'rotate(0deg)');
+        }
+
+        function updatePutawayStats() {
+            const uniquePOs = new Set(filteredPutawayData.map(r =>
+                r.DocumentNumber || r.document_number || r.DOCUMENT_NUMBER
+            ));
+            const totalQty = filteredPutawayData.reduce((sum, r) =>
+                sum + (parseFloat(r.AvailableQuantity || r.available_quantity) || 0), 0
+            );
+
+            document.getElementById('putaway-totalPOs').textContent = uniquePOs.size;
+            document.getElementById('putaway-totalLines').textContent = filteredPutawayData.length;
+            document.getElementById('putaway-totalQty').textContent = totalQty.toLocaleString();
+        }
+
+        function filterPutawayGroups() {
+            const docFilter = (document.getElementById('putaway-filterDoc').value || '').toLowerCase();
+            const vendorFilter = (document.getElementById('putaway-filterVendor').value || '').toLowerCase();
+            const itemFilter = (document.getElementById('putaway-filterItem').value || '').toLowerCase();
+
+            filteredPutawayData = putawayData.filter(row => {
+                const docNum = (row.DocumentNumber || row.document_number || '').toLowerCase();
+                const vendor = (row.VendorName || row.vendor_name || '').toLowerCase();
+                const item = (row.ItemNumber || row.item_number || '').toLowerCase();
+                const matchDoc = !docFilter || docNum.includes(docFilter);
+                const matchVendor = !vendorFilter || vendor.includes(vendorFilter);
+                const matchItem = !itemFilter || item.includes(itemFilter);
+                return matchDoc && matchVendor && matchItem;
+            });
+
+            renderPutawayGroupedView(filteredPutawayData);
+            updatePutawayStats();
+        }
+
+        function clearPutawayFilters() {
+            document.getElementById('putaway-vendorFilter').value = '';
+            document.getElementById('putaway-poFilter').value = '';
+        }
+
+        function clearPutawayGroupFilters() {
+            document.getElementById('putaway-filterDoc').value = '';
+            document.getElementById('putaway-filterVendor').value = '';
+            document.getElementById('putaway-filterItem').value = '';
+            filteredPutawayData = [...putawayData];
+            renderPutawayGroupedView(filteredPutawayData);
+            updatePutawayStats();
         }
 
         // ==========================================

@@ -4027,9 +4027,6 @@
                         <h1 class="rw-page-title">Receive Expected Shipments</h1>
                         <p class="rw-page-subtitle">View and receive expected purchase order shipments</p>
                     </div>
-                    <button id="receipts-loadBtn" class="rw-btn rw-btn-primary" onclick="loadReceiptsData()">
-                        <span>&#8635;</span> Load Shipments
-                    </button>
                 </div>
 
                 <div class="rw-card">
@@ -4048,7 +4045,7 @@
                                 <input type="text" id="receipts-poFilter" class="rw-input" placeholder="Filter by PO...">
                             </div>
                             <div class="rw-form-group" style="flex-direction: row; gap: 8px; align-items: flex-end;">
-                                <button class="rw-btn rw-btn-primary" onclick="loadReceiptsData()">
+                                <button id="receipts-loadBtn" class="rw-btn rw-btn-primary" onclick="loadReceiptsData()">
                                     <span>&#128269;</span> Search
                                 </button>
                                 <button class="rw-btn rw-btn-secondary" onclick="clearReceiptsFilters()">Clear</button>
@@ -4075,9 +4072,10 @@
 
                     <div class="rw-toolbar" id="receipts-toolbar" style="display: none;">
                         <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                            <input type="text" id="receipts-filterDoc" class="rw-filter-input" style="width:120px;" placeholder="PO Number..." oninput="filterReceiptsGroups()">
-                            <input type="text" id="receipts-filterVendor" class="rw-filter-input" style="width:120px;" placeholder="Vendor..." oninput="filterReceiptsGroups()">
-                            <input type="text" id="receipts-filterItem" class="rw-filter-input" style="width:120px;" placeholder="Item..." oninput="filterReceiptsGroups()">
+                            <input type="text" id="receipts-filterDoc" class="rw-filter-input" style="width:140px;" placeholder="PO Number..." oninput="filterReceiptsGroups()">
+                            <input type="text" id="receipts-filterVendor" class="rw-filter-input" style="width:160px;" placeholder="Vendor..." oninput="filterReceiptsGroups()">
+                            <input type="text" id="receipts-filterItem" class="rw-filter-input" style="width:160px;" placeholder="Item..." oninput="filterReceiptsGroups()">
+                            <input type="text" id="receipts-filterOrg" class="rw-filter-input" style="width:100px;" placeholder="Org..." oninput="filterReceiptsGroups()">
                             <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="clearReceiptsGroupFilters()">Clear</button>
                         </div>
                         <div style="display: flex; gap: 8px; align-items: center;">
@@ -4092,7 +4090,7 @@
                         <div class="rw-empty-state">
                             <div class="rw-empty-state-icon">&#128230;</div>
                             <div class="rw-empty-state-title">Load Expected Shipments</div>
-                            <p>Enter organization code and click "Load Shipments" to view pending receipts</p>
+                            <p>Enter organization code and click "Search" to view pending receipts</p>
                         </div>
                     </div>
                 </div>
@@ -4199,6 +4197,7 @@
                 const vendorName = header.vendor_name || header.VENDOR_NAME || '-';
                 const vendorSite = header.vendor_site_code || header.VENDOR_SITE_CODE || '-';
                 const shipToLocation = header.ship_to_location || header.SHIP_TO_LOCATION || '-';
+                const organizationCode = header.to_organization_code || header.TO_ORGANIZATION_CODE || '-';
                 const noOfItems = items.length || group.headerRowCount || 0;
 
                 // Get distinct destination types and routings from lines
@@ -4230,6 +4229,10 @@
                                 <div style="display:flex;flex-direction:column;gap:2px;">
                                     <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Ship To</span>
                                     <span style="font-weight:500;color:var(--rw-neutral-800);">${shipToLocation}</span>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:2px;">
+                                    <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Organization</span>
+                                    <span style="font-weight:500;color:var(--rw-neutral-800);">${organizationCode}</span>
                                 </div>
                                 <div style="display:flex;flex-direction:column;gap:2px;">
                                     <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Items</span>
@@ -4934,13 +4937,32 @@
             const docFilter = (document.getElementById('receipts-filterDoc').value || '').toLowerCase();
             const vendorFilter = (document.getElementById('receipts-filterVendor').value || '').toLowerCase();
             const itemFilter = (document.getElementById('receipts-filterItem').value || '').toLowerCase();
+            const orgFilter = (document.getElementById('receipts-filterOrg').value || '').toLowerCase();
 
             filteredReceiptsData = poReceiptsData.filter(row => {
                 const docNum = (row.document_number || row.DOCUMENT_NUMBER || '').toLowerCase();
                 const vendor = (row.vendor_name || row.VENDOR_NAME || '').toLowerCase();
+                const org = (row.to_organization_code || row.TO_ORGANIZATION_CODE || '').toLowerCase();
+
                 const matchDoc = !docFilter || docNum.includes(docFilter);
                 const matchVendor = !vendorFilter || vendor.includes(vendorFilter);
-                return matchDoc && matchVendor;
+                const matchOrg = !orgFilter || org.includes(orgFilter);
+
+                // For item filter, check against line items
+                let matchItem = true;
+                if (itemFilter) {
+                    const linesForDoc = (poReceiptsLinesData || []).filter(line => {
+                        const lineDocNum = (line.document_number || line.DOCUMENT_NUMBER || '').toLowerCase();
+                        return lineDocNum === docNum;
+                    });
+                    matchItem = linesForDoc.some(line => {
+                        const itemNum = (line.item_number || line.ITEM_NUMBER || '').toLowerCase();
+                        const itemDesc = (line.item_description || line.ITEM_DESCRIPTION || '').toLowerCase();
+                        return itemNum.includes(itemFilter) || itemDesc.includes(itemFilter);
+                    });
+                }
+
+                return matchDoc && matchVendor && matchOrg && matchItem;
             });
 
             renderReceiptsGroupedView(filteredReceiptsData);
@@ -4956,6 +4978,7 @@
             document.getElementById('receipts-filterDoc').value = '';
             document.getElementById('receipts-filterVendor').value = '';
             document.getElementById('receipts-filterItem').value = '';
+            document.getElementById('receipts-filterOrg').value = '';
             filteredReceiptsData = [...poReceiptsData];
             renderReceiptsGroupedView(filteredReceiptsData);
             updateReceiptsStats();

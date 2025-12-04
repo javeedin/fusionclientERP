@@ -4998,6 +4998,229 @@
         // Store prompts for rerun
         let apPromptHistory = [];
 
+        // Conversation state for multi-step prompts
+        let apConversationState = {
+            active: false,
+            flow: null,        // 'show_pos', 'custom_prompt', etc.
+            step: 0,
+            data: {}
+        };
+
+        // Reset conversation state
+        function apResetConversation() {
+            apConversationState = { active: false, flow: null, step: 0, data: {} };
+        }
+
+        // Handle multi-step conversation responses
+        function apHandleConversationResponse(input) {
+            const state = apConversationState;
+            const lowerInput = input.toLowerCase().trim();
+
+            if (state.flow === 'show_pos') {
+                return apHandleShowPosFlow(input, lowerInput);
+            }
+
+            return false; // Not handled
+        }
+
+        // Handle "show pos" flow
+        function apHandleShowPosFlow(input, lowerInput) {
+            const state = apConversationState;
+
+            if (state.step === 1) {
+                // User selecting search option: 1, 2, or 3
+                if (lowerInput === '1' || lowerInput.includes('order')) {
+                    state.data.searchBy = 'OrderNumber';
+                    state.data.searchLabel = 'Order Number';
+                    state.step = 2;
+                    apAddBotMessage(`<strong>Search by Order Number</strong><br><br>Enter the PO number:`);
+                    return true;
+                } else if (lowerInput === '2' || lowerInput.includes('supplier')) {
+                    state.data.searchBy = 'Supplier';
+                    state.data.searchLabel = 'Supplier';
+                    state.step = 2;
+                    apAddBotMessage(`<strong>Search by Supplier</strong><br><br>Enter the supplier name:`);
+                    return true;
+                } else if (lowerInput === '3' || lowerInput.includes('date') || lowerInput.includes('creation')) {
+                    state.data.searchBy = 'CreationDate';
+                    state.data.searchLabel = 'Creation Date';
+                    state.step = 2;
+                    apAddBotMessage(`<strong>Search by Creation Date</strong><br><br>Select operator:
+                        <div class="ap-suggestions" style="margin-top:10px;">
+                            <button class="ap-suggestion" onclick="apSendSuggestion('=')">=  (equals)</button>
+                            <button class="ap-suggestion" onclick="apSendSuggestion('<')">&lt;  (before)</button>
+                            <button class="ap-suggestion" onclick="apSendSuggestion('>')">&gt;  (after)</button>
+                        </div>`);
+                    return true;
+                } else if (lowerInput === 'cancel' || lowerInput === 'exit') {
+                    apResetConversation();
+                    apAddBotMessage(`Search cancelled.`);
+                    return true;
+                } else {
+                    apAddBotMessage(`Please select an option: <strong>1</strong>, <strong>2</strong>, or <strong>3</strong> (or type "cancel")`);
+                    return true;
+                }
+            }
+
+            if (state.step === 2) {
+                if (lowerInput === 'cancel' || lowerInput === 'exit') {
+                    apResetConversation();
+                    apAddBotMessage(`Search cancelled.`);
+                    return true;
+                }
+
+                if (state.data.searchBy === 'CreationDate') {
+                    // Expecting operator: =, <, >
+                    if (['=', '<', '>'].includes(input.trim())) {
+                        state.data.operator = input.trim();
+                        state.step = 3;
+                        apAddBotMessage(`<strong>Enter date</strong> (YYYY-MM-DD format):<br>
+                            <div style="font-size:11px;color:var(--rw-neutral-500);margin-top:4px;">Example: 2025-01-15</div>`);
+                        return true;
+                    } else {
+                        apAddBotMessage(`Please enter an operator: <strong>=</strong>, <strong>&lt;</strong>, or <strong>&gt;</strong>`);
+                        return true;
+                    }
+                } else {
+                    // Expecting search value for OrderNumber or Supplier
+                    state.data.searchValue = input.trim();
+                    apExecutePOSearch();
+                    return true;
+                }
+            }
+
+            if (state.step === 3) {
+                // Expecting date value for CreationDate search
+                if (lowerInput === 'cancel' || lowerInput === 'exit') {
+                    apResetConversation();
+                    apAddBotMessage(`Search cancelled.`);
+                    return true;
+                }
+
+                state.data.searchValue = input.trim();
+                apExecutePOSearch();
+                return true;
+            }
+
+            return false;
+        }
+
+        // Execute PO search based on collected data
+        async function apExecutePOSearch() {
+            const state = apConversationState;
+            const { searchBy, searchLabel, searchValue, operator } = state.data;
+
+            apResetConversation();
+
+            // Build query string
+            let queryParam = '';
+            if (searchBy === 'CreationDate') {
+                queryParam = `${searchBy}${operator}${searchValue}`;
+            } else {
+                queryParam = `${searchBy}=${searchValue}`;
+            }
+
+            apAddBotMessage(`<div class="ap-progress-tracker">
+                <div class="ap-progress-title">Searching POs by ${searchLabel}: ${searchValue}</div>
+                <div class="ap-progress-steps">
+                    <div class="ap-step"><span class="ap-step-icon">&#8987;</span><span class="ap-step-text">Fetching results...</span></div>
+                </div>
+            </div>`);
+
+            try {
+                // Get endpoint
+                const endpoint = apFindPOEndpoint();
+                if (!endpoint) {
+                    apAddBotMessage(`<p style="color:#ef4444;">FUSION_PO_DETAILS endpoint not configured.</p>`);
+                    return;
+                }
+
+                // Get credentials
+                await apEnsureInstancesLoaded();
+                const credentials = getCredentialsForEndpoint(endpoint);
+
+                const baseUrl = endpoint.baseUrl || endpoint.base_url || '';
+                const path = endpoint.endpointPath || endpoint.path || '';
+                const fullUrl = `${baseUrl}${path}?q=${encodeURIComponent(queryParam)}`;
+
+                console.log('[Autopilot] PO Search URL:', fullUrl);
+
+                const fetchOptions = {};
+                if (credentials && credentials.username && credentials.password) {
+                    fetchOptions.username = credentials.username;
+                    fetchOptions.password = credentials.password;
+                }
+
+                const response = await fetchWithBridge(fullUrl, fetchOptions);
+
+                if (response && response.items && response.items.length > 0) {
+                    apShowPOSearchResults(response.items, searchLabel, searchValue);
+                } else {
+                    apAddBotMessage(`<p style="color:var(--rw-neutral-500);">No POs found matching ${searchLabel}: <strong>${searchValue}</strong></p>`);
+                }
+            } catch (error) {
+                console.error('[Autopilot] PO Search error:', error);
+                apAddBotMessage(`<p style="color:#ef4444;">Error: ${error.message}</p>`);
+            }
+        }
+
+        // Show PO search results as clickable list
+        function apShowPOSearchResults(items, searchLabel, searchValue) {
+            let html = `<div style="margin-bottom:8px;"><strong>Found ${items.length} PO(s)</strong> matching ${searchLabel}: ${searchValue}</div>`;
+            html += `<div style="max-height:300px;overflow-y:auto;">`;
+
+            items.forEach(po => {
+                const orderNumber = po.OrderNumber || 'N/A';
+                const supplier = po.Supplier || 'N/A';
+                const status = po.Status || po.StatusCode || 'N/A';
+                const total = (po.Total || 0).toLocaleString(undefined, {minimumFractionDigits: 2});
+                const currency = po.CurrencyCode || '';
+
+                html += `
+                    <div onclick="apSendSuggestion('show po ${orderNumber}')"
+                         style="padding:10px;margin:4px 0;background:var(--rw-neutral-50);border-radius:8px;cursor:pointer;border:1px solid var(--rw-neutral-200);transition:all 0.15s;"
+                         onmouseover="this.style.background='var(--rw-neutral-100)';this.style.borderColor='var(--rw-primary)'"
+                         onmouseout="this.style.background='var(--rw-neutral-50)';this.style.borderColor='var(--rw-neutral-200)'">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <div>
+                                <strong style="color:var(--rw-primary);">${orderNumber}</strong>
+                                <span style="font-size:11px;color:var(--rw-neutral-500);margin-left:8px;">${supplier}</span>
+                            </div>
+                            <span class="rw-badge ${status === 'OPEN' ? 'rw-badge-success' : 'rw-badge-secondary'}" style="font-size:10px;">${status}</span>
+                        </div>
+                        <div style="font-size:12px;color:var(--rw-neutral-600);margin-top:4px;">
+                            Total: <strong>${currency} ${total}</strong>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+            html += `<p style="font-size:11px;color:var(--rw-neutral-500);margin-top:8px;">Click a PO to view details</p>`;
+
+            apAddBotMessage(html);
+        }
+
+        // Start "show pos" flow
+        function apStartShowPosFlow() {
+            apConversationState = {
+                active: true,
+                flow: 'show_pos',
+                step: 1,
+                data: {}
+            };
+
+            apAddBotMessage(`<strong>Search Purchase Orders</strong><br><br>
+                How would you like to search?
+                <div class="ap-suggestions" style="margin-top:10px;">
+                    <button class="ap-suggestion" onclick="apSendSuggestion('1')">1. By Order Number</button>
+                    <button class="ap-suggestion" onclick="apSendSuggestion('2')">2. By Supplier</button>
+                    <button class="ap-suggestion" onclick="apSendSuggestion('3')">3. By Creation Date</button>
+                </div>
+                <p style="font-size:11px;color:var(--rw-neutral-500);margin-top:8px;">Type a number or click an option (or "cancel" to exit)</p>
+            `);
+        }
+
         function apAddUserMessage(text) {
             const container = document.getElementById('apMessages');
             const div = document.createElement('div');
@@ -5082,6 +5305,13 @@
         function apProcessCommand(command) {
             const lowerCmd = command.toLowerCase().trim();
 
+            // Check if we're in an active conversation flow
+            if (apConversationState.active) {
+                if (apHandleConversationResponse(command.trim())) {
+                    return;
+                }
+            }
+
             // Help
             if (lowerCmd === 'help') {
                 apShowHelp();
@@ -5091,6 +5321,12 @@
             // Open menu list
             if (lowerCmd === 'open' || lowerCmd === 'menu') {
                 apShowMenuOptions();
+                return;
+            }
+
+            // Show POs - multi-step search
+            if (lowerCmd === 'show pos' || lowerCmd === 'search pos' || lowerCmd === 'find pos' || lowerCmd === 'pos') {
+                apStartShowPosFlow();
                 return;
             }
 
@@ -5709,6 +5945,8 @@
                                         <th>UOM</th>
                                         <th>Unit Price</th>
                                         <th>Amount</th>
+                                        <th>Total Tax</th>
+                                        <th>Total</th>
                                         <th>Status</th>
                                     </tr>
                                 </thead>
@@ -5724,7 +5962,9 @@
                                 <td style="text-align:right;">${(line.Quantity || 0).toLocaleString()}</td>
                                 <td>${line.UOM || line.UOMCode || ''}</td>
                                 <td style="text-align:right;">${(line.UnitPrice || line.Price || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                                <td style="text-align:right;font-weight:500;">${(line.Amount || line.LineAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                <td style="text-align:right;">${(line.Amount || line.LineAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                <td style="text-align:right;">${(line.TotalTax || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                <td style="text-align:right;font-weight:600;color:var(--rw-primary);">${(line.Total || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                 <td><span class="rw-badge rw-badge-secondary">${line.Status || line.LineStatus || 'N/A'}</span></td>
                             </tr>
                         `;
@@ -5763,6 +6003,8 @@
                                     <th>UOM</th>
                                     <th>Unit Price</th>
                                     <th>Amount</th>
+                                    <th>Total Tax</th>
+                                    <th>Total</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -5778,7 +6020,9 @@
                             <td style="text-align:right;">${(line.Quantity || 0).toLocaleString()}</td>
                             <td>${line.UOM || line.UOMCode || ''}</td>
                             <td style="text-align:right;">${(line.UnitPrice || line.Price || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                            <td style="text-align:right;font-weight:500;">${(line.Amount || line.LineAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                            <td style="text-align:right;">${(line.Amount || line.LineAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                            <td style="text-align:right;">${(line.TotalTax || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                            <td style="text-align:right;font-weight:600;color:var(--rw-primary);">${(line.Total || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                             <td><span class="rw-badge rw-badge-secondary">${line.Status || line.LineStatus || 'N/A'}</span></td>
                         </tr>
                     `;
@@ -5945,13 +6189,14 @@
                     <li><strong>open</strong> - Show all pages</li>
                     <li><strong>open [page]</strong> - Open a page</li>
                     <li><strong>go to [page]</strong> - Navigate to page</li>
-                    <li><strong>show po [number]</strong> - View PO details</li>
-                    <li><strong>po [number] details</strong> - View PO details</li>
+                    <li><strong>show po [number]</strong> - View single PO details</li>
+                    <li><strong>show pos</strong> - Search POs (by order, supplier, date)</li>
                     <li><strong>help</strong> - Show this help</li>
                 </ul>
                 <div class="ap-suggestions">
                     <button class="ap-suggestion" onclick="apSendSuggestion('open items')">open items</button>
-                    <button class="ap-suggestion" onclick="apSendSuggestion('show po IP00003')">show po IP00003</button>
+                    <button class="ap-suggestion" onclick="apSendSuggestion('show pos')">show pos</button>
+                    <button class="ap-suggestion" onclick="apSendSuggestion('show po IP00003')">show po</button>
                 </div>
             `);
         }

@@ -4285,19 +4285,31 @@
 
             currentEditPO = { docNum, lines: poLines, header: poHeader };
 
+            // Extract header info
             const vendorName = poHeader ? (poHeader.vendor_name || poHeader.VENDOR_NAME || '-') : '-';
+            const shipToLocation = poHeader ? (poHeader.ship_to_location || poHeader.SHIP_TO_LOCATION || '-') : '-';
+            const noOfItems = poLines.length;
 
-            // Build editable lines table
+            // Get distinct destination types and routings from lines
+            const destinationTypes = [...new Set(poLines.map(line =>
+                line.destination_type || line.DESTINATION_TYPE || ''
+            ).filter(v => v))];
+            const routings = [...new Set(poLines.map(line =>
+                line.routing || line.ROUTING || ''
+            ).filter(v => v))];
+
+            // Build editable lines table with same columns as main lines table
             let linesHtml = `
                 <table class="rw-table" style="width:100%;margin-bottom:16px;">
                     <thead>
                         <tr>
                             <th>Line</th>
-                            <th>Item</th>
+                            <th>Item Number</th>
                             <th>Description</th>
                             <th style="text-align:right;">Ordered</th>
                             <th style="text-align:right;">Received</th>
                             <th style="text-align:right;">Remaining</th>
+                            <th>UOM</th>
                             <th>Dest Type</th>
                             <th>Routing</th>
                             <th style="text-align:center;">Qty to Receive</th>
@@ -4309,10 +4321,11 @@
             poLines.forEach((line, idx) => {
                 const lineNum = line.line_number || line.LINE_NUMBER || '-';
                 const itemNum = line.item_number || line.ITEM_NUMBER || '-';
-                const desc = (line.item_description || line.ITEM_DESCRIPTION || '-').substring(0, 25);
+                const desc = (line.item_description || line.ITEM_DESCRIPTION || '-').substring(0, 30);
                 const ordered = line.ordered_quantity || line.ORDERED_QUANTITY || 0;
                 const received = line.received_quantity || line.RECEIVED_QUANTITY || 0;
                 const remaining = ordered - received;
+                const uom = line.uom || line.UOM || line.primary_uom_code || '-';
                 const destinationType = line.destination_type || line.DESTINATION_TYPE || '-';
                 const routing = line.routing || line.ROUTING || '-';
 
@@ -4323,9 +4336,10 @@
                         <td title="${line.item_description || ''}">${desc}</td>
                         <td style="text-align:right;">${ordered}</td>
                         <td style="text-align:right;">${received}</td>
-                        <td style="text-align:right;color:var(--rw-red);">${remaining}</td>
-                        <td><span class="rw-badge rw-badge-info" style="font-size:10px;">${destinationType}</span></td>
-                        <td><span class="rw-badge rw-badge-secondary" style="font-size:10px;">${routing}</span></td>
+                        <td style="text-align:right;font-weight:500;color:var(--rw-red);">${remaining}</td>
+                        <td>${uom}</td>
+                        <td><span class="rw-badge rw-badge-info">${destinationType}</span></td>
+                        <td><span class="rw-badge rw-badge-secondary">${routing}</span></td>
                         <td style="text-align:center;">
                             <input type="number" id="rcv-qty-${idx}" class="rw-input" style="width:80px;text-align:center;padding:6px;"
                                    value="${remaining}" min="0" max="${remaining}" step="1">
@@ -4338,9 +4352,31 @@
 
             document.getElementById('receiptsDialogTitle').textContent = `Edit PO Receipt - ${docNum}`;
             document.getElementById('receiptsDialogBody').innerHTML = `
-                <div style="margin-bottom:16px;">
-                    <span style="font-size:13px;color:var(--rw-neutral-500);">Vendor:</span>
-                    <span style="font-weight:500;margin-left:8px;">${vendorName}</span>
+                <div style="display:flex;flex-wrap:wrap;gap:24px;padding:16px 0;margin-bottom:16px;border-bottom:1px solid var(--rw-neutral-100);">
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">PO Number</span>
+                        <span style="font-weight:600;color:var(--rw-red);">${docNum}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Vendor</span>
+                        <span style="font-weight:500;color:var(--rw-neutral-800);">${vendorName}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Ship To</span>
+                        <span style="font-weight:500;color:var(--rw-neutral-800);">${shipToLocation}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Items</span>
+                        <span style="font-weight:500;color:var(--rw-neutral-800);">${noOfItems}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Destination Type</span>
+                        <span style="font-weight:500;">${destinationTypes.length > 0 ? destinationTypes.map(d => `<span class="rw-badge rw-badge-info" style="font-size:10px;margin-right:4px;">${d}</span>`).join('') : '-'}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Routing</span>
+                        <span style="font-weight:500;">${routings.length > 0 ? routings.map(r => `<span class="rw-badge rw-badge-secondary" style="font-size:10px;margin-right:4px;">${r}</span>`).join('') : '-'}</span>
+                    </div>
                 </div>
                 ${linesHtml}
                 <div class="rw-form-row">

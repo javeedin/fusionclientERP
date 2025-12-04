@@ -4699,47 +4699,91 @@
             // Step 2: Sending to Oracle
             updateReceiptProgress(2, 'pending', 'Sending POST request to Oracle...');
 
+            // Log to response area
+            let logMessages = [];
+            const addLog = (msg) => {
+                const timestamp = new Date().toLocaleTimeString();
+                logMessages.push(`[${timestamp}] ${msg}`);
+                document.getElementById('rcptLogResponse').value = logMessages.join('\n');
+            };
+
+            addLog('Starting POST request...');
+            addLog('URL: ' + fullUrl);
+            addLog('Username: ' + credentials.username);
+
             try {
-                // Send via WebView2
+                // Check WebView2 availability
+                if (!window.chrome || !window.chrome.webview) {
+                    throw new Error('WebView2 not available. Please run in the desktop application.');
+                }
+                addLog('WebView2: Available');
+
+                // Send via WebView2 using executePost action
                 const requestId = 'rcpt_' + Date.now();
+                addLog('Request ID: ' + requestId);
+
                 const requestData = {
-                    type: 'POST_REQUEST',
+                    action: 'executePost',
                     requestId: requestId,
                     url: fullUrl,
                     username: credentials.username,
                     password: credentials.password,
-                    payload: payload
+                    body: JSON.stringify(payload),
+                    contentType: 'application/json'
                 };
 
                 console.log('[Receipt] Sending POST request:', requestData);
-
-                // Store callback for response
-                window.pendingReceiptRequest = {
-                    requestId: requestId,
-                    resolve: null,
-                    reject: null
-                };
+                addLog('Sending message to C#...');
 
                 const responsePromise = new Promise((resolve, reject) => {
-                    window.pendingReceiptRequest.resolve = resolve;
-                    window.pendingReceiptRequest.reject = reject;
+                    const handler = function(event) {
+                        try {
+                            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                            addLog('Received message: ' + (data.requestId || data.action || 'unknown'));
+
+                            if (data.requestId === requestId) {
+                                window.chrome.webview.removeEventListener('message', handler);
+                                addLog('Response matched request ID');
+
+                                if (data.success) {
+                                    addLog('Success: true');
+                                    let responseData = data.data;
+                                    if (typeof responseData === 'string' && responseData) {
+                                        try {
+                                            responseData = JSON.parse(responseData);
+                                        } catch (e) {
+                                            // Keep as string
+                                        }
+                                    }
+                                    resolve(responseData);
+                                } else {
+                                    addLog('Success: false, Error: ' + (data.error || 'Unknown'));
+                                    reject(new Error(data.error || 'Request failed'));
+                                }
+                            }
+                        } catch (e) {
+                            addLog('Error parsing response: ' + e.message);
+                            console.error('[Receipt] Error parsing response:', e);
+                        }
+                    };
+
+                    window.chrome.webview.addEventListener('message', handler);
+                    addLog('Message handler registered');
 
                     // Timeout after 60 seconds
                     setTimeout(() => {
-                        if (window.pendingReceiptRequest && window.pendingReceiptRequest.requestId === requestId) {
-                            reject(new Error('Request timeout after 60 seconds'));
-                        }
+                        window.chrome.webview.removeEventListener('message', handler);
+                        addLog('TIMEOUT: No response after 60 seconds');
+                        reject(new Error('Request timeout after 60 seconds. Check C# console for errors.'));
                     }, 60000);
                 });
 
                 // Send to C# via WebView2
-                if (window.chrome && window.chrome.webview) {
-                    window.chrome.webview.postMessage(JSON.stringify(requestData));
-                } else {
-                    throw new Error('WebView2 not available. Please run in the desktop application.');
-                }
+                window.chrome.webview.postMessage(requestData);
+                addLog('Message sent to C#, waiting for response...');
 
                 const response = await responsePromise;
+                addLog('Response received!');
 
                 updateReceiptProgress(2, 'success', 'POST request completed');
                 document.getElementById('rcptLogResponse').value = JSON.stringify(response, null, 2);
@@ -4769,11 +4813,12 @@
 
             } catch (error) {
                 console.error('[Receipt] Error:', error);
+                addLog('ERROR: ' + error.message);
                 updateReceiptProgress(2, 'error', 'Request failed: ' + error.message);
-                document.getElementById('rcptLogResponse').value = 'Error: ' + error.message;
                 document.getElementById('rcptProgressResult').innerHTML = `
                     <div style="padding:16px;background:#ffebee;border-radius:8px;color:#c62828;">
-                        <strong>Error:</strong> ${error.message}
+                        <strong>Error:</strong> ${error.message}<br>
+                        <small style="opacity:0.8;">Check the Log tab for details</small>
                     </div>
                 `;
             }

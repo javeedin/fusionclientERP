@@ -5356,6 +5356,7 @@
                             <th style="text-align:right;">Available</th>
                             <th>UOM</th>
                             <th>Subinventory</th>
+                            <th>Lot Number</th>
                             <th>Locator</th>
                             <th style="text-align:center;">Qty to Put Away</th>
                             <th style="text-align:center;">Serials</th>
@@ -5373,6 +5374,7 @@
                 const uom = line.UOMCode || line.uom_code || '-';
                 const subinv = line.Subinventory || line.subinventory || '';
                 const locator = line.Locator || line.locator || '';
+                const lotNumber = `${docNum}_${idx + 1}`;
 
                 linesHtml += `
                     <tr>
@@ -5384,6 +5386,7 @@
                         <td style="text-align:right;font-weight:600;color:var(--rw-red);">${availQty}</td>
                         <td>${uom}</td>
                         <td><input type="text" id="pa-subinv-${idx}" class="rw-input" style="width:80px;padding:4px 6px;" value="${subinv}" placeholder="..."></td>
+                        <td><input type="text" id="pa-lot-${idx}" class="rw-input" style="width:100px;padding:4px 6px;" value="${lotNumber}"></td>
                         <td><input type="text" id="pa-locator-${idx}" class="rw-input" style="width:80px;padding:4px 6px;" value="${locator}" placeholder="..."></td>
                         <td style="text-align:center;">
                             <input type="number" id="pa-qty-${idx}" class="rw-input" style="width:80px;text-align:center;padding:6px;"
@@ -5529,12 +5532,13 @@
         function executePutaway() {
             if (!currentEditPutaway) return;
 
-            // Collect selected lines with quantities and subinventory/locator
+            // Collect selected lines with quantities, subinventory, lot, locator
             const selectedLines = [];
             currentEditPutaway.lines.forEach((line, idx) => {
                 const checkbox = document.getElementById('pa-chk-' + idx);
                 const qtyInput = document.getElementById('pa-qty-' + idx);
                 const subinvInput = document.getElementById('pa-subinv-' + idx);
+                const lotInput = document.getElementById('pa-lot-' + idx);
                 const locatorInput = document.getElementById('pa-locator-' + idx);
 
                 const qty = parseFloat(qtyInput.value) || 0;
@@ -5544,6 +5548,7 @@
                         line,
                         qty,
                         subinventory: subinvInput.value.trim(),
+                        lotNumber: lotInput.value.trim(),
                         locator: locatorInput.value.trim()
                     });
                 }

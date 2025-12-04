@@ -27,6 +27,7 @@ namespace WMSApp
     {
         private WebView2 webView;
         private Panel urlPanel;
+        private Panel navPanel;
         private TextBox urlTextBox;
         private Button favoriteButton;
         private Button profileButton;
@@ -506,7 +507,7 @@ namespace WMSApp
             titleBarPanel.Controls.Add(tabBar);
 
             // Navigation panel
-            Panel navPanel = new Panel
+            navPanel = new Panel
             {
                 Dock = DockStyle.Top,
                 Height = 50,
@@ -948,6 +949,8 @@ namespace WMSApp
                 {
                     string fileUrl = "file:///" + loginPath.Replace("\\", "/");
                     Navigate(fileUrl);
+                    // Auto-hide toolbar when opening Redwood pages
+                    navPanel.Visible = false;
                 }
                 else
                 {
@@ -2596,6 +2599,9 @@ namespace WMSApp
 
         private void AddNewTab(string url)
         {
+            // Show toolbar when adding a new tab
+            navPanel.Visible = true;
+
             CustomTabButton tabButton = new CustomTabButton
             {
                 TabText = "New Tab",

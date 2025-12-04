@@ -6266,12 +6266,24 @@
                 }
 
                 // Step 3: Build URL with offset and limit for 500 records
-                const baseUrl = endpoint.baseUrl || endpoint.base_url || '';
+                // Don't encode the = sign, only encode the value if needed
+                const baseUrl = endpoint.baseUrl || endpoint.base_url || endpoint.url || '';
                 const path = endpoint.endpointPath || endpoint.path || '';
-                const fullUrl = `${baseUrl}${path}?q=${encodeURIComponent(queryParam)}&limit=500&offset=0`;
+
+                // Build query - only encode special chars in value, not the = sign
+                let qParam = '';
+                if (searchBy === 'CreationDate') {
+                    qParam = `${searchBy}${operator}${searchValue}`;
+                } else {
+                    qParam = `${searchBy}=${searchValue}`;
+                }
+
+                const fullUrl = `${baseUrl}${path}?q=${qParam}&limit=500&offset=0`;
 
                 apLastRequestLog[logId].fullUrl = fullUrl;
-                apLastRequestLog[logId].queryParam = queryParam;
+                apLastRequestLog[logId].baseUrl = baseUrl;
+                apLastRequestLog[logId].path = path;
+                apLastRequestLog[logId].queryParam = qParam;
                 console.log('[Autopilot] PO Search URL:', fullUrl);
 
                 const fetchOptions = {};
@@ -6568,35 +6580,40 @@
             const popupId = 'log-popup-' + Date.now();
             const logHtml = `
                 <div id="${popupId}" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;" onclick="this.remove()">
-                    <div style="background:white;border-radius:12px;max-width:800px;width:95%;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+                    <div style="background:white;border-radius:12px;max-width:900px;width:95%;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
                         <div style="padding:16px 20px;background:#c74634;color:white;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
                             <strong style="font-size:16px;">Request Log</strong>
                             <button onclick="this.closest('[style*=position]').remove()" style="background:none;border:none;color:white;font-size:24px;cursor:pointer;">&times;</button>
                         </div>
                         <div style="padding:20px;font-family:monospace;font-size:12px;">
                             <div style="margin-bottom:16px;">
-                                <div style="color:#6b7280;margin-bottom:4px;">Endpoint</div>
+                                <div style="color:#6b7280;margin-bottom:4px;">Integration Code</div>
                                 <div style="background:#f3f4f6;padding:8px 12px;border-radius:6px;word-break:break-all;">
                                     ${log.integrationCode || 'N/A'}
                                 </div>
                             </div>
                             <div style="margin-bottom:16px;">
-                                <div style="color:#6b7280;margin-bottom:4px;">Instance</div>
-                                <div style="background:#f3f4f6;padding:8px 12px;border-radius:6px;">
-                                    ${log.instanceName || 'N/A'} (${log.source || 'N/A'})
+                                <div style="color:#6b7280;margin-bottom:4px;">Base URL</div>
+                                <div style="background:#e0f2fe;padding:8px 12px;border-radius:6px;word-break:break-all;color:#0369a1;">
+                                    ${log.baseUrl || 'N/A'}
                                 </div>
                             </div>
                             <div style="margin-bottom:16px;">
-                                <div style="color:#6b7280;margin-bottom:4px;">Credentials</div>
+                                <div style="color:#6b7280;margin-bottom:4px;">Instance / Credentials</div>
                                 <div style="background:#f3f4f6;padding:8px 12px;border-radius:6px;">
-                                    Username: <strong>${log.username || 'None'}</strong><br>
-                                    Password: <strong>${log.password ? '****' + log.password.slice(-4) : 'None'}</strong><br>
-                                    No Auth: <strong>${log.noAuth || 'N'}</strong>
+                                    Instance: <strong>${log.instanceName || 'N/A'}</strong> | Source: <strong>${log.source || 'N/A'}</strong><br>
+                                    Username: <strong>${log.username || 'None'}</strong> | Password: <strong>${log.password ? '****' + log.password.slice(-4) : 'None'}</strong>
                                 </div>
                             </div>
                             <div style="margin-bottom:16px;">
-                                <div style="color:#6b7280;margin-bottom:4px;">Full URL (Editable)</div>
-                                <textarea id="log-url-${popupId}" style="width:100%;height:80px;background:#f3f4f6;padding:8px 12px;border-radius:6px;border:1px solid #d1d5db;font-family:monospace;font-size:11px;resize:vertical;">${log.fullUrl || ''}</textarea>
+                                <div style="color:#6b7280;margin-bottom:4px;">Query Parameter</div>
+                                <div style="background:#fef3c7;padding:8px 12px;border-radius:6px;color:#92400e;word-break:break-all;">
+                                    q=${log.queryParam || 'N/A'}
+                                </div>
+                            </div>
+                            <div style="margin-bottom:16px;">
+                                <div style="color:#6b7280;margin-bottom:4px;">Full URL (Editable - modify and retry)</div>
+                                <textarea id="log-url-${popupId}" style="width:100%;height:100px;background:#fffbeb;padding:8px 12px;border-radius:6px;border:2px solid #f59e0b;font-family:monospace;font-size:12px;resize:vertical;">${log.fullUrl || ''}</textarea>
                                 <div style="margin-top:8px;display:flex;gap:8px;">
                                     <button onclick="apRetryFromLog('${popupId}', '${logId}')" style="background:#c74634;color:white;border:none;border-radius:6px;padding:8px 16px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;">
                                         <span>&#9654;</span> Retry Request

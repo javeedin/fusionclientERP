@@ -1930,6 +1930,10 @@
                         <span class="rw-nav-icon">&#9881;</span>
                         <span>Settings</span>
                     </div>
+                    <div class="rw-nav-item" onclick="navigateTo('prompt-admin')">
+                        <span class="rw-nav-icon">&#128172;</span>
+                        <span>Prompt Admin</span>
+                    </div>
                     <div class="rw-nav-item" onclick="goHome()">
                         <span class="rw-nav-icon">&#127968;</span>
                         <span>Back to Home</span>
@@ -2275,7 +2279,8 @@
             'cycle-count': { name: 'Cycle Counts', icon: '&#10133;' },
             'physical-inv': { name: 'Physical Inventory', icon: '&#128203;' },
             'instances': { name: 'Instances', icon: '&#127760;' },
-            'settings': { name: 'Settings', icon: '&#9881;' }
+            'settings': { name: 'Settings', icon: '&#9881;' },
+            'prompt-admin': { name: 'Prompt Admin', icon: '&#128172;' }
         };
 
         // Navigate to page - opens a new tab or switches to existing
@@ -2429,6 +2434,9 @@
                     break;
                 case 'instances':
                     renderInstancesPage();
+                    break;
+                case 'prompt-admin':
+                    renderPromptAdminPage();
                     break;
                 default:
                     renderGenericPage(pageId);
@@ -4926,6 +4934,309 @@
                 document.querySelector('.rw-sidebar').classList.add('collapsed');
             }
         });
+
+        // ==========================================
+        // PROMPT ADMIN PAGE
+        // ==========================================
+        let customPrompts = [];
+        const PROMPTS_FILE_PATH = 'C:\\fusionclient\\ERP\\settings\\autopilot\\prompts.json';
+
+        async function renderPromptAdminPage() {
+            const container = document.getElementById('content-prompt-admin');
+
+            container.innerHTML = `
+                <div class="rw-page-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
+                    <div>
+                        <h1 class="rw-page-title">Prompt Admin</h1>
+                        <p class="rw-page-subtitle">Create and manage custom Autopilot prompts</p>
+                    </div>
+                    <button class="rw-btn rw-btn-primary" onclick="openNewPromptDialog()">
+                        <span>+</span> New Prompt
+                    </button>
+                </div>
+
+                <div class="rw-card">
+                    <div class="rw-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                        <h2 class="rw-card-title">Custom Prompts</h2>
+                        <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="loadCustomPrompts()">
+                            <span>&#8635;</span> Refresh
+                        </button>
+                    </div>
+                    <div class="rw-card-body">
+                        <div id="prompts-loading" style="text-align:center;padding:40px;">
+                            <div class="rw-spinner"></div>
+                            <p style="margin-top:10px;color:var(--rw-neutral-500);">Loading prompts...</p>
+                        </div>
+                        <div id="prompts-table" style="display:none;"></div>
+                    </div>
+                </div>
+            `;
+
+            await loadCustomPrompts();
+        }
+
+        async function loadCustomPrompts() {
+            const loadingEl = document.getElementById('prompts-loading');
+            const tableEl = document.getElementById('prompts-table');
+
+            if (loadingEl) loadingEl.style.display = 'block';
+            if (tableEl) tableEl.style.display = 'none';
+
+            try {
+                // Read prompts from file via C#
+                if (window.chrome && window.chrome.webview) {
+                    const content = await new Promise((resolve) => {
+                        const handler = (event) => {
+                            const data = event.data;
+                            if (data.action === 'fileReadResult' && data.file === 'prompts_admin') {
+                                window.chrome.webview.removeEventListener('message', handler);
+                                if (data.success && data.content) {
+                                    resolve(data.content);
+                                } else {
+                                    resolve('[]');
+                                }
+                            }
+                        };
+                        window.chrome.webview.addEventListener('message', handler);
+                        window.chrome.webview.postMessage({
+                            action: 'readFile',
+                            filePath: PROMPTS_FILE_PATH,
+                            fileId: 'prompts_admin'
+                        });
+                        setTimeout(() => resolve('[]'), 5000);
+                    });
+
+                    try {
+                        customPrompts = JSON.parse(content);
+                    } catch (e) {
+                        customPrompts = [];
+                    }
+                }
+            } catch (error) {
+                console.error('[Prompt Admin] Error loading prompts:', error);
+                customPrompts = [];
+            }
+
+            renderPromptsTable();
+
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (tableEl) tableEl.style.display = 'block';
+        }
+
+        function renderPromptsTable() {
+            const tableEl = document.getElementById('prompts-table');
+            if (!tableEl) return;
+
+            if (customPrompts.length === 0) {
+                tableEl.innerHTML = `
+                    <div style="text-align:center;padding:40px;color:var(--rw-neutral-500);">
+                        <div style="font-size:48px;margin-bottom:16px;">&#128172;</div>
+                        <p>No custom prompts yet.</p>
+                        <p style="font-size:12px;">Click "New Prompt" to create your first prompt.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <div class="rw-table-wrapper">
+                    <table class="rw-table">
+                        <thead>
+                            <tr>
+                                <th>Trigger</th>
+                                <th>Description</th>
+                                <th>Endpoint</th>
+                                <th>Search Field</th>
+                                <th>Status</th>
+                                <th style="width:100px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            customPrompts.forEach((prompt, idx) => {
+                html += `
+                    <tr>
+                        <td><code style="background:var(--rw-neutral-100);padding:2px 6px;border-radius:4px;">${prompt.trigger || ''}</code></td>
+                        <td>${prompt.description || ''}</td>
+                        <td style="font-size:12px;">${prompt.endpoint || ''}</td>
+                        <td>${prompt.searchField || ''}</td>
+                        <td><span class="rw-badge ${prompt.active !== false ? 'rw-badge-success' : 'rw-badge-secondary'}">${prompt.active !== false ? 'Active' : 'Inactive'}</span></td>
+                        <td>
+                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="editPrompt(${idx})" style="margin-right:4px;">Edit</button>
+                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="deletePrompt(${idx})" style="color:#ef4444;">&#128465;</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table></div>';
+            tableEl.innerHTML = html;
+        }
+
+        function openNewPromptDialog() {
+            document.getElementById('receiptsDialogTitle').textContent = 'New Prompt';
+            document.getElementById('receiptsDialogBody').innerHTML = getPromptFormHtml();
+            openDialog('receiptsDialog');
+            document.getElementById('receiptsDialogSave').onclick = saveNewPrompt;
+        }
+
+        function editPrompt(index) {
+            const prompt = customPrompts[index];
+            if (!prompt) return;
+
+            document.getElementById('receiptsDialogTitle').textContent = 'Edit Prompt';
+            document.getElementById('receiptsDialogBody').innerHTML = getPromptFormHtml(prompt);
+            openDialog('receiptsDialog');
+            document.getElementById('receiptsDialogSave').onclick = () => saveEditedPrompt(index);
+        }
+
+        function getPromptFormHtml(prompt = {}) {
+            return `
+                <div class="rw-form-group">
+                    <label class="rw-label">Trigger Command *</label>
+                    <input type="text" class="rw-input" id="promptTrigger" value="${prompt.trigger || ''}" placeholder="e.g., show invoices, find orders">
+                    <div style="font-size:11px;color:var(--rw-neutral-500);margin-top:4px;">The command that activates this prompt</div>
+                </div>
+                <div class="rw-form-group">
+                    <label class="rw-label">Description</label>
+                    <input type="text" class="rw-input" id="promptDescription" value="${prompt.description || ''}" placeholder="What this prompt does">
+                </div>
+                <div class="rw-form-group">
+                    <label class="rw-label">Endpoint Code *</label>
+                    <input type="text" class="rw-input" id="promptEndpoint" value="${prompt.endpoint || ''}" placeholder="e.g., FUSION_PO_DETAILS">
+                    <div style="font-size:11px;color:var(--rw-neutral-500);margin-top:4px;">Integration code from Settings > Endpoints</div>
+                </div>
+                <div class="rw-form-group">
+                    <label class="rw-label">Search Steps</label>
+                    <div id="promptSearchSteps">
+                        ${(prompt.searchSteps || [{ label: '', field: '', inputType: 'text' }]).map((step, i) => `
+                            <div class="prompt-search-step" style="display:flex;gap:8px;margin-bottom:8px;padding:10px;background:var(--rw-neutral-50);border-radius:8px;">
+                                <input type="text" class="rw-input" placeholder="Label (e.g., Order Number)" value="${step.label || ''}" style="flex:1;" data-step="${i}" data-field="label">
+                                <input type="text" class="rw-input" placeholder="API Field (e.g., OrderNumber)" value="${step.field || ''}" style="flex:1;" data-step="${i}" data-field="field">
+                                <select class="rw-input" style="width:120px;" data-step="${i}" data-field="inputType">
+                                    <option value="text" ${step.inputType === 'text' ? 'selected' : ''}>Text</option>
+                                    <option value="date" ${step.inputType === 'date' ? 'selected' : ''}>Date</option>
+                                    <option value="select" ${step.inputType === 'select' ? 'selected' : ''}>Select</option>
+                                </select>
+                                <button type="button" class="rw-btn rw-btn-secondary rw-btn-sm" onclick="removePromptStep(${i})" style="color:#ef4444;">&#10005;</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button type="button" class="rw-btn rw-btn-secondary rw-btn-sm" onclick="addPromptStep()">+ Add Step</button>
+                </div>
+                <div class="rw-form-group">
+                    <label class="rw-label">
+                        <input type="checkbox" id="promptActive" ${prompt.active !== false ? 'checked' : ''}> Active
+                    </label>
+                </div>
+            `;
+        }
+
+        function addPromptStep() {
+            const container = document.getElementById('promptSearchSteps');
+            const stepCount = container.querySelectorAll('.prompt-search-step').length;
+            const newStep = document.createElement('div');
+            newStep.className = 'prompt-search-step';
+            newStep.style.cssText = 'display:flex;gap:8px;margin-bottom:8px;padding:10px;background:var(--rw-neutral-50);border-radius:8px;';
+            newStep.innerHTML = `
+                <input type="text" class="rw-input" placeholder="Label" value="" style="flex:1;" data-step="${stepCount}" data-field="label">
+                <input type="text" class="rw-input" placeholder="API Field" value="" style="flex:1;" data-step="${stepCount}" data-field="field">
+                <select class="rw-input" style="width:120px;" data-step="${stepCount}" data-field="inputType">
+                    <option value="text">Text</option>
+                    <option value="date">Date</option>
+                    <option value="select">Select</option>
+                </select>
+                <button type="button" class="rw-btn rw-btn-secondary rw-btn-sm" onclick="this.parentElement.remove()" style="color:#ef4444;">&#10005;</button>
+            `;
+            container.appendChild(newStep);
+        }
+
+        function removePromptStep(index) {
+            const steps = document.querySelectorAll('.prompt-search-step');
+            if (steps[index]) steps[index].remove();
+        }
+
+        function collectPromptFormData() {
+            const trigger = document.getElementById('promptTrigger').value.trim();
+            const description = document.getElementById('promptDescription').value.trim();
+            const endpoint = document.getElementById('promptEndpoint').value.trim();
+            const active = document.getElementById('promptActive').checked;
+
+            // Collect search steps
+            const steps = [];
+            document.querySelectorAll('.prompt-search-step').forEach(stepEl => {
+                const label = stepEl.querySelector('[data-field="label"]').value.trim();
+                const field = stepEl.querySelector('[data-field="field"]').value.trim();
+                const inputType = stepEl.querySelector('[data-field="inputType"]').value;
+                if (label && field) {
+                    steps.push({ label, field, inputType });
+                }
+            });
+
+            return { trigger, description, endpoint, searchSteps: steps, active };
+        }
+
+        async function saveNewPrompt() {
+            const promptData = collectPromptFormData();
+
+            if (!promptData.trigger || !promptData.endpoint) {
+                alert('Trigger and Endpoint are required.');
+                return;
+            }
+
+            promptData.id = 'prompt_' + Date.now();
+            promptData.createdAt = new Date().toISOString();
+
+            customPrompts.push(promptData);
+            await savePromptsToFile();
+            closeDialog('receiptsDialog');
+            renderPromptsTable();
+        }
+
+        async function saveEditedPrompt(index) {
+            const promptData = collectPromptFormData();
+
+            if (!promptData.trigger || !promptData.endpoint) {
+                alert('Trigger and Endpoint are required.');
+                return;
+            }
+
+            promptData.id = customPrompts[index].id || 'prompt_' + Date.now();
+            promptData.updatedAt = new Date().toISOString();
+
+            customPrompts[index] = promptData;
+            await savePromptsToFile();
+            closeDialog('receiptsDialog');
+            renderPromptsTable();
+        }
+
+        async function deletePrompt(index) {
+            if (!confirm('Are you sure you want to delete this prompt?')) return;
+
+            customPrompts.splice(index, 1);
+            await savePromptsToFile();
+            renderPromptsTable();
+        }
+
+        async function savePromptsToFile() {
+            try {
+                if (window.chrome && window.chrome.webview) {
+                    const content = JSON.stringify(customPrompts, null, 2);
+
+                    window.chrome.webview.postMessage({
+                        action: 'writeFile',
+                        filePath: PROMPTS_FILE_PATH,
+                        content: content
+                    });
+
+                    console.log('[Prompt Admin] Prompts saved to file');
+                }
+            } catch (error) {
+                console.error('[Prompt Admin] Error saving prompts:', error);
+                alert('Error saving prompts: ' + error.message);
+            }
+        }
 
         // ==========================================
         // AUTOPILOT CHATBOT

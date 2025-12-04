@@ -1982,6 +1982,77 @@ namespace WMSApp
         }
 
         /// <summary>
+        /// Handles writeFile request from webview - writes content to a local file
+        /// </summary>
+        private async Task HandleWriteFile(WebView2 wv, JsonElement root, string requestId)
+        {
+            string filePath = "";
+
+            try
+            {
+                // Get filePath and content from request
+                if (root.TryGetProperty("filePath", out var filePathProp))
+                {
+                    filePath = filePathProp.GetString() ?? "";
+                }
+
+                string content = "";
+                if (root.TryGetProperty("content", out var contentProp))
+                {
+                    content = contentProp.GetString() ?? "";
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[C#] WriteFile request - filePath: {filePath}");
+
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    throw new ArgumentException("filePath is required");
+                }
+
+                // Ensure directory exists
+                string directory = System.IO.Path.GetDirectoryName(filePath);
+                if (!string.IsNullOrEmpty(directory) && !System.IO.Directory.Exists(directory))
+                {
+                    System.IO.Directory.CreateDirectory(directory);
+                    System.Diagnostics.Debug.WriteLine($"[C#] Created directory: {directory}");
+                }
+
+                // Write file content
+                await System.IO.File.WriteAllTextAsync(filePath, content);
+                System.Diagnostics.Debug.WriteLine($"[C#] File written successfully: {filePath}");
+
+                // Send success response
+                var response = new
+                {
+                    action = "fileWriteResult",
+                    filePath = filePath,
+                    success = true,
+                    requestId = requestId
+                };
+
+                string responseJson = System.Text.Json.JsonSerializer.Serialize(response);
+                wv.CoreWebView2.PostWebMessageAsJson(responseJson);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[C# ERROR] WriteFile failed: {ex.Message}");
+
+                // Send error response
+                var errorResponse = new
+                {
+                    action = "fileWriteResult",
+                    filePath = filePath,
+                    success = false,
+                    error = ex.Message,
+                    requestId = requestId
+                };
+
+                string errorJson = System.Text.Json.JsonSerializer.Serialize(errorResponse);
+                wv.CoreWebView2.PostWebMessageAsJson(errorJson);
+            }
+        }
+
+        /// <summary>
         /// Parses the APEX JSON response into a list of instance dictionaries
         /// </summary>
         private List<Dictionary<string, object>> ParseApexInstancesResponse(string jsonResponse)
@@ -2897,6 +2968,11 @@ namespace WMSApp
                                 // Read file from local filesystem
                                 case "readFile":
                                     await HandleReadFile(wv, root, requestId);
+                                    break;
+
+                                // Write file to local filesystem
+                                case "writeFile":
+                                    await HandleWriteFile(wv, root, requestId);
                                     break;
 
                                 default:

@@ -5438,6 +5438,15 @@
                         <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Routing</span>
                         <span style="font-weight:500;">${routings.length > 0 ? routings.map(r => `<span class="rw-badge rw-badge-secondary" style="font-size:10px;margin-right:4px;">${r}</span>`).join('') : '-'}</span>
                     </div>
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Subinventory</span>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span id="pa-header-subinv" style="font-weight:500;color:var(--rw-neutral-800);">-</span>
+                            <button onclick="openSubinventoryPicker('${toOrgCode}')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px;" title="Select Subinventory">
+                                &#128269;
+                            </button>
+                        </div>
+                    </div>
                     <div style="margin-left:auto;display:flex;gap:8px;">
                         <button class="rw-btn rw-btn-secondary" onclick="assignToPicker()" style="background:linear-gradient(135deg,#1565c0,#0d47a1);color:white;border:none;">
                             &#128100; Assign to Picker
@@ -5450,6 +5459,124 @@
                 ${linesHtml}
             `;
             document.getElementById('receiptsDialogOverlay').classList.add('active');
+        }
+
+        async function openSubinventoryPicker(orgCode) {
+            // Show loading in serial dialog (reusing it)
+            document.getElementById('serialDialogTitle').textContent = 'Select Subinventory';
+            document.getElementById('serialDialogBody').innerHTML = `
+                <div style="text-align:center;padding:40px;">
+                    <div class="rw-spinner"></div>
+                    <p style="margin-top:16px;">Loading subinventories...</p>
+                </div>
+            `;
+            document.getElementById('serialDialogOverlay').classList.add('active');
+
+            try {
+                if (cachedEndpoints.length === 0) {
+                    await loadAllEndpoints();
+                }
+
+                // Find the endpoint for GET_SUBINVENTORY_CODES
+                const endpoint = cachedEndpoints.find(e => {
+                    const code = (e.integrationCode || e.integration_code || e.source || '').toUpperCase();
+                    return code === 'GET_SUBINVENTORY_CODES';
+                });
+
+                if (!endpoint) {
+                    throw new Error('GET_SUBINVENTORY_CODES endpoint not configured');
+                }
+
+                // APEX - no auth needed
+                const baseUrl = endpoint.url || endpoint.base_url || '';
+                const path = endpoint.path || endpoint.endpointPath || '';
+                let url = baseUrl.replace(/\/$/, '') + (path.startsWith('/') ? path : '/' + path);
+                url += `?p_organization_code=${encodeURIComponent(orgCode)}`;
+
+                console.log('[Subinventory] Fetching:', url);
+
+                const response = await fetchWithBridge(url);
+                let items = [];
+
+                if (response && response.items) {
+                    items = response.items;
+                } else if (Array.isArray(response)) {
+                    items = response;
+                }
+
+                if (items.length === 0) {
+                    document.getElementById('serialDialogBody').innerHTML = `
+                        <div style="text-align:center;padding:40px;">
+                            <p>No subinventories found for organization ${orgCode}</p>
+                            <button class="rw-btn rw-btn-secondary" onclick="closeSerialDialog()" style="margin-top:16px;">Close</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Build list
+                let listHtml = `
+                    <div style="max-height:400px;overflow-y:auto;">
+                        <table class="rw-table" style="width:100%;">
+                            <thead>
+                                <tr>
+                                    <th>Subinventory Code</th>
+                                    <th>Subinventory Name</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                items.forEach(item => {
+                    const code = item.SUBINVENTORY_CODE || item.subinventory_code || item.SubinventoryCode || '-';
+                    const name = item.SUBINVENTORY_NAME || item.subinventory_name || item.SubinventoryName || '-';
+
+                    listHtml += `
+                        <tr style="cursor:pointer;" onclick="selectSubinventory('${code}', '${name}')" onmouseover="this.style.background='var(--rw-red-light)'" onmouseout="this.style.background=''">
+                            <td style="font-weight:500;">${code}</td>
+                            <td>${name}</td>
+                            <td style="text-align:center;">
+                                <button class="rw-btn rw-btn-primary rw-btn-sm" onclick="event.stopPropagation(); selectSubinventory('${code}', '${name}')">Select</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                listHtml += '</tbody></table></div>';
+
+                document.getElementById('serialDialogBody').innerHTML = listHtml;
+
+            } catch (error) {
+                console.error('[Subinventory] Error:', error);
+                document.getElementById('serialDialogBody').innerHTML = `
+                    <div style="text-align:center;padding:40px;color:var(--rw-red);">
+                        <p>Error: ${error.message}</p>
+                        <button class="rw-btn rw-btn-secondary" onclick="closeSerialDialog()" style="margin-top:16px;">Close</button>
+                    </div>
+                `;
+            }
+        }
+
+        function selectSubinventory(code, name) {
+            // Update header display
+            const headerSubinv = document.getElementById('pa-header-subinv');
+            if (headerSubinv) {
+                headerSubinv.textContent = code;
+                headerSubinv.title = name;
+            }
+
+            // Update all line subinventory inputs
+            if (currentEditPutaway && currentEditPutaway.lines) {
+                currentEditPutaway.lines.forEach((line, idx) => {
+                    const input = document.getElementById('pa-subinv-' + idx);
+                    if (input) {
+                        input.value = code;
+                    }
+                });
+            }
+
+            closeSerialDialog();
         }
 
         function openPutawaySerials(lineIdx) {

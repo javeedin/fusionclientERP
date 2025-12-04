@@ -2174,6 +2174,9 @@
             // Load dashboard stats
             loadDashboardStats();
 
+            // Auto-load instances and endpoints on module load
+            initializeGlobalData();
+
             // Check for URL parameter to open specific page (from Autopilot)
             const urlParams = new URLSearchParams(window.location.search);
             const pageParam = urlParams.get('page');
@@ -2181,6 +2184,90 @@
                 navigateTo(pageParam);
             }
         });
+
+        // Initialize global data (instances and endpoints) on module load
+        async function initializeGlobalData() {
+            console.log('[Init] Starting global data initialization...');
+
+            try {
+                // Load instances in background
+                loadInstancesDataGlobal();
+
+                // Load endpoints in background
+                loadEndpointsDataGlobal();
+
+                console.log('[Init] Global data initialization started');
+            } catch (error) {
+                console.error('[Init] Error initializing global data:', error);
+            }
+        }
+
+        // Load instances into globalInstances
+        async function loadInstancesDataGlobal() {
+            if (globalInstances.length > 0) {
+                console.log('[Init] Instances already loaded:', globalInstances.length);
+                return;
+            }
+
+            try {
+                const instancesFilePath = 'C:\\fusionclient\\ERP\\settings\\apexinstances.txt';
+
+                if (window.chrome && window.chrome.webview) {
+                    const content = await new Promise((resolve) => {
+                        const handler = (event) => {
+                            const data = event.data;
+                            if (data.action === 'fileReadResult' && data.file === 'global_instances') {
+                                window.chrome.webview.removeEventListener('message', handler);
+                                if (data.success && data.content) {
+                                    resolve(data.content);
+                                } else {
+                                    resolve(null);
+                                }
+                            }
+                        };
+                        window.chrome.webview.addEventListener('message', handler);
+                        window.chrome.webview.postMessage({
+                            action: 'readFile',
+                            filePath: instancesFilePath,
+                            fileId: 'global_instances'
+                        });
+                        setTimeout(() => resolve(null), 5000);
+                    });
+
+                    if (content) {
+                        const instancesUrl = content.trim();
+                        globalInstancesUrl = instancesUrl;
+
+                        // Fetch instances from URL
+                        const response = await fetchWithBridge(instancesUrl);
+                        if (response && response.items) {
+                            globalInstances = response.items;
+                            console.log('[Init] Loaded', globalInstances.length, 'instances into global memory');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('[Init] Error loading instances:', error);
+            }
+        }
+
+        // Load endpoints into globalEndpoints
+        async function loadEndpointsDataGlobal() {
+            if (globalEndpoints.length > 0) {
+                console.log('[Init] Endpoints already loaded:', globalEndpoints.length);
+                return;
+            }
+
+            try {
+                const endpoints = await loadAllEndpoints();
+                if (endpoints && endpoints.length > 0) {
+                    globalEndpoints = [...endpoints];
+                    console.log('[Init] Loaded', globalEndpoints.length, 'endpoints into global memory');
+                }
+            } catch (error) {
+                console.error('[Init] Error loading endpoints:', error);
+            }
+        }
 
         // Toggle user dropdown menu
         function toggleUserMenu(event) {
@@ -4936,38 +5023,161 @@
         });
 
         // ==========================================
-        // PROMPT ADMIN PAGE
+        // PROMPT ADMIN PAGE - Industry Standard Chatbot Builder
         // ==========================================
         let customPrompts = [];
+        let selectedPromptIndex = -1;
         const PROMPTS_FILE_PATH = 'C:\\fusionclient\\ERP\\settings\\autopilot\\prompts.json';
+
+        // Action types available for prompts
+        const ACTION_TYPES = [
+            { id: 'rest_get', name: 'GET REST API', icon: '&#128279;', description: 'Fetch data from REST endpoint' },
+            { id: 'rest_post', name: 'POST REST API', icon: '&#128228;', description: 'Send data to REST endpoint' },
+            { id: 'navigate', name: 'Navigate Page', icon: '&#128194;', description: 'Navigate to a page in the app' },
+            { id: 'display_table', name: 'Display Table', icon: '&#128202;', description: 'Show results in a table' },
+            { id: 'display_cards', name: 'Display Cards', icon: '&#127183;', description: 'Show results as cards' },
+            { id: 'download', name: 'Download File', icon: '&#128190;', description: 'Download data as file' },
+            { id: 'custom_js', name: 'Custom Script', icon: '&#128187;', description: 'Execute custom JavaScript' }
+        ];
+
+        // Input types for child prompts
+        const INPUT_TYPES = [
+            { id: 'text', name: 'Text Input' },
+            { id: 'number', name: 'Number' },
+            { id: 'date', name: 'Date Picker' },
+            { id: 'date_range', name: 'Date Range' },
+            { id: 'select', name: 'Dropdown' },
+            { id: 'multi_select', name: 'Multi-Select' },
+            { id: 'radio', name: 'Radio Buttons' },
+            { id: 'confirm', name: 'Yes/No Confirm' }
+        ];
+
+        // Operator types for filters
+        const OPERATORS = [
+            { id: 'equals', name: 'Equals', symbol: '=' },
+            { id: 'contains', name: 'Contains', symbol: 'LIKE' },
+            { id: 'starts_with', name: 'Starts With', symbol: 'LIKE%' },
+            { id: 'greater_than', name: 'Greater Than', symbol: '>' },
+            { id: 'less_than', name: 'Less Than', symbol: '<' },
+            { id: 'between', name: 'Between', symbol: 'BETWEEN' }
+        ];
 
         async function renderPromptAdminPage() {
             const container = document.getElementById('content-prompt-admin');
 
             container.innerHTML = `
-                <div class="rw-page-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
-                    <div>
-                        <h1 class="rw-page-title">Prompt Admin</h1>
-                        <p class="rw-page-subtitle">Create and manage custom Autopilot prompts</p>
-                    </div>
-                    <button class="rw-btn rw-btn-primary" onclick="openNewPromptDialog()">
-                        <span>+</span> New Prompt
-                    </button>
-                </div>
+                <style>
+                    .prompt-builder { display: flex; gap: 24px; height: calc(100vh - 180px); }
+                    .prompt-list-panel { width: 320px; background: var(--rw-white); border-radius: var(--rw-radius-lg); box-shadow: var(--rw-shadow); display: flex; flex-direction: column; }
+                    .prompt-detail-panel { flex: 1; background: var(--rw-white); border-radius: var(--rw-radius-lg); box-shadow: var(--rw-shadow); display: flex; flex-direction: column; overflow: hidden; }
+                    .panel-header { padding: 16px 20px; border-bottom: 1px solid var(--rw-neutral-100); display: flex; justify-content: space-between; align-items: center; }
+                    .panel-title { font-size: 16px; font-weight: 600; color: var(--rw-neutral-900); }
+                    .panel-body { flex: 1; overflow-y: auto; }
+                    .prompt-list-item { padding: 12px 20px; border-bottom: 1px solid var(--rw-neutral-100); cursor: pointer; transition: all 0.15s; }
+                    .prompt-list-item:hover { background: var(--rw-neutral-50); }
+                    .prompt-list-item.active { background: var(--rw-red-light); border-left: 3px solid var(--rw-red); }
+                    .prompt-list-item .trigger { font-weight: 500; color: var(--rw-neutral-900); margin-bottom: 4px; }
+                    .prompt-list-item .description { font-size: 12px; color: var(--rw-neutral-500); }
+                    .prompt-list-item .meta { display: flex; gap: 8px; margin-top: 8px; }
+                    .prompt-list-item .badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: var(--rw-neutral-100); color: var(--rw-neutral-600); }
+                    .prompt-list-item .badge.active { background: var(--rw-success-bg); color: var(--rw-success); }
+                    .section-card { margin: 16px; padding: 16px; background: var(--rw-neutral-50); border-radius: var(--rw-radius); border: 1px solid var(--rw-neutral-200); }
+                    .section-title { font-size: 13px; font-weight: 600; color: var(--rw-neutral-700); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+                    .section-title .icon { font-size: 16px; }
+                    .child-prompt-item { background: var(--rw-white); border: 1px solid var(--rw-neutral-200); border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+                    .child-prompt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+                    .child-prompt-order { background: var(--rw-red); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+                    .action-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--rw-white); border: 1px solid var(--rw-neutral-200); border-radius: 8px; margin-bottom: 8px; }
+                    .action-icon { font-size: 20px; width: 32px; text-align: center; }
+                    .action-details { flex: 1; }
+                    .action-type { font-weight: 500; font-size: 13px; }
+                    .action-config { font-size: 11px; color: var(--rw-neutral-500); }
+                    .empty-state { text-align: center; padding: 40px; color: var(--rw-neutral-500); }
+                    .empty-state .icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+                    .flow-connector { display: flex; align-items: center; justify-content: center; padding: 4px 0; }
+                    .flow-connector::before { content: ''; display: block; width: 2px; height: 16px; background: var(--rw-neutral-300); }
+                    .add-btn { display: flex; align-items: center; gap: 8px; padding: 10px; border: 2px dashed var(--rw-neutral-300); border-radius: 8px; background: transparent; color: var(--rw-neutral-500); cursor: pointer; width: 100%; justify-content: center; font-size: 13px; transition: all 0.15s; }
+                    .add-btn:hover { border-color: var(--rw-red); color: var(--rw-red); background: var(--rw-red-light); }
+                    .tabs { display: flex; border-bottom: 1px solid var(--rw-neutral-200); }
+                    .tab-btn { padding: 12px 20px; font-size: 13px; font-weight: 500; color: var(--rw-neutral-500); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+                    .tab-btn:hover { color: var(--rw-neutral-700); }
+                    .tab-btn.active { color: var(--rw-red); border-bottom-color: var(--rw-red); }
+                    .tab-content { display: none; }
+                    .tab-content.active { display: block; }
+                </style>
 
-                <div class="rw-card">
-                    <div class="rw-card-header" style="display:flex;justify-content:space-between;align-items:center;">
-                        <h2 class="rw-card-title">Custom Prompts</h2>
-                        <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="loadCustomPrompts()">
+                <div class="rw-page-header" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+                    <div>
+                        <h1 class="rw-page-title">Prompt Builder</h1>
+                        <p class="rw-page-subtitle">Create conversational flows with main prompts, follow-up questions, and actions</p>
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        <button class="rw-btn rw-btn-secondary" onclick="loadCustomPrompts()">
                             <span>&#8635;</span> Refresh
                         </button>
+                        <button class="rw-btn rw-btn-primary" onclick="createNewPrompt()">
+                            <span>+</span> New Prompt
+                        </button>
                     </div>
-                    <div class="rw-card-body">
-                        <div id="prompts-loading" style="text-align:center;padding:40px;">
-                            <div class="rw-spinner"></div>
-                            <p style="margin-top:10px;color:var(--rw-neutral-500);">Loading prompts...</p>
+                </div>
+
+                <div class="prompt-builder">
+                    <!-- Left Panel: Prompt List -->
+                    <div class="prompt-list-panel">
+                        <div class="panel-header">
+                            <span class="panel-title">Prompts</span>
+                            <span id="promptCount" style="font-size:12px;color:var(--rw-neutral-500);">0 prompts</span>
                         </div>
-                        <div id="prompts-table" style="display:none;"></div>
+                        <div class="panel-body" id="promptListContainer">
+                            <div class="empty-state">
+                                <div class="icon">&#128172;</div>
+                                <p>Loading prompts...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Prompt Details -->
+                    <div class="prompt-detail-panel">
+                        <div class="tabs" id="promptTabs">
+                            <button class="tab-btn active" onclick="switchPromptTab('config')">Configuration</button>
+                            <button class="tab-btn" onclick="switchPromptTab('flow')">Conversation Flow</button>
+                            <button class="tab-btn" onclick="switchPromptTab('actions')">Actions</button>
+                            <button class="tab-btn" onclick="switchPromptTab('preview')">Preview</button>
+                        </div>
+                        <div class="panel-body">
+                            <div class="tab-content active" id="tab-config">
+                                <div id="promptConfigContainer">
+                                    <div class="empty-state">
+                                        <div class="icon">&#128073;</div>
+                                        <p>Select a prompt from the list or create a new one</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tab-content" id="tab-flow">
+                                <div id="promptFlowContainer">
+                                    <div class="empty-state">
+                                        <div class="icon">&#128488;</div>
+                                        <p>Select a prompt to configure its conversation flow</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tab-content" id="tab-actions">
+                                <div id="promptActionsContainer">
+                                    <div class="empty-state">
+                                        <div class="icon">&#9889;</div>
+                                        <p>Select a prompt to configure its actions</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tab-content" id="tab-preview">
+                                <div id="promptPreviewContainer">
+                                    <div class="empty-state">
+                                        <div class="icon">&#128065;</div>
+                                        <p>Select a prompt to preview the conversation</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -4975,26 +5185,22 @@
             await loadCustomPrompts();
         }
 
+        function switchPromptTab(tabName) {
+            document.querySelectorAll('#promptTabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelector(`#promptTabs .tab-btn[onclick*="${tabName}"]`).classList.add('active');
+            document.getElementById('tab-' + tabName).classList.add('active');
+        }
+
         async function loadCustomPrompts() {
-            const loadingEl = document.getElementById('prompts-loading');
-            const tableEl = document.getElementById('prompts-table');
-
-            if (loadingEl) loadingEl.style.display = 'block';
-            if (tableEl) tableEl.style.display = 'none';
-
             try {
-                // Read prompts from file via C#
                 if (window.chrome && window.chrome.webview) {
                     const content = await new Promise((resolve) => {
                         const handler = (event) => {
                             const data = event.data;
                             if (data.action === 'fileReadResult' && data.file === 'prompts_admin') {
                                 window.chrome.webview.removeEventListener('message', handler);
-                                if (data.success && data.content) {
-                                    resolve(data.content);
-                                } else {
-                                    resolve('[]');
-                                }
+                                resolve(data.success && data.content ? data.content : '[]');
                             }
                         };
                         window.chrome.webview.addEventListener('message', handler);
@@ -5017,206 +5223,715 @@
                 customPrompts = [];
             }
 
-            renderPromptsTable();
-
-            if (loadingEl) loadingEl.style.display = 'none';
-            if (tableEl) tableEl.style.display = 'block';
+            renderPromptList();
         }
 
-        function renderPromptsTable() {
-            const tableEl = document.getElementById('prompts-table');
-            if (!tableEl) return;
+        function renderPromptList() {
+            const container = document.getElementById('promptListContainer');
+            const countEl = document.getElementById('promptCount');
+
+            if (countEl) countEl.textContent = `${customPrompts.length} prompt${customPrompts.length !== 1 ? 's' : ''}`;
 
             if (customPrompts.length === 0) {
-                tableEl.innerHTML = `
-                    <div style="text-align:center;padding:40px;color:var(--rw-neutral-500);">
-                        <div style="font-size:48px;margin-bottom:16px;">&#128172;</div>
-                        <p>No custom prompts yet.</p>
-                        <p style="font-size:12px;">Click "New Prompt" to create your first prompt.</p>
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">&#128172;</div>
+                        <p>No prompts yet</p>
+                        <p style="font-size:12px;">Click "New Prompt" to create one</p>
                     </div>
                 `;
                 return;
             }
 
-            let html = `
-                <div class="rw-table-wrapper">
-                    <table class="rw-table">
-                        <thead>
-                            <tr>
-                                <th>Trigger</th>
-                                <th>Description</th>
-                                <th>Endpoint</th>
-                                <th>Search Field</th>
-                                <th>Status</th>
-                                <th style="width:100px;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
+            container.innerHTML = customPrompts.map((prompt, idx) => `
+                <div class="prompt-list-item ${selectedPromptIndex === idx ? 'active' : ''}" onclick="selectPrompt(${idx})">
+                    <div class="trigger">${prompt.trigger || 'Untitled'}</div>
+                    <div class="description">${prompt.description || 'No description'}</div>
+                    <div class="meta">
+                        <span class="badge ${prompt.active !== false ? 'active' : ''}">${prompt.active !== false ? 'Active' : 'Inactive'}</span>
+                        <span class="badge">${(prompt.childPrompts || []).length} steps</span>
+                        <span class="badge">${(prompt.actions || []).length} actions</span>
+                    </div>
+                </div>
+            `).join('');
+        }
 
-            customPrompts.forEach((prompt, idx) => {
-                html += `
-                    <tr>
-                        <td><code style="background:var(--rw-neutral-100);padding:2px 6px;border-radius:4px;">${prompt.trigger || ''}</code></td>
-                        <td>${prompt.description || ''}</td>
-                        <td style="font-size:12px;">${prompt.endpoint || ''}</td>
-                        <td>${prompt.searchField || ''}</td>
-                        <td><span class="rw-badge ${prompt.active !== false ? 'rw-badge-success' : 'rw-badge-secondary'}">${prompt.active !== false ? 'Active' : 'Inactive'}</span></td>
-                        <td>
-                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="editPrompt(${idx})" style="margin-right:4px;">Edit</button>
-                            <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="deletePrompt(${idx})" style="color:#ef4444;">&#128465;</button>
-                        </td>
-                    </tr>
+        function selectPrompt(index) {
+            selectedPromptIndex = index;
+            renderPromptList();
+            renderPromptConfig();
+            renderPromptFlow();
+            renderPromptActions();
+            renderPromptPreview();
+        }
+
+        function createNewPrompt() {
+            const newPrompt = {
+                id: 'prompt_' + Date.now(),
+                trigger: '',
+                description: '',
+                category: 'general',
+                endpoint: '',
+                active: true,
+                childPrompts: [],
+                actions: [],
+                responseTemplate: '',
+                createdAt: new Date().toISOString()
+            };
+
+            customPrompts.push(newPrompt);
+            selectedPromptIndex = customPrompts.length - 1;
+            renderPromptList();
+            renderPromptConfig();
+            switchPromptTab('config');
+        }
+
+        function renderPromptConfig() {
+            const container = document.getElementById('promptConfigContainer');
+
+            if (selectedPromptIndex < 0 || !customPrompts[selectedPromptIndex]) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">&#128073;</div>
+                        <p>Select a prompt from the list or create a new one</p>
+                    </div>
                 `;
+                return;
+            }
+
+            const prompt = customPrompts[selectedPromptIndex];
+
+            // Build endpoint options from globalEndpoints
+            let endpointOptions = '<option value="">-- Select Endpoint --</option>';
+            globalEndpoints.forEach(ep => {
+                const code = ep.integrationCode || ep.source || '';
+                const selected = code === prompt.endpoint ? 'selected' : '';
+                endpointOptions += `<option value="${code}" ${selected}>${code}</option>`;
             });
 
-            html += '</tbody></table></div>';
-            tableEl.innerHTML = html;
+            container.innerHTML = `
+                <div class="section-card">
+                    <div class="section-title"><span class="icon">&#128221;</span> Basic Information</div>
+                    <div class="rw-form-group">
+                        <label class="rw-label">Trigger Command *</label>
+                        <input type="text" class="rw-input" id="cfg-trigger" value="${prompt.trigger || ''}"
+                            placeholder="e.g., show orders, find invoices" onchange="updatePromptField('trigger', this.value)">
+                        <div style="font-size:11px;color:var(--rw-neutral-500);margin-top:4px;">
+                            Keywords that activate this prompt (comma-separated for multiple triggers)
+                        </div>
+                    </div>
+                    <div class="rw-form-group">
+                        <label class="rw-label">Description</label>
+                        <textarea class="rw-input" id="cfg-description" rows="2"
+                            placeholder="What does this prompt do?" onchange="updatePromptField('description', this.value)">${prompt.description || ''}</textarea>
+                    </div>
+                    <div class="rw-form-row" style="display:flex;gap:16px;">
+                        <div class="rw-form-group" style="flex:1;">
+                            <label class="rw-label">Category</label>
+                            <select class="rw-input" id="cfg-category" onchange="updatePromptField('category', this.value)">
+                                <option value="general" ${prompt.category === 'general' ? 'selected' : ''}>General</option>
+                                <option value="orders" ${prompt.category === 'orders' ? 'selected' : ''}>Orders</option>
+                                <option value="inventory" ${prompt.category === 'inventory' ? 'selected' : ''}>Inventory</option>
+                                <option value="receiving" ${prompt.category === 'receiving' ? 'selected' : ''}>Receiving</option>
+                                <option value="shipping" ${prompt.category === 'shipping' ? 'selected' : ''}>Shipping</option>
+                                <option value="reports" ${prompt.category === 'reports' ? 'selected' : ''}>Reports</option>
+                            </select>
+                        </div>
+                        <div class="rw-form-group" style="flex:1;">
+                            <label class="rw-label">Status</label>
+                            <select class="rw-input" id="cfg-active" onchange="updatePromptField('active', this.value === 'true')">
+                                <option value="true" ${prompt.active !== false ? 'selected' : ''}>Active</option>
+                                <option value="false" ${prompt.active === false ? 'selected' : ''}>Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-title"><span class="icon">&#128279;</span> API Configuration</div>
+                    <div class="rw-form-group">
+                        <label class="rw-label">Endpoint</label>
+                        <select class="rw-input" id="cfg-endpoint" onchange="updatePromptField('endpoint', this.value)">
+                            ${endpointOptions}
+                        </select>
+                        <div style="font-size:11px;color:var(--rw-neutral-500);margin-top:4px;">
+                            Select from configured endpoints in Settings
+                        </div>
+                    </div>
+                    <div class="rw-form-group">
+                        <label class="rw-label">Response Template (Optional)</label>
+                        <textarea class="rw-input" id="cfg-template" rows="3"
+                            placeholder="Template for formatting response. Use {{fieldName}} for variables."
+                            onchange="updatePromptField('responseTemplate', this.value)">${prompt.responseTemplate || ''}</textarea>
+                    </div>
+                </div>
+
+                <div style="padding:16px;display:flex;justify-content:space-between;">
+                    <button class="rw-btn rw-btn-secondary" onclick="deletePrompt(${selectedPromptIndex})" style="color:#ef4444;">
+                        <span>&#128465;</span> Delete Prompt
+                    </button>
+                    <button class="rw-btn rw-btn-primary" onclick="savePromptsToFile()">
+                        <span>&#128190;</span> Save Changes
+                    </button>
+                </div>
+            `;
         }
 
-        function openNewPromptDialog() {
-            document.getElementById('receiptsDialogTitle').textContent = 'New Prompt';
-            document.getElementById('receiptsDialogBody').innerHTML = getPromptFormHtml();
-            openDialog('receiptsDialog');
-            document.getElementById('receiptsDialogSave').onclick = saveNewPrompt;
+        function renderPromptFlow() {
+            const container = document.getElementById('promptFlowContainer');
+
+            if (selectedPromptIndex < 0 || !customPrompts[selectedPromptIndex]) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">&#128488;</div>
+                        <p>Select a prompt to configure its conversation flow</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const prompt = customPrompts[selectedPromptIndex];
+            const childPrompts = prompt.childPrompts || [];
+
+            let flowHtml = `
+                <div class="section-card">
+                    <div class="section-title"><span class="icon">&#128488;</span> Conversation Flow</div>
+                    <p style="font-size:12px;color:var(--rw-neutral-500);margin-bottom:16px;">
+                        Define follow-up questions to gather information from the user before executing actions.
+                    </p>
+            `;
+
+            if (childPrompts.length === 0) {
+                flowHtml += `
+                    <div style="text-align:center;padding:20px;color:var(--rw-neutral-500);">
+                        <p style="font-size:13px;">No follow-up questions defined</p>
+                        <p style="font-size:11px;">The prompt will execute immediately when triggered</p>
+                    </div>
+                `;
+            } else {
+                childPrompts.forEach((child, idx) => {
+                    flowHtml += `
+                        <div class="child-prompt-item">
+                            <div class="child-prompt-header">
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <span class="child-prompt-order">${idx + 1}</span>
+                                    <span style="font-weight:500;">${child.label || 'Step ' + (idx + 1)}</span>
+                                </div>
+                                <div style="display:flex;gap:4px;">
+                                    <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="editChildPrompt(${idx})" title="Edit">&#9998;</button>
+                                    <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="moveChildPrompt(${idx}, -1)" title="Move Up" ${idx === 0 ? 'disabled' : ''}>&#8593;</button>
+                                    <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="moveChildPrompt(${idx}, 1)" title="Move Down" ${idx === childPrompts.length - 1 ? 'disabled' : ''}>&#8595;</button>
+                                    <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="deleteChildPrompt(${idx})" title="Delete" style="color:#ef4444;">&#10005;</button>
+                                </div>
+                            </div>
+                            <div style="font-size:12px;color:var(--rw-neutral-600);margin-bottom:8px;">
+                                "${child.message || 'No message'}"
+                            </div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <span class="badge" style="background:var(--rw-info-bg);color:var(--rw-info);">
+                                    ${INPUT_TYPES.find(t => t.id === child.inputType)?.name || child.inputType}
+                                </span>
+                                <span class="badge">Field: ${child.field || 'N/A'}</span>
+                                ${child.required ? '<span class="badge" style="background:var(--rw-warning-bg);color:var(--rw-warning);">Required</span>' : ''}
+                            </div>
+                        </div>
+                        ${idx < childPrompts.length - 1 ? '<div class="flow-connector"></div>' : ''}
+                    `;
+                });
+            }
+
+            flowHtml += `
+                    <button class="add-btn" onclick="addChildPrompt()">
+                        <span>&#43;</span> Add Follow-up Question
+                    </button>
+                </div>
+            `;
+
+            container.innerHTML = flowHtml;
         }
 
-        function editPrompt(index) {
-            const prompt = customPrompts[index];
-            if (!prompt) return;
+        function renderPromptActions() {
+            const container = document.getElementById('promptActionsContainer');
 
-            document.getElementById('receiptsDialogTitle').textContent = 'Edit Prompt';
-            document.getElementById('receiptsDialogBody').innerHTML = getPromptFormHtml(prompt);
-            openDialog('receiptsDialog');
-            document.getElementById('receiptsDialogSave').onclick = () => saveEditedPrompt(index);
-        }
+            if (selectedPromptIndex < 0 || !customPrompts[selectedPromptIndex]) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">&#9889;</div>
+                        <p>Select a prompt to configure its actions</p>
+                    </div>
+                `;
+                return;
+            }
 
-        function getPromptFormHtml(prompt = {}) {
-            return `
-                <div class="rw-form-group">
-                    <label class="rw-label">Trigger Command *</label>
-                    <input type="text" class="rw-input" id="promptTrigger" value="${prompt.trigger || ''}" placeholder="e.g., show invoices, find orders">
-                    <div style="font-size:11px;color:var(--rw-neutral-500);margin-top:4px;">The command that activates this prompt</div>
+            const prompt = customPrompts[selectedPromptIndex];
+            const actions = prompt.actions || [];
+
+            let actionsHtml = `
+                <div class="section-card">
+                    <div class="section-title"><span class="icon">&#9889;</span> Actions</div>
+                    <p style="font-size:12px;color:var(--rw-neutral-500);margin-bottom:16px;">
+                        Define what happens after the user completes the conversation flow.
+                    </p>
+            `;
+
+            if (actions.length === 0) {
+                actionsHtml += `
+                    <div style="text-align:center;padding:20px;color:var(--rw-neutral-500);">
+                        <p style="font-size:13px;">No actions defined</p>
+                        <p style="font-size:11px;">Add actions to make this prompt functional</p>
+                    </div>
+                `;
+            } else {
+                actions.forEach((action, idx) => {
+                    const actionType = ACTION_TYPES.find(t => t.id === action.type) || { name: action.type, icon: '&#9889;' };
+                    actionsHtml += `
+                        <div class="action-item">
+                            <span class="action-icon">${actionType.icon}</span>
+                            <div class="action-details">
+                                <div class="action-type">${actionType.name}</div>
+                                <div class="action-config">${action.config || 'Not configured'}</div>
+                            </div>
+                            <div style="display:flex;gap:4px;">
+                                <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="editAction(${idx})" title="Edit">&#9998;</button>
+                                <button class="rw-btn rw-btn-secondary rw-btn-sm" onclick="deleteAction(${idx})" title="Delete" style="color:#ef4444;">&#10005;</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            actionsHtml += `
+                    <button class="add-btn" onclick="openActionTypeSelector()">
+                        <span>&#43;</span> Add Action
+                    </button>
                 </div>
-                <div class="rw-form-group">
-                    <label class="rw-label">Description</label>
-                    <input type="text" class="rw-input" id="promptDescription" value="${prompt.description || ''}" placeholder="What this prompt does">
-                </div>
-                <div class="rw-form-group">
-                    <label class="rw-label">Endpoint Code *</label>
-                    <input type="text" class="rw-input" id="promptEndpoint" value="${prompt.endpoint || ''}" placeholder="e.g., FUSION_PO_DETAILS">
-                    <div style="font-size:11px;color:var(--rw-neutral-500);margin-top:4px;">Integration code from Settings > Endpoints</div>
-                </div>
-                <div class="rw-form-group">
-                    <label class="rw-label">Search Steps</label>
-                    <div id="promptSearchSteps">
-                        ${(prompt.searchSteps || [{ label: '', field: '', inputType: 'text' }]).map((step, i) => `
-                            <div class="prompt-search-step" style="display:flex;gap:8px;margin-bottom:8px;padding:10px;background:var(--rw-neutral-50);border-radius:8px;">
-                                <input type="text" class="rw-input" placeholder="Label (e.g., Order Number)" value="${step.label || ''}" style="flex:1;" data-step="${i}" data-field="label">
-                                <input type="text" class="rw-input" placeholder="API Field (e.g., OrderNumber)" value="${step.field || ''}" style="flex:1;" data-step="${i}" data-field="field">
-                                <select class="rw-input" style="width:120px;" data-step="${i}" data-field="inputType">
-                                    <option value="text" ${step.inputType === 'text' ? 'selected' : ''}>Text</option>
-                                    <option value="date" ${step.inputType === 'date' ? 'selected' : ''}>Date</option>
-                                    <option value="select" ${step.inputType === 'select' ? 'selected' : ''}>Select</option>
-                                </select>
-                                <button type="button" class="rw-btn rw-btn-secondary rw-btn-sm" onclick="removePromptStep(${i})" style="color:#ef4444;">&#10005;</button>
+
+                <div class="section-card">
+                    <div class="section-title"><span class="icon">&#127917;</span> Available Action Types</div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">
+                        ${ACTION_TYPES.map(type => `
+                            <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--rw-white);border:1px solid var(--rw-neutral-200);border-radius:6px;cursor:pointer;transition:all 0.15s;"
+                                onclick="addAction('${type.id}')"
+                                onmouseover="this.style.borderColor='var(--rw-red)';this.style.background='var(--rw-red-light)'"
+                                onmouseout="this.style.borderColor='var(--rw-neutral-200)';this.style.background='var(--rw-white)'">
+                                <span style="font-size:18px;">${type.icon}</span>
+                                <div>
+                                    <div style="font-size:12px;font-weight:500;">${type.name}</div>
+                                    <div style="font-size:10px;color:var(--rw-neutral-500);">${type.description}</div>
+                                </div>
                             </div>
                         `).join('')}
                     </div>
-                    <button type="button" class="rw-btn rw-btn-secondary rw-btn-sm" onclick="addPromptStep()">+ Add Step</button>
+                </div>
+            `;
+
+            container.innerHTML = actionsHtml;
+        }
+
+        function renderPromptPreview() {
+            const container = document.getElementById('promptPreviewContainer');
+
+            if (selectedPromptIndex < 0 || !customPrompts[selectedPromptIndex]) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">&#128065;</div>
+                        <p>Select a prompt to preview the conversation</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const prompt = customPrompts[selectedPromptIndex];
+            const childPrompts = prompt.childPrompts || [];
+            const actions = prompt.actions || [];
+
+            let previewHtml = `
+                <div class="section-card" style="background:var(--rw-neutral-900);color:var(--rw-white);">
+                    <div class="section-title" style="color:var(--rw-neutral-300);"><span class="icon">&#128065;</span> Conversation Preview</div>
+
+                    <div style="padding:16px;background:var(--rw-neutral-800);border-radius:8px;margin-bottom:16px;">
+                        <!-- User trigger -->
+                        <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+                            <div style="background:var(--rw-red);color:white;padding:10px 14px;border-radius:12px 12px 0 12px;max-width:70%;">
+                                ${prompt.trigger || 'show orders'}
+                            </div>
+                        </div>
+            `;
+
+            if (childPrompts.length === 0) {
+                previewHtml += `
+                        <!-- Bot immediate response -->
+                        <div style="display:flex;margin-bottom:12px;">
+                            <div style="background:var(--rw-neutral-700);color:var(--rw-neutral-100);padding:10px 14px;border-radius:12px 12px 12px 0;max-width:70%;">
+                                <em>Executing action immediately...</em>
+                            </div>
+                        </div>
+                `;
+            } else {
+                childPrompts.forEach((child, idx) => {
+                    previewHtml += `
+                        <!-- Bot question ${idx + 1} -->
+                        <div style="display:flex;margin-bottom:12px;">
+                            <div style="background:var(--rw-neutral-700);color:var(--rw-neutral-100);padding:10px 14px;border-radius:12px 12px 12px 0;max-width:70%;">
+                                ${child.message || 'Please provide input...'}
+                            </div>
+                        </div>
+                        <!-- User response ${idx + 1} -->
+                        <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+                            <div style="background:var(--rw-neutral-600);color:white;padding:10px 14px;border-radius:12px 12px 0 12px;max-width:70%;opacity:0.7;">
+                                <em>[User enters ${child.inputType || 'text'}]</em>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            if (actions.length > 0) {
+                previewHtml += `
+                        <!-- Actions execution -->
+                        <div style="display:flex;margin-bottom:12px;">
+                            <div style="background:var(--rw-success-bg);color:var(--rw-success);padding:10px 14px;border-radius:12px 12px 12px 0;max-width:70%;">
+                                &#9889; Executing ${actions.length} action${actions.length !== 1 ? 's' : ''}...
+                            </div>
+                        </div>
+                `;
+            }
+
+            previewHtml += `
+                    </div>
+
+                    <div style="display:flex;justify-content:center;">
+                        <button class="rw-btn rw-btn-secondary" onclick="testPromptInAutopilot()" style="background:var(--rw-neutral-700);border-color:var(--rw-neutral-600);">
+                            <span>&#9654;</span> Test in Autopilot
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = previewHtml;
+        }
+
+        function updatePromptField(field, value) {
+            if (selectedPromptIndex < 0) return;
+            customPrompts[selectedPromptIndex][field] = value;
+            customPrompts[selectedPromptIndex].updatedAt = new Date().toISOString();
+            renderPromptList();
+        }
+
+        function addChildPrompt() {
+            if (selectedPromptIndex < 0) return;
+
+            document.getElementById('receiptsDialogTitle').textContent = 'Add Follow-up Question';
+            document.getElementById('receiptsDialogBody').innerHTML = getChildPromptFormHtml();
+            openDialog('receiptsDialog');
+            document.getElementById('receiptsDialogSave').onclick = () => saveChildPrompt(-1);
+        }
+
+        function editChildPrompt(index) {
+            if (selectedPromptIndex < 0) return;
+            const child = customPrompts[selectedPromptIndex].childPrompts[index];
+
+            document.getElementById('receiptsDialogTitle').textContent = 'Edit Follow-up Question';
+            document.getElementById('receiptsDialogBody').innerHTML = getChildPromptFormHtml(child);
+            openDialog('receiptsDialog');
+            document.getElementById('receiptsDialogSave').onclick = () => saveChildPrompt(index);
+        }
+
+        function getChildPromptFormHtml(child = {}) {
+            return `
+                <div class="rw-form-group">
+                    <label class="rw-label">Step Label *</label>
+                    <input type="text" class="rw-input" id="child-label" value="${child.label || ''}" placeholder="e.g., Order Number">
                 </div>
                 <div class="rw-form-group">
-                    <label class="rw-label">
-                        <input type="checkbox" id="promptActive" ${prompt.active !== false ? 'checked' : ''}> Active
-                    </label>
+                    <label class="rw-label">Bot Message *</label>
+                    <textarea class="rw-input" id="child-message" rows="2" placeholder="What would you like to ask the user?">${child.message || ''}</textarea>
+                </div>
+                <div class="rw-form-row" style="display:flex;gap:16px;">
+                    <div class="rw-form-group" style="flex:1;">
+                        <label class="rw-label">Input Type</label>
+                        <select class="rw-input" id="child-inputType">
+                            ${INPUT_TYPES.map(t => `<option value="${t.id}" ${child.inputType === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="rw-form-group" style="flex:1;">
+                        <label class="rw-label">API Field</label>
+                        <input type="text" class="rw-input" id="child-field" value="${child.field || ''}" placeholder="e.g., OrderNumber">
+                    </div>
+                </div>
+                <div class="rw-form-row" style="display:flex;gap:16px;">
+                    <div class="rw-form-group" style="flex:1;">
+                        <label class="rw-label">Operator</label>
+                        <select class="rw-input" id="child-operator">
+                            ${OPERATORS.map(o => `<option value="${o.id}" ${child.operator === o.id ? 'selected' : ''}>${o.name} (${o.symbol})</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="rw-form-group" style="flex:1;">
+                        <label class="rw-label">
+                            <input type="checkbox" id="child-required" ${child.required ? 'checked' : ''}> Required
+                        </label>
+                    </div>
+                </div>
+                <div class="rw-form-group">
+                    <label class="rw-label">Options (for dropdowns, comma-separated)</label>
+                    <input type="text" class="rw-input" id="child-options" value="${(child.options || []).join(', ')}" placeholder="Option 1, Option 2, Option 3">
                 </div>
             `;
         }
 
-        function addPromptStep() {
-            const container = document.getElementById('promptSearchSteps');
-            const stepCount = container.querySelectorAll('.prompt-search-step').length;
-            const newStep = document.createElement('div');
-            newStep.className = 'prompt-search-step';
-            newStep.style.cssText = 'display:flex;gap:8px;margin-bottom:8px;padding:10px;background:var(--rw-neutral-50);border-radius:8px;';
-            newStep.innerHTML = `
-                <input type="text" class="rw-input" placeholder="Label" value="" style="flex:1;" data-step="${stepCount}" data-field="label">
-                <input type="text" class="rw-input" placeholder="API Field" value="" style="flex:1;" data-step="${stepCount}" data-field="field">
-                <select class="rw-input" style="width:120px;" data-step="${stepCount}" data-field="inputType">
-                    <option value="text">Text</option>
-                    <option value="date">Date</option>
-                    <option value="select">Select</option>
-                </select>
-                <button type="button" class="rw-btn rw-btn-secondary rw-btn-sm" onclick="this.parentElement.remove()" style="color:#ef4444;">&#10005;</button>
+        function saveChildPrompt(index) {
+            if (selectedPromptIndex < 0) return;
+
+            const child = {
+                label: document.getElementById('child-label').value.trim(),
+                message: document.getElementById('child-message').value.trim(),
+                inputType: document.getElementById('child-inputType').value,
+                field: document.getElementById('child-field').value.trim(),
+                operator: document.getElementById('child-operator').value,
+                required: document.getElementById('child-required').checked,
+                options: document.getElementById('child-options').value.split(',').map(s => s.trim()).filter(Boolean)
+            };
+
+            if (!child.label || !child.message) {
+                alert('Label and Message are required');
+                return;
+            }
+
+            if (!customPrompts[selectedPromptIndex].childPrompts) {
+                customPrompts[selectedPromptIndex].childPrompts = [];
+            }
+
+            if (index === -1) {
+                customPrompts[selectedPromptIndex].childPrompts.push(child);
+            } else {
+                customPrompts[selectedPromptIndex].childPrompts[index] = child;
+            }
+
+            closeDialog('receiptsDialog');
+            renderPromptFlow();
+            renderPromptPreview();
+        }
+
+        function moveChildPrompt(index, direction) {
+            if (selectedPromptIndex < 0) return;
+            const children = customPrompts[selectedPromptIndex].childPrompts;
+            const newIndex = index + direction;
+
+            if (newIndex < 0 || newIndex >= children.length) return;
+
+            [children[index], children[newIndex]] = [children[newIndex], children[index]];
+            renderPromptFlow();
+        }
+
+        function deleteChildPrompt(index) {
+            if (selectedPromptIndex < 0) return;
+            if (!confirm('Delete this follow-up question?')) return;
+
+            customPrompts[selectedPromptIndex].childPrompts.splice(index, 1);
+            renderPromptFlow();
+            renderPromptPreview();
+        }
+
+        function addAction(type) {
+            if (selectedPromptIndex < 0) return;
+
+            const actionType = ACTION_TYPES.find(t => t.id === type);
+
+            document.getElementById('receiptsDialogTitle').textContent = 'Configure Action: ' + actionType.name;
+            document.getElementById('receiptsDialogBody').innerHTML = getActionFormHtml(type);
+            openDialog('receiptsDialog');
+            document.getElementById('receiptsDialogSave').onclick = () => saveAction(-1, type);
+        }
+
+        function editAction(index) {
+            if (selectedPromptIndex < 0) return;
+            const action = customPrompts[selectedPromptIndex].actions[index];
+
+            document.getElementById('receiptsDialogTitle').textContent = 'Edit Action';
+            document.getElementById('receiptsDialogBody').innerHTML = getActionFormHtml(action.type, action);
+            openDialog('receiptsDialog');
+            document.getElementById('receiptsDialogSave').onclick = () => saveAction(index, action.type);
+        }
+
+        function getActionFormHtml(type, action = {}) {
+            let configHtml = '';
+
+            switch (type) {
+                case 'rest_get':
+                case 'rest_post':
+                    // Build endpoint options
+                    let endpointOpts = '<option value="">-- Use Prompt Endpoint --</option>';
+                    globalEndpoints.forEach(ep => {
+                        const code = ep.integrationCode || ep.source || '';
+                        endpointOpts += `<option value="${code}" ${action.endpoint === code ? 'selected' : ''}>${code}</option>`;
+                    });
+
+                    configHtml = `
+                        <div class="rw-form-group">
+                            <label class="rw-label">Endpoint Override (Optional)</label>
+                            <select class="rw-input" id="action-endpoint">${endpointOpts}</select>
+                        </div>
+                        <div class="rw-form-group">
+                            <label class="rw-label">Query Parameters</label>
+                            <input type="text" class="rw-input" id="action-params" value="${action.params || ''}" placeholder="Use {{field}} for dynamic values">
+                        </div>
+                        <div class="rw-form-group">
+                            <label class="rw-label">Response Variable Name</label>
+                            <input type="text" class="rw-input" id="action-responseVar" value="${action.responseVar || 'result'}" placeholder="Variable to store response">
+                        </div>
+                    `;
+                    break;
+
+                case 'navigate':
+                    configHtml = `
+                        <div class="rw-form-group">
+                            <label class="rw-label">Page to Navigate</label>
+                            <select class="rw-input" id="action-page">
+                                ${Object.keys(pageDefinitions).map(key =>
+                                    `<option value="${key}" ${action.page === key ? 'selected' : ''}>${pageDefinitions[key].name}</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                    `;
+                    break;
+
+                case 'display_table':
+                case 'display_cards':
+                    configHtml = `
+                        <div class="rw-form-group">
+                            <label class="rw-label">Data Source Variable</label>
+                            <input type="text" class="rw-input" id="action-dataSource" value="${action.dataSource || 'result.items'}" placeholder="e.g., result.items">
+                        </div>
+                        <div class="rw-form-group">
+                            <label class="rw-label">Columns to Display (comma-separated)</label>
+                            <input type="text" class="rw-input" id="action-columns" value="${action.columns || ''}" placeholder="e.g., OrderNumber, Status, Amount">
+                        </div>
+                        <div class="rw-form-group">
+                            <label class="rw-label">Title Field (for cards)</label>
+                            <input type="text" class="rw-input" id="action-titleField" value="${action.titleField || ''}" placeholder="e.g., OrderNumber">
+                        </div>
+                    `;
+                    break;
+
+                case 'download':
+                    configHtml = `
+                        <div class="rw-form-group">
+                            <label class="rw-label">File Format</label>
+                            <select class="rw-input" id="action-format">
+                                <option value="csv" ${action.format === 'csv' ? 'selected' : ''}>CSV</option>
+                                <option value="json" ${action.format === 'json' ? 'selected' : ''}>JSON</option>
+                                <option value="excel" ${action.format === 'excel' ? 'selected' : ''}>Excel</option>
+                            </select>
+                        </div>
+                        <div class="rw-form-group">
+                            <label class="rw-label">File Name</label>
+                            <input type="text" class="rw-input" id="action-fileName" value="${action.fileName || 'export'}" placeholder="Export file name">
+                        </div>
+                    `;
+                    break;
+
+                case 'custom_js':
+                    configHtml = `
+                        <div class="rw-form-group">
+                            <label class="rw-label">JavaScript Code</label>
+                            <textarea class="rw-input" id="action-code" rows="6" style="font-family:monospace;font-size:12px;" placeholder="// Access collected data via 'data' object&#10;// Access API response via 'result' object&#10;console.log(data, result);">${action.code || ''}</textarea>
+                        </div>
+                    `;
+                    break;
+            }
+
+            return `
+                <input type="hidden" id="action-type" value="${type}">
+                ${configHtml}
+                <div class="rw-form-group">
+                    <label class="rw-label">Description (Optional)</label>
+                    <input type="text" class="rw-input" id="action-description" value="${action.description || ''}" placeholder="What does this action do?">
+                </div>
             `;
-            container.appendChild(newStep);
         }
 
-        function removePromptStep(index) {
-            const steps = document.querySelectorAll('.prompt-search-step');
-            if (steps[index]) steps[index].remove();
-        }
+        function saveAction(index, type) {
+            if (selectedPromptIndex < 0) return;
 
-        function collectPromptFormData() {
-            const trigger = document.getElementById('promptTrigger').value.trim();
-            const description = document.getElementById('promptDescription').value.trim();
-            const endpoint = document.getElementById('promptEndpoint').value.trim();
-            const active = document.getElementById('promptActive').checked;
+            const action = { type };
 
-            // Collect search steps
-            const steps = [];
-            document.querySelectorAll('.prompt-search-step').forEach(stepEl => {
-                const label = stepEl.querySelector('[data-field="label"]').value.trim();
-                const field = stepEl.querySelector('[data-field="field"]').value.trim();
-                const inputType = stepEl.querySelector('[data-field="inputType"]').value;
-                if (label && field) {
-                    steps.push({ label, field, inputType });
-                }
-            });
+            switch (type) {
+                case 'rest_get':
+                case 'rest_post':
+                    action.endpoint = document.getElementById('action-endpoint')?.value || '';
+                    action.params = document.getElementById('action-params')?.value || '';
+                    action.responseVar = document.getElementById('action-responseVar')?.value || 'result';
+                    action.config = action.endpoint || 'Use prompt endpoint';
+                    break;
 
-            return { trigger, description, endpoint, searchSteps: steps, active };
-        }
+                case 'navigate':
+                    action.page = document.getElementById('action-page')?.value || 'home';
+                    action.config = 'Navigate to ' + (pageDefinitions[action.page]?.name || action.page);
+                    break;
 
-        async function saveNewPrompt() {
-            const promptData = collectPromptFormData();
+                case 'display_table':
+                case 'display_cards':
+                    action.dataSource = document.getElementById('action-dataSource')?.value || 'result.items';
+                    action.columns = document.getElementById('action-columns')?.value || '';
+                    action.titleField = document.getElementById('action-titleField')?.value || '';
+                    action.config = action.columns || 'Default columns';
+                    break;
 
-            if (!promptData.trigger || !promptData.endpoint) {
-                alert('Trigger and Endpoint are required.');
-                return;
+                case 'download':
+                    action.format = document.getElementById('action-format')?.value || 'csv';
+                    action.fileName = document.getElementById('action-fileName')?.value || 'export';
+                    action.config = action.format.toUpperCase() + ': ' + action.fileName;
+                    break;
+
+                case 'custom_js':
+                    action.code = document.getElementById('action-code')?.value || '';
+                    action.config = 'Custom script';
+                    break;
             }
 
-            promptData.id = 'prompt_' + Date.now();
-            promptData.createdAt = new Date().toISOString();
+            action.description = document.getElementById('action-description')?.value || '';
 
-            customPrompts.push(promptData);
-            await savePromptsToFile();
-            closeDialog('receiptsDialog');
-            renderPromptsTable();
-        }
-
-        async function saveEditedPrompt(index) {
-            const promptData = collectPromptFormData();
-
-            if (!promptData.trigger || !promptData.endpoint) {
-                alert('Trigger and Endpoint are required.');
-                return;
+            if (!customPrompts[selectedPromptIndex].actions) {
+                customPrompts[selectedPromptIndex].actions = [];
             }
 
-            promptData.id = customPrompts[index].id || 'prompt_' + Date.now();
-            promptData.updatedAt = new Date().toISOString();
+            if (index === -1) {
+                customPrompts[selectedPromptIndex].actions.push(action);
+            } else {
+                customPrompts[selectedPromptIndex].actions[index] = action;
+            }
 
-            customPrompts[index] = promptData;
-            await savePromptsToFile();
             closeDialog('receiptsDialog');
-            renderPromptsTable();
+            renderPromptActions();
+            renderPromptPreview();
+        }
+
+        function deleteAction(index) {
+            if (selectedPromptIndex < 0) return;
+            if (!confirm('Delete this action?')) return;
+
+            customPrompts[selectedPromptIndex].actions.splice(index, 1);
+            renderPromptActions();
+            renderPromptPreview();
+        }
+
+        function openActionTypeSelector() {
+            // Just scroll to action types section
+            document.querySelector('.section-card:last-child').scrollIntoView({ behavior: 'smooth' });
         }
 
         async function deletePrompt(index) {
             if (!confirm('Are you sure you want to delete this prompt?')) return;
 
             customPrompts.splice(index, 1);
+            selectedPromptIndex = -1;
+
             await savePromptsToFile();
-            renderPromptsTable();
+            renderPromptList();
+            renderPromptConfig();
+            renderPromptFlow();
+            renderPromptActions();
+            renderPromptPreview();
         }
 
         async function savePromptsToFile() {
@@ -5231,11 +5946,51 @@
                     });
 
                     console.log('[Prompt Admin] Prompts saved to file');
+
+                    // Show success toast
+                    showToast('Prompts saved successfully', 'success');
                 }
             } catch (error) {
                 console.error('[Prompt Admin] Error saving prompts:', error);
-                alert('Error saving prompts: ' + error.message);
+                showToast('Error saving prompts: ' + error.message, 'error');
             }
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed; bottom: 24px; right: 24px; padding: 12px 20px;
+                background: ${type === 'success' ? 'var(--rw-success)' : type === 'error' ? '#ef4444' : 'var(--rw-neutral-800)'};
+                color: white; border-radius: 8px; box-shadow: var(--rw-shadow-lg);
+                z-index: 10000; animation: slideIn 0.3s ease-out;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function testPromptInAutopilot() {
+            if (selectedPromptIndex < 0) return;
+            const prompt = customPrompts[selectedPromptIndex];
+
+            // Open Autopilot and send the trigger
+            const panel = document.getElementById('autopilotPanel');
+            const fab = document.getElementById('autopilotFab');
+
+            if (!panel.classList.contains('active')) {
+                fab.classList.add('active');
+                panel.classList.add('active');
+            }
+
+            // Send the trigger message
+            setTimeout(() => {
+                document.getElementById('apInput').value = prompt.trigger;
+                apSendMessage();
+            }, 300);
         }
 
         // ==========================================

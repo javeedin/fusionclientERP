@@ -6182,33 +6182,98 @@
             let queryParam = '';
             if (searchBy === 'CreationDate') {
                 queryParam = `${searchBy}${operator}${searchValue}`;
+            } else if (searchBy === 'Supplier') {
+                // Use LIKE for supplier search
+                queryParam = `Supplier LIKE *${searchValue}*`;
             } else {
                 queryParam = `${searchBy}=${searchValue}`;
             }
 
-            apAddBotMessage(`<div class="ap-progress-tracker">
+            // Initialize log for this search
+            const logId = 'search-log-' + Date.now();
+            apLastRequestLog[logId] = {
+                searchBy: searchBy,
+                searchValue: searchValue,
+                operator: operator || '=',
+                timestamp: new Date().toISOString()
+            };
+
+            apAddBotMessage(`<div id="search-progress-${logId}" class="ap-progress-tracker">
                 <div class="ap-progress-title">Searching POs by ${searchLabel}: ${searchValue}</div>
                 <div class="ap-progress-steps">
-                    <div class="ap-step"><span class="ap-step-icon">&#8987;</span><span class="ap-step-text">Fetching results...</span></div>
+                    <div class="ap-step" id="search-step1-${logId}"><span class="ap-step-icon">&#8987;</span><span class="ap-step-text">Getting endpoint...</span></div>
+                    <div class="ap-step" id="search-step2-${logId}"><span class="ap-step-icon">&#8987;</span><span class="ap-step-text">Getting credentials...</span></div>
+                    <div class="ap-step" id="search-step3-${logId}"><span class="ap-step-icon">&#8987;</span><span class="ap-step-text">Fetching results (limit: 500)...</span></div>
                 </div>
+                <div id="search-error-${logId}" style="display:none;margin-top:8px;"></div>
             </div>`);
 
+            const updateStep = (stepNum, success, text) => {
+                const step = document.getElementById(`search-step${stepNum}-${logId}`);
+                if (step) {
+                    const icon = step.querySelector('.ap-step-icon');
+                    const textEl = step.querySelector('.ap-step-text');
+                    if (success) {
+                        icon.innerHTML = '&#10004;';
+                        icon.style.color = '#22c55e';
+                    } else {
+                        icon.innerHTML = '&#10008;';
+                        icon.style.color = '#ef4444';
+                    }
+                    if (text) textEl.textContent = text;
+                }
+            };
+
+            const showErrorWithLog = (errorMsg) => {
+                const errorEl = document.getElementById(`search-error-${logId}`);
+                if (errorEl) {
+                    errorEl.style.display = 'flex';
+                    errorEl.style.alignItems = 'center';
+                    errorEl.style.gap = '8px';
+                    errorEl.innerHTML = `
+                        <span style="color:#ef4444;font-size:12px;">${errorMsg}</span>
+                        <button onclick="apShowLogPopup('${logId}')" style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;display:flex;align-items:center;gap:4px;">
+                            <span>&#128196;</span> View Log
+                        </button>
+                    `;
+                }
+            };
+
             try {
-                // Get endpoint
+                // Step 1: Get endpoint
                 const endpoint = apFindPOEndpoint();
                 if (!endpoint) {
-                    apAddBotMessage(`<p style="color:#ef4444;">FUSION_PO_DETAILS endpoint not configured.</p>`);
+                    updateStep(1, false, 'FUSION_PO_DETAILS endpoint not configured');
+                    apLastRequestLog[logId].error = 'Endpoint not found';
+                    showErrorWithLog('Please add the endpoint in Settings > All Endpoints.');
                     return;
                 }
 
-                // Get credentials
+                apLastRequestLog[logId].integrationCode = endpoint.integrationCode || endpoint.integration_code;
+                updateStep(1, true, `Endpoint: ${endpoint.integrationCode || endpoint.integration_code}`);
+
+                // Step 2: Get credentials
                 await apEnsureInstancesLoaded();
                 const credentials = getCredentialsForEndpoint(endpoint);
 
+                apLastRequestLog[logId].instanceName = credentials?.instanceName || 'None';
+                apLastRequestLog[logId].source = credentials?.source || endpoint.source || 'N/A';
+                apLastRequestLog[logId].username = credentials?.username || '';
+                apLastRequestLog[logId].password = credentials?.password || '';
+
+                if (credentials && credentials.username) {
+                    updateStep(2, true, `Instance: ${credentials.instanceName}`);
+                } else {
+                    updateStep(2, false, 'No credentials found');
+                }
+
+                // Step 3: Build URL with offset and limit for 500 records
                 const baseUrl = endpoint.baseUrl || endpoint.base_url || '';
                 const path = endpoint.endpointPath || endpoint.path || '';
-                const fullUrl = `${baseUrl}${path}?q=${encodeURIComponent(queryParam)}`;
+                const fullUrl = `${baseUrl}${path}?q=${encodeURIComponent(queryParam)}&limit=500&offset=0`;
 
+                apLastRequestLog[logId].fullUrl = fullUrl;
+                apLastRequestLog[logId].queryParam = queryParam;
                 console.log('[Autopilot] PO Search URL:', fullUrl);
 
                 const fetchOptions = {};
@@ -6219,14 +6284,24 @@
 
                 const response = await fetchWithBridge(fullUrl, fetchOptions);
 
+                apLastRequestLog[logId].success = true;
+                apLastRequestLog[logId].responseData = response;
+                apLastRequestLog[logId].itemCount = response?.items?.length || 0;
+
                 if (response && response.items && response.items.length > 0) {
+                    updateStep(3, true, `Found ${response.items.length} PO(s)`);
                     apShowPOSearchResults(response.items, searchLabel, searchValue);
                 } else {
-                    apAddBotMessage(`<p style="color:var(--rw-neutral-500);">No POs found matching ${searchLabel}: <strong>${searchValue}</strong></p>`);
+                    updateStep(3, false, 'No results found');
+                    apLastRequestLog[logId].error = 'No POs found';
+                    showErrorWithLog(`No POs found matching ${searchLabel}: ${searchValue}`);
                 }
             } catch (error) {
                 console.error('[Autopilot] PO Search error:', error);
-                apAddBotMessage(`<p style="color:#ef4444;">Error: ${error.message}</p>`);
+                apLastRequestLog[logId].success = false;
+                apLastRequestLog[logId].error = error.message;
+                updateStep(3, false, 'Request failed');
+                showErrorWithLog(`Error: ${error.message}`);
             }
         }
 
@@ -6672,11 +6747,13 @@
                     const linesLink = po.links?.find(link => link.name === 'lines' && link.rel === 'child');
 
                     if (linesLink && linesLink.href) {
-                        console.log('[Autopilot] Fetching PO lines from:', linesLink.href);
-                        apLastRequestLog[logId].linesUrl = linesLink.href;
+                        // Add limit=500 to lines fetch
+                        const linesUrl = linesLink.href + (linesLink.href.includes('?') ? '&' : '?') + 'limit=500&offset=0';
+                        console.log('[Autopilot] Fetching PO lines from:', linesUrl);
+                        apLastRequestLog[logId].linesUrl = linesUrl;
 
                         try {
-                            const linesResponse = await fetchWithBridge(linesLink.href, fetchOptions);
+                            const linesResponse = await fetchWithBridge(linesUrl, fetchOptions);
                             if (linesResponse && linesResponse.items) {
                                 poLines = linesResponse.items;
                                 console.log('[Autopilot] PO Lines fetched:', poLines.length);
@@ -6982,6 +7059,9 @@
             const dataEl = document.getElementById('po-lines-data-' + poHeaderId);
 
             try {
+                // Add limit=500 to href
+                const linesUrl = href + (href.includes('?') ? '&' : '?') + 'limit=500&offset=0';
+
                 // Get credentials from current instance
                 const instanceName = localStorage.getItem('wms_instance') || '';
                 const source = localStorage.getItem('wms_source') || 'FUSION';
@@ -6996,7 +7076,7 @@
                     fetchOptions.password = credentials.password;
                 }
 
-                const response = await fetchWithBridge(href, fetchOptions);
+                const response = await fetchWithBridge(linesUrl, fetchOptions);
 
                 if (response && response.items && response.items.length > 0) {
                     let html = `

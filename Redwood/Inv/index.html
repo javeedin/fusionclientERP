@@ -6178,14 +6178,12 @@
 
             apResetConversation();
 
-            // Build query string
+            // Build query string - use simple = for all searches
             let queryParam = '';
             if (searchBy === 'CreationDate') {
                 queryParam = `${searchBy}${operator}${searchValue}`;
-            } else if (searchBy === 'Supplier') {
-                // Use LIKE for supplier search
-                queryParam = `Supplier LIKE *${searchValue}*`;
             } else {
+                // Simple equals for OrderNumber and Supplier
                 queryParam = `${searchBy}=${searchValue}`;
             }
 
@@ -6564,12 +6562,13 @@
         // Log storage for debugging
         let apLastRequestLog = {};
 
-        // Show log popup
+        // Show log popup with editable URL and retry button
         function apShowLogPopup(logId) {
             const log = apLastRequestLog[logId] || apLastRequestLog;
+            const popupId = 'log-popup-' + Date.now();
             const logHtml = `
-                <div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;" onclick="this.remove()">
-                    <div style="background:white;border-radius:12px;max-width:700px;width:90%;max-height:80vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+                <div id="${popupId}" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;" onclick="this.remove()">
+                    <div style="background:white;border-radius:12px;max-width:800px;width:95%;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
                         <div style="padding:16px 20px;background:#c74634;color:white;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
                             <strong style="font-size:16px;">Request Log</strong>
                             <button onclick="this.closest('[style*=position]').remove()" style="background:none;border:none;color:white;font-size:24px;cursor:pointer;">&times;</button>
@@ -6596,28 +6595,124 @@
                                 </div>
                             </div>
                             <div style="margin-bottom:16px;">
-                                <div style="color:#6b7280;margin-bottom:4px;">Full URL</div>
-                                <div style="background:#f3f4f6;padding:8px 12px;border-radius:6px;word-break:break-all;">
-                                    ${log.fullUrl || 'N/A'}
+                                <div style="color:#6b7280;margin-bottom:4px;">Full URL (Editable)</div>
+                                <textarea id="log-url-${popupId}" style="width:100%;height:80px;background:#f3f4f6;padding:8px 12px;border-radius:6px;border:1px solid #d1d5db;font-family:monospace;font-size:11px;resize:vertical;">${log.fullUrl || ''}</textarea>
+                                <div style="margin-top:8px;display:flex;gap:8px;">
+                                    <button onclick="apRetryFromLog('${popupId}', '${logId}')" style="background:#c74634;color:white;border:none;border-radius:6px;padding:8px 16px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:6px;">
+                                        <span>&#9654;</span> Retry Request
+                                    </button>
+                                    <button onclick="navigator.clipboard.writeText(document.getElementById('log-url-${popupId}').value)" style="background:#6b7280;color:white;border:none;border-radius:6px;padding:8px 16px;cursor:pointer;font-size:12px;">
+                                        &#128203; Copy URL
+                                    </button>
                                 </div>
                             </div>
                             <div style="margin-bottom:16px;">
-                                <div style="color:#6b7280;margin-bottom:4px;">Response</div>
-                                <div style="background:${log.success ? '#dcfce7' : '#fee2e2'};padding:8px 12px;border-radius:6px;color:${log.success ? '#166534' : '#991b1b'};">
-                                    ${log.success ? 'Success' : 'Error: ' + (log.error || 'Unknown error')}
+                                <div style="color:#6b7280;margin-bottom:4px;">Status</div>
+                                <div id="log-status-${popupId}" style="background:${log.success ? '#dcfce7' : '#fee2e2'};padding:8px 12px;border-radius:6px;color:${log.success ? '#166534' : '#991b1b'};">
+                                    ${log.success ? 'Success - ' + (log.itemCount || 0) + ' items' : 'Error: ' + (log.error || 'Unknown error')}
                                 </div>
                             </div>
-                            ${log.responseData ? `
-                            <div>
+                            <div id="log-response-${popupId}">
+                                ${log.responseData ? `
                                 <div style="color:#6b7280;margin-bottom:4px;">Response Data</div>
                                 <pre style="background:#1e1e1e;color:#4ade80;padding:12px;border-radius:6px;overflow-x:auto;max-height:200px;font-size:11px;">${JSON.stringify(log.responseData, null, 2)}</pre>
+                                ` : ''}
                             </div>
-                            ` : ''}
                         </div>
                     </div>
                 </div>
             `;
             document.body.insertAdjacentHTML('beforeend', logHtml);
+        }
+
+        // Retry request from log popup
+        async function apRetryFromLog(popupId, logId) {
+            const log = apLastRequestLog[logId] || {};
+            const urlInput = document.getElementById('log-url-' + popupId);
+            const statusEl = document.getElementById('log-status-' + popupId);
+            const responseEl = document.getElementById('log-response-' + popupId);
+
+            const url = urlInput.value.trim();
+            if (!url) {
+                statusEl.style.background = '#fee2e2';
+                statusEl.style.color = '#991b1b';
+                statusEl.textContent = 'Error: URL is empty';
+                return;
+            }
+
+            // Show loading state
+            statusEl.style.background = '#fef3c7';
+            statusEl.style.color = '#92400e';
+            statusEl.innerHTML = '<span style="display:inline-block;animation:spin 1s linear infinite;">&#8987;</span> Fetching...';
+
+            try {
+                const fetchOptions = {};
+                if (log.username && log.password) {
+                    fetchOptions.username = log.username;
+                    fetchOptions.password = log.password;
+                }
+
+                const response = await fetchWithBridge(url, fetchOptions);
+
+                // Update log
+                apLastRequestLog[logId].fullUrl = url;
+                apLastRequestLog[logId].success = true;
+                apLastRequestLog[logId].responseData = response;
+                apLastRequestLog[logId].itemCount = response?.items?.length || 0;
+
+                // Show success
+                statusEl.style.background = '#dcfce7';
+                statusEl.style.color = '#166534';
+                statusEl.textContent = 'Success - ' + (response?.items?.length || 0) + ' items found';
+
+                // Show response data
+                responseEl.innerHTML = `
+                    <div style="color:#6b7280;margin-bottom:4px;">Response Data</div>
+                    <pre style="background:#1e1e1e;color:#4ade80;padding:12px;border-radius:6px;overflow-x:auto;max-height:200px;font-size:11px;">${JSON.stringify(response, null, 2)}</pre>
+                `;
+
+                // If we have results, show button to view them
+                if (response && response.items && response.items.length > 0) {
+                    responseEl.innerHTML += `
+                        <div style="margin-top:12px;">
+                            <button onclick="apShowResultsFromLog('${popupId}', '${logId}')" style="background:#22c55e;color:white;border:none;border-radius:6px;padding:10px 20px;cursor:pointer;font-size:13px;width:100%;">
+                                &#10004; View ${response.items.length} Result(s)
+                            </button>
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                apLastRequestLog[logId].success = false;
+                apLastRequestLog[logId].error = error.message;
+
+                statusEl.style.background = '#fee2e2';
+                statusEl.style.color = '#991b1b';
+                statusEl.textContent = 'Error: ' + error.message;
+
+                responseEl.innerHTML = '';
+            }
+        }
+
+        // Show results from log popup retry
+        function apShowResultsFromLog(popupId, logId) {
+            const log = apLastRequestLog[logId];
+            const popup = document.getElementById(popupId);
+
+            if (popup) popup.remove();
+
+            if (log && log.responseData && log.responseData.items && log.responseData.items.length > 0) {
+                const items = log.responseData.items;
+
+                // If single result, open PO details directly
+                if (items.length === 1) {
+                    const po = items[0];
+                    openPODetailsTab(po);
+                } else {
+                    // Multiple results - show as cards in autopilot
+                    apShowPOSearchResults(items, log.searchBy || 'Search', log.searchValue || '');
+                }
+            }
         }
 
         // Fetch PO details from API

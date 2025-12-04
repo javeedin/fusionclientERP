@@ -2091,6 +2091,50 @@
         </div>
     </div>
 
+    <!-- Receipt Progress/Log Dialog -->
+    <div class="rw-dialog-overlay" id="receiptProgressDialogOverlay">
+        <div class="rw-dialog" style="max-width: 900px;">
+            <div class="rw-dialog-header">
+                <h2 class="rw-dialog-title" id="receiptProgressDialogTitle">Receipt into Receiving</h2>
+                <button class="rw-dialog-close" onclick="closeReceiptProgressDialog()">&times;</button>
+            </div>
+            <div class="rw-dialog-body" id="receiptProgressDialogBody">
+                <!-- Tabs -->
+                <div style="display:flex;border-bottom:2px solid var(--rw-neutral-100);margin-bottom:16px;">
+                    <button id="rcptTabProgress" class="rw-tab-btn active" onclick="switchReceiptTab('progress')" style="padding:12px 24px;border:none;background:none;font-size:14px;font-weight:500;cursor:pointer;border-bottom:2px solid var(--rw-red);margin-bottom:-2px;color:var(--rw-red);">Progress</button>
+                    <button id="rcptTabLog" class="rw-tab-btn" onclick="switchReceiptTab('log')" style="padding:12px 24px;border:none;background:none;font-size:14px;font-weight:500;cursor:pointer;color:var(--rw-neutral-500);">Log</button>
+                </div>
+                <!-- Progress Tab -->
+                <div id="rcptProgressContent">
+                    <div id="rcptProgressSteps"></div>
+                    <div id="rcptProgressResult" style="margin-top:16px;"></div>
+                </div>
+                <!-- Log Tab -->
+                <div id="rcptLogContent" style="display:none;">
+                    <div style="margin-bottom:12px;">
+                        <label style="font-size:12px;font-weight:500;color:var(--rw-neutral-600);">Full URL</label>
+                        <input type="text" id="rcptLogUrl" class="rw-input" readonly style="font-family:monospace;font-size:12px;background:var(--rw-neutral-50);">
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label style="font-size:12px;font-weight:500;color:var(--rw-neutral-600);">Credentials</label>
+                        <input type="text" id="rcptLogCredentials" class="rw-input" readonly style="font-family:monospace;font-size:12px;background:var(--rw-neutral-50);">
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label style="font-size:12px;font-weight:500;color:var(--rw-neutral-600);">Request JSON</label>
+                        <textarea id="rcptLogJson" class="rw-input" readonly style="font-family:monospace;font-size:11px;height:200px;background:var(--rw-neutral-50);"></textarea>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label style="font-size:12px;font-weight:500;color:var(--rw-neutral-600);">Response</label>
+                        <textarea id="rcptLogResponse" class="rw-input" readonly style="font-family:monospace;font-size:11px;height:150px;background:var(--rw-neutral-50);"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="rw-dialog-footer">
+                <button class="rw-btn rw-btn-secondary" onclick="closeReceiptProgressDialog()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Serial Number Dialog -->
     <div class="rw-dialog-overlay" id="serialDialogOverlay">
         <div class="rw-dialog rw-serial-dialog">
@@ -4288,6 +4332,7 @@
             // Extract header info
             const vendorName = poHeader ? (poHeader.vendor_name || poHeader.VENDOR_NAME || '-') : '-';
             const shipToLocation = poHeader ? (poHeader.ship_to_location || poHeader.SHIP_TO_LOCATION || '-') : '-';
+            const organizationCode = poHeader ? (poHeader.organization_code || poHeader.ORGANIZATION_CODE || poHeader.ship_to_organization_code || poHeader.SHIP_TO_ORGANIZATION_CODE || '') : '';
             const noOfItems = poLines.length;
 
             // Get distinct destination types and routings from lines
@@ -4298,11 +4343,40 @@
                 line.routing || line.ROUTING || ''
             ).filter(v => v))];
 
-            // Build editable lines table with same columns as main lines table
+            // Determine if Standard Receipt routing exists
+            const hasStandardReceipt = routings.some(r => r.toLowerCase().includes('standard'));
+            const hasDirectDelivery = routings.some(r => r.toLowerCase().includes('direct'));
+
+            // Build flow diagram based on routing
+            let flowDiagramHtml = '';
+            if (hasStandardReceipt) {
+                flowDiagramHtml = `
+                    <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border-radius:8px;margin-bottom:16px;">
+                        <span style="font-size:11px;color:#2e7d32;text-transform:uppercase;font-weight:600;">Flow:</span>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="background:#fff;padding:6px 12px;border-radius:4px;font-size:12px;font-weight:500;color:#1b5e20;border:1px solid #a5d6a7;">Receipt into Receiving</span>
+                            <span style="color:#43a047;font-size:16px;">&#8594;</span>
+                            <span style="background:#fff;padding:6px 12px;border-radius:4px;font-size:12px;font-weight:500;color:#1b5e20;border:1px solid #a5d6a7;">Putaway</span>
+                        </div>
+                    </div>
+                `;
+            } else if (hasDirectDelivery) {
+                flowDiagramHtml = `
+                    <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:linear-gradient(135deg,#e3f2fd,#bbdefb);border-radius:8px;margin-bottom:16px;">
+                        <span style="font-size:11px;color:#1565c0;text-transform:uppercase;font-weight:600;">Flow:</span>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="background:#fff;padding:6px 12px;border-radius:4px;font-size:12px;font-weight:500;color:#0d47a1;border:1px solid #90caf9;">Direct Delivery</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Build editable lines table with checkboxes
             let linesHtml = `
                 <table class="rw-table" style="width:100%;margin-bottom:16px;">
                     <thead>
                         <tr>
+                            <th style="width:40px;"><input type="checkbox" id="rcv-select-all" onchange="toggleAllReceiptLines(this)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--rw-red);"></th>
                             <th>Line</th>
                             <th>Item Number</th>
                             <th>Description</th>
@@ -4325,12 +4399,13 @@
                 const ordered = line.ordered_quantity || line.ORDERED_QUANTITY || 0;
                 const received = line.received_quantity || line.RECEIVED_QUANTITY || 0;
                 const remaining = ordered - received;
-                const uom = line.uom || line.UOM || line.primary_uom_code || '-';
+                const uom = line.uom || line.UOM || line.primary_uom_code || line.PRIMARY_UOM_CODE || '-';
                 const destinationType = line.destination_type || line.DESTINATION_TYPE || '-';
                 const routing = line.routing || line.ROUTING || '-';
 
                 linesHtml += `
                     <tr>
+                        <td><input type="checkbox" id="rcv-chk-${idx}" class="rcv-line-checkbox" checked style="width:16px;height:16px;cursor:pointer;accent-color:var(--rw-red);"></td>
                         <td>${lineNum}</td>
                         <td style="font-weight:500;">${itemNum}</td>
                         <td title="${line.item_description || ''}">${desc}</td>
@@ -4352,7 +4427,7 @@
 
             document.getElementById('receiptsDialogTitle').textContent = `Edit PO Receipt - ${docNum}`;
             document.getElementById('receiptsDialogBody').innerHTML = `
-                <div style="display:flex;flex-wrap:wrap;gap:24px;padding:16px 0;margin-bottom:16px;border-bottom:1px solid var(--rw-neutral-100);">
+                <div style="display:flex;flex-wrap:wrap;gap:24px;padding:16px 0;margin-bottom:16px;border-bottom:1px solid var(--rw-neutral-100);align-items:flex-start;">
                     <div style="display:flex;flex-direction:column;gap:2px;">
                         <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">PO Number</span>
                         <span style="font-weight:600;color:var(--rw-red);">${docNum}</span>
@@ -4377,7 +4452,13 @@
                         <span style="font-size:11px;color:var(--rw-neutral-500);text-transform:uppercase;">Routing</span>
                         <span style="font-weight:500;">${routings.length > 0 ? routings.map(r => `<span class="rw-badge rw-badge-secondary" style="font-size:10px;margin-right:4px;">${r}</span>`).join('') : '-'}</span>
                     </div>
+                    <div style="margin-left:auto;">
+                        <button class="rw-btn rw-btn-primary" onclick="receiptIntoReceiving()" style="background:linear-gradient(135deg,#43a047,#2e7d32);">
+                            &#128230; Receipt into Receiving
+                        </button>
+                    </div>
                 </div>
+                ${flowDiagramHtml}
                 ${linesHtml}
                 <div class="rw-form-row">
                     <div class="rw-form-group" style="flex:1;">
@@ -4401,6 +4482,248 @@
                 </div>
             `;
             document.getElementById('receiptsDialogOverlay').classList.add('active');
+        }
+
+        function toggleAllReceiptLines(masterCheckbox) {
+            const checkboxes = document.querySelectorAll('.rcv-line-checkbox');
+            checkboxes.forEach(cb => cb.checked = masterCheckbox.checked);
+        }
+
+        // Receipt Progress Dialog functions
+        function switchReceiptTab(tab) {
+            const progressTab = document.getElementById('rcptTabProgress');
+            const logTab = document.getElementById('rcptTabLog');
+            const progressContent = document.getElementById('rcptProgressContent');
+            const logContent = document.getElementById('rcptLogContent');
+
+            if (tab === 'progress') {
+                progressTab.style.borderBottom = '2px solid var(--rw-red)';
+                progressTab.style.color = 'var(--rw-red)';
+                logTab.style.borderBottom = 'none';
+                logTab.style.color = 'var(--rw-neutral-500)';
+                progressContent.style.display = 'block';
+                logContent.style.display = 'none';
+            } else {
+                logTab.style.borderBottom = '2px solid var(--rw-red)';
+                logTab.style.color = 'var(--rw-red)';
+                progressTab.style.borderBottom = 'none';
+                progressTab.style.color = 'var(--rw-neutral-500)';
+                progressContent.style.display = 'none';
+                logContent.style.display = 'block';
+            }
+        }
+
+        function closeReceiptProgressDialog() {
+            document.getElementById('receiptProgressDialogOverlay').classList.remove('active');
+        }
+
+        function updateReceiptProgress(step, status, message) {
+            const stepsContainer = document.getElementById('rcptProgressSteps');
+            const stepEl = document.getElementById('rcpt-step-' + step);
+
+            const statusIcon = status === 'success' ? '&#10004;' : status === 'error' ? '&#10006;' : '&#9203;';
+            const statusColor = status === 'success' ? '#43a047' : status === 'error' ? '#e53935' : '#ff9800';
+            const statusBg = status === 'success' ? '#e8f5e9' : status === 'error' ? '#ffebee' : '#fff3e0';
+
+            if (stepEl) {
+                stepEl.innerHTML = `
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <span style="width:28px;height:28px;border-radius:50%;background:${statusBg};color:${statusColor};display:flex;align-items:center;justify-content:center;font-size:14px;">${statusIcon}</span>
+                        <span style="font-weight:500;">${message}</span>
+                    </div>
+                `;
+            } else {
+                stepsContainer.innerHTML += `
+                    <div id="rcpt-step-${step}" style="padding:12px 0;border-bottom:1px solid var(--rw-neutral-100);">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <span style="width:28px;height:28px;border-radius:50%;background:${statusBg};color:${statusColor};display:flex;align-items:center;justify-content:center;font-size:14px;">${statusIcon}</span>
+                            <span style="font-weight:500;">${message}</span>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        async function receiptIntoReceiving() {
+            if (!currentEditPO) {
+                alert('No PO data available');
+                return;
+            }
+
+            // Collect selected lines with quantities
+            const selectedLines = [];
+            currentEditPO.lines.forEach((line, idx) => {
+                const checkbox = document.getElementById('rcv-chk-' + idx);
+                const qtyInput = document.getElementById('rcv-qty-' + idx);
+                const qty = parseFloat(qtyInput.value) || 0;
+
+                if (checkbox && checkbox.checked && qty > 0) {
+                    selectedLines.push({ line, qty, idx });
+                }
+            });
+
+            if (selectedLines.length === 0) {
+                alert('Please select at least one line with quantity to receive');
+                return;
+            }
+
+            // Get endpoint configuration for PO_RECEIPTS_INTO_RECEIVING
+            const transactionCode = 'PO_RECEIPTS_INTO_RECEIVING';
+            const endpoint = integrationEndpoints.find(e => e.code === transactionCode);
+            if (!endpoint) {
+                alert('Endpoint configuration not found for: ' + transactionCode + '\nPlease configure this endpoint in Settings.');
+                return;
+            }
+
+            // Get instance configuration
+            const instance = instances.find(i => i.id === endpoint.instanceId);
+            if (!instance) {
+                alert('Instance configuration not found for endpoint');
+                return;
+            }
+
+            // Build the JSON payload
+            const header = currentEditPO.header || {};
+            const vendorName = header.vendor_name || header.VENDOR_NAME || '';
+            const organizationCode = header.organization_code || header.ORGANIZATION_CODE ||
+                                    header.ship_to_organization_code || header.SHIP_TO_ORGANIZATION_CODE || '';
+
+            const payload = {
+                FromOrganizationCode: null,
+                OrganizationCode: organizationCode,
+                ReceiptSourceCode: "VENDOR",
+                VendorName: vendorName,
+                ShipmentNumber: null,
+                lines: selectedLines.map(({ line, qty }) => ({
+                    POHeaderId: String(line.po_header_id || line.PO_HEADER_ID || ''),
+                    POLineLocationId: String(line.po_line_location_id || line.PO_LINE_LOCATION_ID || ''),
+                    SourceDocumentCode: "PO",
+                    ReceiptSourceCode: "VENDOR",
+                    TransactionType: "RECEIVE",
+                    AutoTransactCode: "",
+                    DocumentNumber: currentEditPO.docNum,
+                    DocumentLineNumber: String(line.line_number || line.LINE_NUMBER || ''),
+                    ItemNumber: line.item_number || line.ITEM_NUMBER || '',
+                    OrganizationCode: organizationCode,
+                    Quantity: qty,
+                    FromOrganizationCode: null,
+                    UnitOfMeasure: line.uom || line.UOM || line.primary_uom_code || line.PRIMARY_UOM_CODE || ''
+                }))
+            };
+
+            // Build full URL
+            const baseUrl = instance.url.replace(/\/$/, '');
+            const path = endpoint.path.startsWith('/') ? endpoint.path : '/' + endpoint.path;
+            const fullUrl = baseUrl + path;
+
+            // Open progress dialog
+            document.getElementById('rcptProgressSteps').innerHTML = '';
+            document.getElementById('rcptProgressResult').innerHTML = '';
+            document.getElementById('rcptLogUrl').value = fullUrl;
+            document.getElementById('rcptLogCredentials').value = `${instance.username} / ********`;
+            document.getElementById('rcptLogJson').value = JSON.stringify(payload, null, 2);
+            document.getElementById('rcptLogResponse').value = '';
+            switchReceiptTab('progress');
+            document.getElementById('receiptProgressDialogOverlay').classList.add('active');
+
+            // Step 1: Preparing request
+            updateReceiptProgress(1, 'pending', 'Preparing receipt request...');
+            await new Promise(r => setTimeout(r, 500));
+            updateReceiptProgress(1, 'success', `Prepared ${selectedLines.length} line(s) for receipt`);
+
+            // Step 2: Sending to Oracle
+            updateReceiptProgress(2, 'pending', 'Sending POST request to Oracle...');
+
+            try {
+                // Send via WebView2
+                const requestId = 'rcpt_' + Date.now();
+                const requestData = {
+                    type: 'POST_REQUEST',
+                    requestId: requestId,
+                    url: fullUrl,
+                    username: instance.username,
+                    password: instance.password,
+                    payload: payload
+                };
+
+                console.log('[Receipt] Sending POST request:', requestData);
+
+                // Store callback for response
+                window.pendingReceiptRequest = {
+                    requestId: requestId,
+                    resolve: null,
+                    reject: null
+                };
+
+                const responsePromise = new Promise((resolve, reject) => {
+                    window.pendingReceiptRequest.resolve = resolve;
+                    window.pendingReceiptRequest.reject = reject;
+
+                    // Timeout after 60 seconds
+                    setTimeout(() => {
+                        if (window.pendingReceiptRequest && window.pendingReceiptRequest.requestId === requestId) {
+                            reject(new Error('Request timeout after 60 seconds'));
+                        }
+                    }, 60000);
+                });
+
+                // Send to C# via WebView2
+                if (window.chrome && window.chrome.webview) {
+                    window.chrome.webview.postMessage(JSON.stringify(requestData));
+                } else {
+                    throw new Error('WebView2 not available. Please run in the desktop application.');
+                }
+
+                const response = await responsePromise;
+
+                updateReceiptProgress(2, 'success', 'POST request completed');
+                document.getElementById('rcptLogResponse').value = JSON.stringify(response, null, 2);
+
+                // Step 3: Processing response
+                updateReceiptProgress(3, 'pending', 'Processing response...');
+                await new Promise(r => setTimeout(r, 300));
+
+                if (response.error) {
+                    updateReceiptProgress(3, 'error', 'Error: ' + response.error);
+                    document.getElementById('rcptProgressResult').innerHTML = `
+                        <div style="padding:16px;background:#ffebee;border-radius:8px;color:#c62828;">
+                            <strong>Error:</strong> ${response.error}
+                        </div>
+                    `;
+                } else {
+                    updateReceiptProgress(3, 'success', 'Receipt created successfully');
+                    const receiptNum = response.ReceiptNumber || response.receiptNumber || 'N/A';
+                    document.getElementById('rcptProgressResult').innerHTML = `
+                        <div style="padding:16px;background:#e8f5e9;border-radius:8px;color:#2e7d32;">
+                            <strong>Success!</strong> Receipt created.<br>
+                            Receipt Number: <strong>${receiptNum}</strong><br>
+                            Lines Received: ${selectedLines.length}
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                console.error('[Receipt] Error:', error);
+                updateReceiptProgress(2, 'error', 'Request failed: ' + error.message);
+                document.getElementById('rcptLogResponse').value = 'Error: ' + error.message;
+                document.getElementById('rcptProgressResult').innerHTML = `
+                    <div style="padding:16px;background:#ffebee;border-radius:8px;color:#c62828;">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Handle receipt response from WebView2
+        function handleReceiptResponse(response) {
+            if (window.pendingReceiptRequest && response.requestId === window.pendingReceiptRequest.requestId) {
+                if (response.success) {
+                    window.pendingReceiptRequest.resolve(response.data || response);
+                } else {
+                    window.pendingReceiptRequest.reject(new Error(response.error || 'Unknown error'));
+                }
+                window.pendingReceiptRequest = null;
+            }
         }
 
         function savePOReceipt() {

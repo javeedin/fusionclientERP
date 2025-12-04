@@ -1516,6 +1516,34 @@
             color: var(--rw-white);
         }
 
+        .ap-message-wrapper {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .ap-message-rerun {
+            background: transparent;
+            border: none;
+            color: var(--rw-neutral-400);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: all 0.15s;
+            font-size: 14px;
+            margin-top: 6px;
+        }
+
+        .ap-message.user:hover .ap-message-rerun {
+            opacity: 1;
+        }
+
+        .ap-message-rerun:hover {
+            color: var(--rw-primary);
+            background: var(--rw-neutral-100);
+        }
+
         .ap-suggestions {
             display: flex;
             flex-wrap: wrap;
@@ -4967,16 +4995,45 @@
             }
         }
 
+        // Store prompts for rerun
+        let apPromptHistory = [];
+
         function apAddUserMessage(text) {
             const container = document.getElementById('apMessages');
             const div = document.createElement('div');
             div.className = 'ap-message user';
+
+            // Store prompt for rerun
+            const promptIndex = apPromptHistory.length;
+            apPromptHistory.push(text);
+
             div.innerHTML = `
                 <div class="ap-message-avatar">U</div>
-                <div class="ap-message-content">${apEscapeHtml(text)}</div>
+                <div class="ap-message-wrapper">
+                    <div class="ap-message-content">${apEscapeHtml(text)}</div>
+                    <button class="ap-message-rerun" onclick="apRerunPrompt(${promptIndex})" title="Run again">&#8635;</button>
+                </div>
             `;
             container.appendChild(div);
             apScrollToBottom();
+        }
+
+        // Rerun a previous prompt
+        function apRerunPrompt(index) {
+            const prompt = apPromptHistory[index];
+            if (prompt) {
+                // Add as new user message
+                apAddUserMessage(prompt);
+
+                // Show typing indicator
+                apShowTyping();
+
+                // Process the command
+                setTimeout(() => {
+                    apHideTyping();
+                    apProcessCommand(prompt);
+                }, 300);
+            }
         }
 
         function apAddBotMessage(html) {

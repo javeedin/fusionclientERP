@@ -150,6 +150,150 @@
             opacity: 0.8;
         }
 
+        /* Instance Badge in Header */
+        .rw-instance-badge {
+            background: rgba(255,255,255,0.15);
+            padding: 6px 12px;
+            border-radius: var(--rw-radius);
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .rw-instance-badge .instance-label {
+            opacity: 0.7;
+            font-size: 11px;
+        }
+
+        .rw-instance-badge .instance-name {
+            font-weight: 600;
+        }
+
+        /* User Menu Dropdown */
+        .rw-user-menu-container {
+            position: relative;
+        }
+
+        .rw-user-info {
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .rw-user-info:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .rw-user-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--rw-white);
+            border-radius: var(--rw-radius-lg);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            min-width: 280px;
+            z-index: 1000;
+            display: none;
+            overflow: hidden;
+        }
+
+        .rw-user-dropdown.show {
+            display: block;
+            animation: dropdownFadeIn 0.15s ease-out;
+        }
+
+        @keyframes dropdownFadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .rw-user-dropdown-header {
+            padding: 16px;
+            background: var(--rw-neutral-50);
+            border-bottom: 1px solid var(--rw-neutral-200);
+        }
+
+        .rw-user-dropdown-avatar {
+            width: 48px;
+            height: 48px;
+            background: var(--rw-primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .rw-user-dropdown-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--rw-neutral-900);
+            margin-bottom: 2px;
+        }
+
+        .rw-user-dropdown-email {
+            font-size: 13px;
+            color: var(--rw-neutral-500);
+        }
+
+        .rw-user-dropdown-info {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--rw-neutral-100);
+        }
+
+        .rw-user-dropdown-info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 13px;
+        }
+
+        .rw-user-dropdown-info-label {
+            color: var(--rw-neutral-500);
+        }
+
+        .rw-user-dropdown-info-value {
+            color: var(--rw-neutral-800);
+            font-weight: 500;
+        }
+
+        .rw-user-dropdown-actions {
+            padding: 8px;
+        }
+
+        .rw-user-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: var(--rw-radius);
+            cursor: pointer;
+            transition: background 0.15s;
+            font-size: 14px;
+            color: var(--rw-neutral-700);
+        }
+
+        .rw-user-dropdown-item:hover {
+            background: var(--rw-neutral-100);
+        }
+
+        .rw-user-dropdown-item.logout {
+            color: var(--rw-danger);
+        }
+
+        .rw-user-dropdown-item.logout:hover {
+            background: rgba(220, 53, 69, 0.1);
+        }
+
+        .rw-user-dropdown-item-icon {
+            width: 20px;
+            text-align: center;
+        }
+
         /* Page Layout */
         .rw-page {
             display: flex;
@@ -1579,11 +1723,54 @@
             <a href="../OM/index.html" class="rw-nav-link">Order Management</a>
         </nav>
         <div class="rw-header-right">
-            <div class="rw-user-info">
-                <div class="rw-user-avatar" id="userAvatar">U</div>
-                <div class="rw-user-details">
-                    <span class="rw-user-name" id="userName">User</span>
-                    <span class="rw-user-org" id="userOrg">Organization</span>
+            <!-- Instance Badge -->
+            <div class="rw-instance-badge" id="instanceBadge">
+                <span class="instance-label">Instance:</span>
+                <span class="instance-name" id="currentInstance">-</span>
+            </div>
+
+            <!-- User Menu -->
+            <div class="rw-user-menu-container">
+                <div class="rw-user-info" onclick="toggleUserMenu(event)">
+                    <div class="rw-user-avatar" id="userAvatar">U</div>
+                    <div class="rw-user-details">
+                        <span class="rw-user-name" id="userName">User</span>
+                        <span class="rw-user-org" id="userOrg">Organization</span>
+                    </div>
+                    <span style="margin-left:4px;opacity:0.7;">&#9662;</span>
+                </div>
+
+                <!-- User Dropdown -->
+                <div class="rw-user-dropdown" id="userDropdown">
+                    <div class="rw-user-dropdown-header">
+                        <div class="rw-user-dropdown-avatar" id="dropdownAvatar">U</div>
+                        <div class="rw-user-dropdown-name" id="dropdownUserName">User</div>
+                        <div class="rw-user-dropdown-email" id="dropdownUserEmail">user@example.com</div>
+                    </div>
+                    <div class="rw-user-dropdown-info">
+                        <div class="rw-user-dropdown-info-item">
+                            <span class="rw-user-dropdown-info-label">Instance</span>
+                            <span class="rw-user-dropdown-info-value" id="dropdownInstance">-</span>
+                        </div>
+                        <div class="rw-user-dropdown-info-item">
+                            <span class="rw-user-dropdown-info-label">Source</span>
+                            <span class="rw-user-dropdown-info-value" id="dropdownSource">-</span>
+                        </div>
+                        <div class="rw-user-dropdown-info-item">
+                            <span class="rw-user-dropdown-info-label">Organization</span>
+                            <span class="rw-user-dropdown-info-value" id="dropdownOrg">-</span>
+                        </div>
+                    </div>
+                    <div class="rw-user-dropdown-actions">
+                        <div class="rw-user-dropdown-item" onclick="openUserSettings()">
+                            <span class="rw-user-dropdown-item-icon">&#9881;</span>
+                            <span>Settings</span>
+                        </div>
+                        <div class="rw-user-dropdown-item logout" onclick="logout()">
+                            <span class="rw-user-dropdown-item-icon">&#10140;</span>
+                            <span>Sign Out</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1914,14 +2101,37 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Load user info
+            // Load user info from localStorage
             const username = localStorage.getItem('wms_username') || 'User';
             const orgName = localStorage.getItem('wms_org_name') || 'Organization';
             const orgCode = localStorage.getItem('wms_org_code') || '';
+            const instanceName = localStorage.getItem('wms_instance') || '-';
+            const source = localStorage.getItem('wms_source') || 'FUSION';
 
+            // Update header user info
             document.getElementById('userName').textContent = username;
             document.getElementById('userOrg').textContent = orgName || orgCode;
             document.getElementById('userAvatar').textContent = username.charAt(0).toUpperCase();
+
+            // Update instance badge
+            document.getElementById('currentInstance').textContent = instanceName;
+
+            // Update dropdown user info
+            document.getElementById('dropdownAvatar').textContent = username.charAt(0).toUpperCase();
+            document.getElementById('dropdownUserName').textContent = username;
+            document.getElementById('dropdownUserEmail').textContent = username.includes('@') ? username : `${username.toLowerCase()}@company.com`;
+            document.getElementById('dropdownInstance').textContent = instanceName;
+            document.getElementById('dropdownSource').textContent = source;
+            document.getElementById('dropdownOrg').textContent = orgName || orgCode || '-';
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                const dropdown = document.getElementById('userDropdown');
+                const userInfo = document.querySelector('.rw-user-info');
+                if (dropdown && !dropdown.contains(e.target) && !userInfo.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
 
             // Populate org selector
             populateOrgSelector();
@@ -1939,6 +2149,35 @@
                 navigateTo(pageParam);
             }
         });
+
+        // Toggle user dropdown menu
+        function toggleUserMenu(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Open user settings
+        function openUserSettings() {
+            document.getElementById('userDropdown').classList.remove('show');
+            navigateTo('settings');
+        }
+
+        // Logout function
+        function logout() {
+            // Clear session data
+            localStorage.removeItem('wms_username');
+            localStorage.removeItem('wms_password');
+            localStorage.removeItem('wms_instance');
+            localStorage.removeItem('wms_source');
+            localStorage.removeItem('wms_org_code');
+            localStorage.removeItem('wms_org_name');
+            localStorage.removeItem('wms_organizations');
+            localStorage.removeItem('wms_logged_in');
+
+            // Navigate to login screen
+            window.location.href = '../login.html';
+        }
 
         // Populate organization selector
         function populateOrgSelector() {

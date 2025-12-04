@@ -2093,7 +2093,7 @@
 
     <!-- Receipt Progress/Log Dialog -->
     <div class="rw-dialog-overlay" id="receiptProgressDialogOverlay">
-        <div class="rw-dialog" style="max-width: 900px;">
+        <div class="rw-dialog" style="max-width: 1100px;">
             <div class="rw-dialog-header">
                 <h2 class="rw-dialog-title" id="receiptProgressDialogTitle">Receipt into Receiving</h2>
                 <button class="rw-dialog-close" onclick="closeReceiptProgressDialog()">&times;</button>
@@ -2113,19 +2113,19 @@
                 <div id="rcptLogContent" style="display:none;">
                     <div style="margin-bottom:12px;">
                         <label style="font-size:12px;font-weight:500;color:var(--rw-neutral-600);">Full URL</label>
-                        <input type="text" id="rcptLogUrl" class="rw-input" readonly style="font-family:monospace;font-size:12px;background:var(--rw-neutral-50);">
+                        <input type="text" id="rcptLogUrl" class="rw-input" readonly style="width:100%;font-family:monospace;font-size:13px;background:var(--rw-neutral-50);padding:10px;">
                     </div>
                     <div style="margin-bottom:12px;">
                         <label style="font-size:12px;font-weight:500;color:var(--rw-neutral-600);">Credentials</label>
-                        <input type="text" id="rcptLogCredentials" class="rw-input" readonly style="font-family:monospace;font-size:12px;background:var(--rw-neutral-50);">
+                        <input type="text" id="rcptLogCredentials" class="rw-input" readonly style="width:100%;font-family:monospace;font-size:13px;background:var(--rw-neutral-50);padding:10px;">
                     </div>
                     <div style="margin-bottom:12px;">
                         <label style="font-size:12px;font-weight:500;color:var(--rw-neutral-600);">Request JSON</label>
-                        <textarea id="rcptLogJson" class="rw-input" readonly style="font-family:monospace;font-size:11px;height:200px;background:var(--rw-neutral-50);"></textarea>
+                        <textarea id="rcptLogJson" class="rw-input" readonly style="width:100%;font-family:monospace;font-size:12px;height:280px;background:var(--rw-neutral-50);padding:10px;resize:vertical;"></textarea>
                     </div>
                     <div style="margin-bottom:12px;">
                         <label style="font-size:12px;font-weight:500;color:var(--rw-neutral-600);">Response</label>
-                        <textarea id="rcptLogResponse" class="rw-input" readonly style="font-family:monospace;font-size:11px;height:150px;background:var(--rw-neutral-50);"></textarea>
+                        <textarea id="rcptLogResponse" class="rw-input" readonly style="width:100%;font-family:monospace;font-size:12px;height:180px;background:var(--rw-neutral-50);padding:10px;resize:vertical;"></textarea>
                     </div>
                 </div>
             </div>
@@ -4600,8 +4600,13 @@
             // Build the JSON payload
             const header = currentEditPO.header || {};
             const vendorName = header.vendor_name || header.VENDOR_NAME || '';
-            const organizationCode = header.organization_code || header.ORGANIZATION_CODE ||
-                                    header.ship_to_organization_code || header.SHIP_TO_ORGANIZATION_CODE || '';
+
+            // Get organization code from header or first line (TO_ORGANIZATION_CODE)
+            const firstLine = selectedLines.length > 0 ? selectedLines[0].line : {};
+            const organizationCode = header.to_organization_code || header.TO_ORGANIZATION_CODE ||
+                                    header.organization_code || header.ORGANIZATION_CODE ||
+                                    header.ship_to_organization_code || header.SHIP_TO_ORGANIZATION_CODE ||
+                                    firstLine.to_organization_code || firstLine.TO_ORGANIZATION_CODE || '';
 
             const payload = {
                 FromOrganizationCode: null,
@@ -4619,7 +4624,7 @@
                     DocumentNumber: currentEditPO.docNum,
                     DocumentLineNumber: String(line.line_number || line.LINE_NUMBER || ''),
                     ItemNumber: line.item_number || line.ITEM_NUMBER || '',
-                    OrganizationCode: organizationCode,
+                    OrganizationCode: line.to_organization_code || line.TO_ORGANIZATION_CODE || organizationCode,
                     Quantity: qty,
                     FromOrganizationCode: null,
                     UnitOfMeasure: line.uom || line.UOM || line.primary_uom_code || line.PRIMARY_UOM_CODE || ''
